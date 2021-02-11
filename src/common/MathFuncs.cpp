@@ -1,0 +1,253 @@
+#include "common/MathFuncs.h"
+
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/component_wise.hpp>
+#include <glm/gtx/transform.hpp>
+
+#include <algorithm>
+#include <cmath>
+#include <cstdlib>
+#include <limits>
+#include <random>
+#include <string>
+
+
+namespace math
+{
+
+std::vector< glm::vec3 > generateRandomHsvSamples(
+        size_t numSamples,
+        const std::pair< float, float >& hueMinMax,
+        const std::pair< float, float >& satMinMax,
+        const std::pair< float, float >& valMinMax,
+        const std::optional<uint32_t>& seed )
+{
+    std::mt19937_64 generator;
+    generator.seed( seed ? *seed : std::mt19937_64::default_seed );
+
+    std::uniform_real_distribution<float> dist( 0.0f, 1.0f );
+
+    const float A = ( satMinMax.second * satMinMax.second -
+                      satMinMax.first * satMinMax.first );
+
+    const float B = satMinMax.first * satMinMax.first;
+
+    const float C = ( valMinMax.second * valMinMax.second * valMinMax.second -
+                      valMinMax.first * valMinMax.first * valMinMax.first );
+
+    const float D = valMinMax.first * valMinMax.first * valMinMax.first;
+
+    std::vector< glm::vec3 > samples;
+    samples.reserve( numSamples );
+
+    for ( size_t i = 0; i < numSamples; ++i )
+    {
+        float hue = ( hueMinMax.second - hueMinMax.first ) * dist( generator ) + hueMinMax.first;
+        float sat = std::sqrt( dist( generator ) * A + B );
+        float val = std::pow( dist( generator ) * C + D, 1.0f / 3.0f );
+
+        samples.push_back( glm::vec3{ hue, sat, val } );
+    }
+
+    return samples;
+}
+
+
+glm::dvec3 computeSubjectImageDimensions(
+        const glm::u64vec3& pixelDimensions,
+        const glm::dvec3& pixelSpacing )
+{
+    return glm::dvec3{ static_cast<double>( pixelDimensions.x ) * pixelSpacing.x,
+                       static_cast<double>( pixelDimensions.y ) * pixelSpacing.y,
+                       static_cast<double>( pixelDimensions.z ) * pixelSpacing.z };
+}
+
+
+glm::dmat4 computeImagePixelToSubjectTransformation(
+        const glm::dmat3& directions,
+        const glm::dvec3& pixelSpacing,
+        const glm::dvec3& origin )
+{
+    return glm::dmat4{
+        glm::dvec4{ pixelSpacing.x * directions[0], 0.0 }, // column 0
+        glm::dvec4{ pixelSpacing.y * directions[1], 0.0 }, // column 1
+        glm::dvec4{ pixelSpacing.z * directions[2], 0.0 }, // column 2
+        glm::dvec4{ origin, 1.0 } };                       // column 3
+}
+
+
+glm::dmat4 computeImagePixelToTextureTransformation(
+        const glm::u64vec3& pixelDimensions )
+{
+    const glm::dvec3 invDim( 1.0 / static_cast<double>( pixelDimensions.x ),
+                             1.0 / static_cast<double>( pixelDimensions.y ),
+                             1.0 / static_cast<double>( pixelDimensions.z ) );
+
+    return glm::translate( 0.5 * invDim ) * glm::scale( invDim );
+}
+
+
+glm::vec3 computeInvPixelDimensions( const glm::u64vec3& pixelDimensions )
+{
+    const glm::dvec3 invDim( 1.0 / static_cast<double>( pixelDimensions.x ),
+                             1.0 / static_cast<double>( pixelDimensions.y ),
+                             1.0 / static_cast<double>( pixelDimensions.z ) );
+
+    return invDim;
+}
+
+
+std::pair< glm::dvec3, glm::dvec3 > computeImageSubjectAABBoxCorners(
+        const glm::u64vec3& pixelDims,
+        const glm::dmat3& directions,
+        const glm::dvec3& spacing,
+        const glm::dvec3& origin )
+{
+    static constexpr size_t N = 8; // Image has 8 corners
+
+    const glm::dmat4 subject_T_pixel = computeImagePixelToSubjectTransformation( directions, spacing, origin );
+    const glm::u64vec3 D = pixelDims - glm::u64vec3{ 1, 1, 1 };
+
+    const std::array< glm::dvec3, N > pixelCorners =
+    {
+        glm::dvec3{ 0.0, 0.0, 0.0 },
+        glm::dvec3{ D.x, 0.0, 0.0 },
+        glm::dvec3{ 0.0, D.y, 0.0 },
+        glm::dvec3{ D.x, D.y, 0.0 },
+        glm::dvec3{ 0.0, 0.0, D.z },
+        glm::dvec3{ D.x, 0.0, D.z },
+        glm::dvec3{ 0.0, D.y, D.z },
+        glm::dvec3{ D.x, D.y, D.z }
+    };
+
+    std::array< glm::dvec3, N > subjectCorners;
+
+    std::transform( std::begin( pixelCorners ), std::end( pixelCorners ),
+                    std::begin( subjectCorners ),
+                    [ &subject_T_pixel ]( const glm::dvec3& v )
+    {
+        return glm::dvec3{ subject_T_pixel * glm::dvec4{ v, 1.0 } };
+    } );
+
+    glm::dvec3 minSubjectCorner{ std::numeric_limits<double>::max() };
+    glm::dvec3 maxSubjectCorner{ std::numeric_limits<double>::lowest() };
+
+    for ( uint32_t c = 0; c < N; ++c )
+    {
+        for ( int i = 0; i < 3; ++i )
+        {
+            if ( subjectCorners[c][i] < minSubjectCorner[i] )
+            {
+                minSubjectCorner[i] = subjectCorners[c][i];
+            }
+
+            if ( subjectCorners[c][i] > maxSubjectCorner[i] )
+            {
+                maxSubjectCorner[i] = subjectCorners[c][i];
+            }
+        }
+    }
+
+    return std::make_pair( minSubjectCorner, maxSubjectCorner );
+}
+
+
+std::array< glm::vec3, 8 > computeAllBoxCorners(
+        const std::pair< glm::vec3, glm::vec3 >& boxMinMaxCorners )
+{
+    const glm::vec3 size = boxMinMaxCorners.second - boxMinMaxCorners.first;
+
+    std::array< glm::vec3, 8 > corners =
+    {
+        {
+            glm::vec3{ 0, 0, 0 },
+            glm::vec3{ size.x, 0, 0 },
+            glm::vec3{ 0, size.y, 0 },
+            glm::vec3{ 0, 0, size.z },
+            glm::vec3{ size.x, size.y, 0 },
+            glm::vec3{ size.x, 0, size.z },
+            glm::vec3{ 0, size.y, size.z },
+            glm::vec3{ size.x, size.y, size.z }
+        }
+    };
+
+    std::for_each( std::begin(corners), std::end(corners), [ &boxMinMaxCorners ] ( glm::vec3& corner )
+    {
+        corner = corner + boxMinMaxCorners.first;
+    } );
+
+    return corners;
+}
+
+
+std::pair< std::string, bool > computeSpiralCodeFromDirectionMatrix( const glm::dmat3& directions )
+{
+    // Fourth character is null-terminating character
+    char spiralCode[4] = "???";
+
+    // LPS directions are positive
+    static const char codes[3][2] = { {'R', 'L'}, {'A', 'P'}, {'I', 'S'} };
+
+    bool isOblique = false;
+
+    for ( uint32_t i = 0; i < 3; ++i )
+    {
+        // Direction cosine for voxel direction i
+        const glm::dvec3 dir = directions[i];
+
+        uint32_t closestDir = 0;
+        double maxDot = -999.0;
+        uint32_t sign = 0;
+
+        for (uint32_t j = 0; j < 3; ++j )
+        {
+            glm::dvec3 a{ 0.0, 0.0, 0.0 };
+            a[j] = 1.0;
+
+            const double newDot = glm::dot( glm::abs( dir ), a );
+
+            if ( newDot > maxDot )
+            {
+                maxDot = newDot;
+                closestDir = j;
+
+                if ( glm::dot( dir, a ) < 0.0 )
+                {
+                    sign = 0;
+                }
+                else
+                {
+                    sign = 1;
+                }
+            }
+        }
+
+        spiralCode[i] = codes[closestDir][sign];
+
+        if ( glm::abs( maxDot ) < 1.0 )
+        {
+            isOblique = true;
+        }
+    }
+
+    return std::make_pair( std::string{ spiralCode }, isOblique );
+}
+
+
+void rotateFrameAboutWorldPos(
+        CoordinateFrame& frame,
+        const glm::quat& rotation,
+        const glm::vec3& worldCenter )
+{
+    const glm::quat oldRotation = frame.world_T_frame_rotation();
+    const glm::vec3 oldOrigin = frame.worldOrigin();
+
+    frame.setFrameToWorldRotation( rotation * oldRotation );
+    frame.setWorldOrigin( rotation * ( oldOrigin - worldCenter ) + worldCenter );
+}
+
+} // namespace math
