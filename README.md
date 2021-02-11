@@ -4,9 +4,9 @@
 
 Copyright 2021 Penn Image Computing and Science Lab, Department of Radiology, University of Pennsylvania.
 
-## Build Requirements
+## Building
 
-Antropy requires C++17 and build geneation uses CMake. It has been built on the following platforms:
+Antropy requires C++17 and build generation uses CMake. It has been built on the following platforms:
 
 * Ubuntu 20.04 (with gcc 9.3.0)
 * macOS 10.14.6 (with Apple clang 11.0.0)
@@ -52,7 +52,7 @@ The following external resources have been committed directly to the Antropy rep
 Original attributions and licenses have been preserved and committed for all external sources and resources.
 
 
-## Running Antropy
+## Running
 
 Antropy is run from the terminal. Images can be specified directly as command line arguments or from a JSON project file.
 
@@ -120,8 +120,9 @@ With this input format, each image may have only one segmentation.
 Logs are output to the console and to files saved in the `logs` folder. Log level can be set using the `-l` argument. See help (`-h`) for more details.
 
 
-## Work in Progress
+## To be done
 
-- [x] Vector annotations
-- [ ] Saving modifications to project files from the UI
-- [ ] A list of deformation field images can also be provided ("deformation") for each image. The deformation fields are loaded, but code has not been implemented to apply them to warp the image.
+- [x] Vector annotations (in progress)
+- [ ] Saving modifications to project files
+- [ ] 3D rendering of landmark points
+- [ ] A list of deformation field images can also be provided ("deformation" field in JSON project) for each image. The deformation fields are loaded, but code has not been implemented to apply them to warp the image.
