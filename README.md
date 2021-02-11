@@ -24,7 +24,6 @@ The following libraries and depdencies are brought in as Git submodules to the A
 * argparse (https://github.com/p-ranav/argparse.git)
 * CMakeRC (https://github.com/vector-of-bool/cmrc.git)
 * "Dear ImGui" (https://github.com/ocornut/imgui.git)
-* Earcut (https://github.com/mapbox/earcut.hpp.git)
 * ghc::filesystem (https://github.com/gulrak/filesystem.git)
 * GLFW (https://github.com/glfw/glfw.git)
 * GLM (https://github.com/g-truc/glm.git)
