@@ -21,6 +21,15 @@
 CMRC_DECLARE(colormaps);
 
 
+namespace
+{
+
+// Empty vector of UIDs. Used as a return value.
+static const std::vector<uuids::uuid> sk_emptyUidVector{};
+
+}
+
+
 AppData::AppData()
     :
       m_settings(),
@@ -48,6 +57,8 @@ AppData::AppData()
       m_landmarkGroups(),
       m_landmarkGroupUidsOrdered(),
 
+      m_annotations(),
+
       m_refImageUid( std::nullopt ),
       m_activeImageUid( std::nullopt ),
 
@@ -58,7 +69,9 @@ AppData::AppData()
       m_imageToActiveDef(),
 
       m_imageToLandmarkGroups(),
-      m_imagesToSegment()
+      m_imageToAnnotations(),
+
+      m_imagesBeingSegmented()
 {
     spdlog::debug( "Start loading image color maps" );
     loadImageColorMaps();
@@ -253,6 +266,21 @@ uuids::uuid AppData::addLandmarkGroup( LandmarkGroup lmGroup )
     m_landmarkGroups.emplace( uid, std::move(lmGroup) );
     m_landmarkGroupUidsOrdered.push_back( uid );
     return uid;
+}
+
+std::optional<uuids::uuid> AppData::addAnnotation(
+        const uuids::uuid& imageUid, Annotation annotation )
+{
+    if ( ! image( imageUid ) )
+    {
+        return std::nullopt; // invalid image UID
+    }
+
+    auto annotUid = generateRandomUuid();
+    m_annotations.emplace( annotUid, std::move(annotation) );
+    m_imageToAnnotations[imageUid].emplace_back( annotUid );
+
+    return annotUid;
 }
 
 size_t AppData::addLabelColorTable( size_t numLabels, size_t maxNumLabels )
@@ -450,6 +478,20 @@ LandmarkGroup* AppData::landmarkGroup( const uuids::uuid& lmGroupUid )
 {
     auto it = m_landmarkGroups.find( lmGroupUid );
     if ( std::end(m_landmarkGroups) != it ) return &it->second;
+    return nullptr;
+}
+
+const Annotation* AppData::annotation( const uuids::uuid& annotUid ) const
+{
+    auto it = m_annotations.find( annotUid );
+    if ( std::end(m_annotations) != it ) return &it->second;
+    return nullptr;
+}
+
+Annotation* AppData::annotation( const uuids::uuid& annotUid )
+{
+    auto it = m_annotations.find( annotUid );
+    if ( std::end(m_annotations) != it ) return &it->second;
     return nullptr;
 }
 
@@ -754,14 +796,15 @@ bool AppData::assignDefUidToImage( const uuids::uuid& imageUid, const uuids::uui
 }
 
 
-std::vector<uuids::uuid> AppData::imageToLandmarkGroupUids( const uuids::uuid& imageUid ) const
+const std::vector<uuids::uuid>&
+AppData::imageToLandmarkGroupUids( const uuids::uuid& imageUid ) const
 {
     auto it = m_imageToLandmarkGroups.find( imageUid );
     if ( std::end(m_imageToLandmarkGroups) != it )
     {
         return it->second;
     }
-    return std::vector<uuids::uuid>{};
+    return sk_emptyUidVector;
 }
 
 bool AppData::assignLandmarkGroupUidToImage( const uuids::uuid& imageUid, uuids::uuid lmGroupUid )
@@ -774,26 +817,37 @@ bool AppData::assignLandmarkGroupUidToImage( const uuids::uuid& imageUid, uuids:
     return false;
 }
 
-void AppData::setImageSegActive( const uuids::uuid& imageUid, bool set )
+const std::vector<uuids::uuid>&
+AppData::annotationsForImage( const uuids::uuid& imageUid ) const
+{
+    auto it = m_imageToAnnotations.find( imageUid );
+    if ( std::end(m_imageToAnnotations) != it )
+    {
+        return it->second;
+    }
+    return sk_emptyUidVector;
+}
+
+void AppData::setImageBeingSegmented( const uuids::uuid& imageUid, bool set )
 {
     if ( set )
     {
-        m_imagesToSegment.insert( imageUid );
+        m_imagesBeingSegmented.insert( imageUid );
     }
     else
     {
-        m_imagesToSegment.erase( imageUid );
+        m_imagesBeingSegmented.erase( imageUid );
     }
 }
 
-bool AppData::isImageSegActive( const uuids::uuid& imageUid ) const
+bool AppData::isImageBeingSegmented( const uuids::uuid& imageUid ) const
 {
-    return ( m_imagesToSegment.count( imageUid ) > 0 );
+    return ( m_imagesBeingSegmented.count( imageUid ) > 0 );
 }
 
-uuid_range_t AppData::imagesToSegment() const
+uuid_range_t AppData::imagesBeingSegmented() const
 {
-    return m_imagesToSegment;
+    return m_imagesBeingSegmented;
 }
 
 std::optional<uuids::uuid> AppData::imageUid( size_t index ) const

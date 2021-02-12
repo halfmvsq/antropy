@@ -316,7 +316,7 @@ void ImGuiWrapper::render()
     {
         if ( const auto imageUid = m_appData.imageUid( index ) )
         {
-            return m_appData.isImageSegActive( *imageUid );
+            return m_appData.isImageBeingSegmented( *imageUid );
         }
         else
         {
@@ -329,7 +329,7 @@ void ImGuiWrapper::render()
     {
         if ( const auto imageUid = m_appData.imageUid( index ) )
         {
-            m_appData.setImageSegActive( *imageUid, set );
+            m_appData.setImageBeingSegmented( *imageUid, set );
         }
         else
         {

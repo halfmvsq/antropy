@@ -493,7 +493,7 @@ void CallbackHandler::doSegment(
     std::unordered_set< uuids::uuid > segUids;
     segUids.insert( *activeSegUid );
 
-    for ( const auto& imageUid : m_appData.imagesToSegment() )
+    for ( const auto& imageUid : m_appData.imagesBeingSegmented() )
     {
         if ( const auto segUid = m_appData.imageToActiveSegUid( imageUid ) )
         {

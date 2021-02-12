@@ -11,9 +11,7 @@ Polygon::Polygon()
       m_vertices(),
       m_triangulation(),
       m_currentUid(),
-      m_aabb( std::nullopt ),
-      m_color( 0.5f, 0.5f, 0.5f )
-//      m_opacity( 1.0f )
+      m_aabb( std::nullopt )
 {}
 
 

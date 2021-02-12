@@ -9,6 +9,7 @@
 #include "image/ImageColorMap.h"
 
 #include "logic/AppSettings.h"
+#include "logic/annotation/Annotation.h"
 #include "logic/annotation/LandmarkGroup.h"
 #include "logic/serialization/ProjectSerialization.h"
 
@@ -28,6 +29,10 @@
 #include <vector>
 
 
+/**
+ * @brief Holds all application data
+ * @todo A simple database would be better suited for this purpose
+ */
 class AppData
 {
 public:
@@ -89,6 +94,16 @@ public:
      */
     uuids::uuid addLandmarkGroup( LandmarkGroup lmGroup );
 
+    /**
+     * @brief Add an annotation and associate it with an image
+     * @param[in] imageUid Image UID
+     * @param[in] annotation New annotation
+     * @return If the image exists, return the annotation's newly generated unique identifier;
+     * otherwise return nullopt.
+     */
+    std::optional<uuids::uuid> addAnnotation(
+            const uuids::uuid& imageUid, Annotation annotation );
+
 //    bool removeImage( const uuids::uuid& imageUid );
     bool removeSeg( const uuids::uuid& segUid );
     bool removeDef( const uuids::uuid& defUid );
@@ -109,6 +124,15 @@ public:
 
     const LandmarkGroup* landmarkGroup( const uuids::uuid& lmGroupUid ) const;
     LandmarkGroup* landmarkGroup( const uuids::uuid& lmGroupUid );
+
+    /**
+     * @brief Get an annotation by UID
+     * @param annotUid Annotation UID
+     * @return Raw pointer to the annotation if it exists;
+     * nullptr if the annotation does not exist
+     */
+    const Annotation* annotation( const uuids::uuid& annotUid ) const;
+    Annotation* annotation( const uuids::uuid& annotUid );
 
     /// Set/get the reference image UID
     bool setRefImageUid( const uuids::uuid& refImageUid );
@@ -175,13 +199,22 @@ public:
 
     /// Assign a group of landmarks to an image
     bool assignLandmarkGroupUidToImage( const uuids::uuid& imageUid, uuids::uuid lmGroupUid );
-    std::vector<uuids::uuid> imageToLandmarkGroupUids( const uuids::uuid& imageUid ) const;
+    const std::vector<uuids::uuid>& imageToLandmarkGroupUids( const uuids::uuid& imageUid ) const;
+
+    /**
+     * @brief Get a vector of all annotations assigned to a given image. The annotation order
+     * corresponds to the order in which the annotations were added to the image.
+     * @param imageUid Image UID
+     * @return Vector of (ordered) annotation UIDs for the image.
+     * The vector is empty if the image has no annotations or the image UID is invalid.
+     */
+    const std::vector<uuids::uuid>& annotationsForImage( const uuids::uuid& imageUid ) const;
 
     /// Set/get whether the image is
-    void setImageSegActive( const uuids::uuid& imageUid, bool set );
-    bool isImageSegActive( const uuids::uuid& imageUid ) const;
+    void setImageBeingSegmented( const uuids::uuid& imageUid, bool set );
+    bool isImageBeingSegmented( const uuids::uuid& imageUid ) const;
 
-    uuid_range_t imagesToSegment() const;
+    uuid_range_t imagesBeingSegmented() const;
 
 
     std::optional<uuids::uuid> imageUid( size_t index ) const;
@@ -237,6 +270,8 @@ private:
     std::unordered_map<uuids::uuid, LandmarkGroup> m_landmarkGroups; //!< Landmark groups
     std::vector<uuids::uuid> m_landmarkGroupUidsOrdered; //!< Landmark group UIDs in order
 
+    std::unordered_map<uuids::uuid, Annotation> m_annotations; //!< Annotations
+
     /// ID of the reference image. This is null iff there are no images.
     std::optional<uuids::uuid> m_refImageUid;
 
@@ -253,8 +288,11 @@ private:
     /// Map of image to its landmark groups
     std::unordered_map< uuids::uuid, std::vector<uuids::uuid> > m_imageToLandmarkGroups;
 
+    /// Map of image to its annotations
+    std::unordered_map< uuids::uuid, std::vector<uuids::uuid> > m_imageToAnnotations;
+
     /// Is an image being segmented (in addition to the active image)?
-    std::unordered_set< uuids::uuid > m_imagesToSegment;
+    std::unordered_set< uuids::uuid > m_imagesBeingSegmented;
 };
 
 #endif // APP_DATA_H

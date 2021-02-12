@@ -4,7 +4,6 @@
 #include "common/AABB.h"
 
 #include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
 
 #include <uuid.h>
 
@@ -133,12 +132,6 @@ private:
 
     /// 2D axis-aligned bounding box of the polygon; set to none if the polygon is empty.
     std::optional< AABBoxType > m_aabb;
-
-    /// Polygon color (non-pre-multiplied RGB triple)
-    glm::vec3 m_color;
-
-    /// Polygon opacity in [0.0, 1.0] range
-//    float m_opacity;
 };
 
 #endif // POLYGON_H

@@ -277,6 +277,7 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/logic/Logging.cpp
 
     # ${SRC_DIR}/logic/annotation/AnnotationHelper.cpp
+    ${SRC_DIR}/logic/annotation/Annotation.cpp
     ${SRC_DIR}/logic/annotation/LandmarkGroup.cpp
     ${SRC_DIR}/logic/annotation/Polygon.cpp
 
