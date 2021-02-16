@@ -143,8 +143,8 @@ public:
     bool setActiveImageUid( const uuids::uuid& activeImageUid );
     std::optional<uuids::uuid> activeImageUid() const;
 
-    /// Set rainbow colors for all of the image edges
-    void setRainbowColorsForImageEdges();
+    /// Set rainbow colors for the image border and edges
+    void setRainbowColorsForImage();
 
     /// Set rainbow colors for all of the landmark groups.
     /// Copy the image edge color

@@ -799,6 +799,73 @@ void renderAnatomicalLabels(
 }
 
 
+// Draw a circle
+void drawCircle(
+        NVGcontext* nvg,
+        const glm::vec2& mousePos,
+        float radius,
+        const glm::vec4& fillColor,
+        const glm::vec4& strokeColor,
+        float strokeWidth )
+{
+    nvgBeginPath( nvg );
+    {
+        nvgStrokeWidth( nvg, strokeWidth );
+        nvgStrokeColor( nvg, nvgRGBAf( strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a ) );
+        nvgFillColor( nvg, nvgRGBAf( fillColor.r, fillColor.g, fillColor.b, fillColor.a ) );
+
+        nvgCircle( nvg, mousePos.x, mousePos.y, radius );
+
+        nvgStroke( nvg );
+        nvgFill( nvg );
+    }
+}
+
+
+// Draw text
+void drawText(
+        NVGcontext* nvg,
+        const glm::vec2& mousePos,
+        const std::string& centeredString,
+        const std::string& offsetString,
+        const glm::vec4& textColor,
+        float offset,
+        float fontSizePixels )
+{
+    nvgFontFace( nvg, ROBOTO_LIGHT.c_str() );
+
+    // Draw centered text
+    if ( ! centeredString.empty() )
+    {
+        nvgFontSize( nvg, 1.0f * fontSizePixels );
+        nvgTextAlign( nvg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE );
+
+        nvgFontBlur( nvg, 3.0f );
+        nvgFillColor( nvg, nvgRGBAf( 0.0f, 0.0f, 0.0f, textColor.a ) );
+        nvgText( nvg, mousePos.x, mousePos.y, centeredString.c_str(), nullptr );
+
+        nvgFontBlur( nvg, 0.0f );
+        nvgFillColor( nvg, nvgRGBAf( textColor.r, textColor.g, textColor.b, textColor.a ) );
+        nvgText( nvg, mousePos.x, mousePos.y, centeredString.c_str(), nullptr );
+    }
+
+    // Draw offset text
+    if ( ! offsetString.empty() )
+    {
+        nvgFontSize( nvg, 1.15f * fontSizePixels );
+        nvgTextAlign( nvg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP );
+
+        nvgFontBlur( nvg, 3.0f );
+        nvgFillColor( nvg, nvgRGBAf( 0.0f, 0.0f, 0.0f, textColor.a ) );
+        nvgText( nvg, offset + mousePos.x, offset + mousePos.y, offsetString.c_str(), nullptr );
+
+        nvgFontBlur( nvg, 0.0f );
+        nvgFillColor( nvg, nvgRGBAf( textColor.r, textColor.g, textColor.b, textColor.a ) );
+        nvgText( nvg, offset + mousePos.x, offset + mousePos.y, offsetString.c_str(), nullptr );
+    }
+}
+
+
 void renderLandmarks(
         NVGcontext* nvg,
         const Viewport& windowVP,
@@ -814,224 +881,247 @@ void renderLandmarks(
     // Convert a 3D position from World space to the view's Mouse space
     auto convertWorldToMousePos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
     {
-        const glm::vec4 winClipPos = view.winClip_T_viewClip() * camera::clip_T_world( view.camera() ) * glm::vec4{ worldPos, 1.0f };
+        const glm::vec4 winClipPos =
+                view.winClip_T_viewClip() *
+                camera::clip_T_world( view.camera() ) *
+                glm::vec4{ worldPos, 1.0f };
+
         const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
         const glm::vec2 mousePos = camera::mouse_T_view( windowVP, pixelPos );
         return mousePos;
     };
 
-    // Draw a circle
-    auto drawCircle = [nvg] (
-            const glm::vec2& mousePos,
-            float radius,
-            const glm::vec4& fillColor,
-            const glm::vec4& strokeColor,
-            float strokeWidth )
+
+    startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
+
+    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
+    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+
+    const float viewWidth = viewTR.x - viewBL.x;
+    const float viewHeight = viewTR.y - viewBL.y;
+
+    // Clip against the view bounds
+    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
+
+    const float strokeWidth = appData.renderData().m_globalLandmarkParams.strokeWidth;
+
+    const glm::vec3 worldViewNormal = camera::worldDirection( view.camera(), Directions::View::Back );
+    const glm::vec4 worldViewPlane = math::makePlane( worldViewNormal, worldCrosshairs );
+
+    // Render landmarks for each image
+    for ( const auto& imgSegPair : I )
     {
-        nvgBeginPath( nvg );
+        if ( ! imgSegPair.first )
         {
-            nvgStrokeWidth( nvg, strokeWidth );
-            nvgStrokeColor( nvg, nvgRGBAf( strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a ) );
-            nvgFillColor( nvg, nvgRGBAf( fillColor.r, fillColor.g, fillColor.b, fillColor.a ) );
-
-            nvgCircle( nvg, mousePos.x, mousePos.y, radius );
-
-            nvgStroke( nvg );
-            nvgFill( nvg );
-        }
-    };
-
-    // Draw text
-    auto drawText = [nvg] (
-            const glm::vec2& mousePos,
-            const std::string& centeredString,
-            const std::string& offsetString,
-            const glm::vec4& textColor,
-            float offset,
-            float fontSizePixels )
-    {
-        nvgFontFace( nvg, ROBOTO_LIGHT.c_str() );
-
-        // Draw centered text
-        if ( ! centeredString.empty() )
-        {
-            nvgFontSize( nvg, 1.0f * fontSizePixels );
-            nvgTextAlign( nvg, NVG_ALIGN_CENTER | NVG_ALIGN_MIDDLE );
-
-            nvgFontBlur( nvg, 3.0f );
-            nvgFillColor( nvg, nvgRGBAf( 0.0f, 0.0f, 0.0f, textColor.a ) );
-            nvgText( nvg, mousePos.x, mousePos.y, centeredString.c_str(), nullptr );
-
-            nvgFontBlur( nvg, 0.0f );
-            nvgFillColor( nvg, nvgRGBAf( textColor.r, textColor.g, textColor.b, textColor.a ) );
-            nvgText( nvg, mousePos.x, mousePos.y, centeredString.c_str(), nullptr );
+            // Non-existent image
+            continue;
         }
 
-        // Draw offset text
-        if ( ! offsetString.empty() )
+        const auto imgUid = *( imgSegPair.first );
+        const Image* img = appData.image( imgUid );
+
+        if ( ! img )
         {
-            nvgFontSize( nvg, 1.15f * fontSizePixels );
-            nvgTextAlign( nvg, NVG_ALIGN_LEFT | NVG_ALIGN_TOP );
-
-            nvgFontBlur( nvg, 3.0f );
-            nvgFillColor( nvg, nvgRGBAf( 0.0f, 0.0f, 0.0f, textColor.a ) );
-            nvgText( nvg, offset + mousePos.x, offset + mousePos.y, offsetString.c_str(), nullptr );
-
-            nvgFontBlur( nvg, 0.0f );
-            nvgFillColor( nvg, nvgRGBAf( textColor.r, textColor.g, textColor.b, textColor.a ) );
-            nvgText( nvg, offset + mousePos.x, offset + mousePos.y, offsetString.c_str(), nullptr );
+            spdlog::error( "Null image {} when rendering landmarks", imgUid );
+            continue;
         }
-    };
 
-
-    startNvgFrame( nvg, windowVP );
-    {
-        const float strokeWidth = appData.renderData().m_globalLandmarkParams.strokeWidth;
-
-        const glm::vec3 worldViewNormal = camera::worldDirection( view.camera(), Directions::View::Back );
-        const glm::vec4 worldViewPlane = math::makePlane( worldViewNormal, worldCrosshairs );
-
-        const auto& minMaxCoords = view.winMouseMinMaxCoords();
-        const float viewWidth = minMaxCoords.second.x - minMaxCoords.first.x;
-        const float viewHeight = minMaxCoords.second.y - minMaxCoords.first.y;
-
-        // Render landmarks for each image
-        for ( const auto& imgSegPair : I )
+        // Don't render landmarks for invisible image:
+        /// @todo Need to properly manage global visibility vs. visibility for just one component
+        if ( ! img->settings().globalVisibility() ||
+             ( 1 == img->header().numComponentsPerPixel() && ! img->settings().visibility() ) )
         {
-            if ( ! imgSegPair.first )
+            continue;
+        }
+
+        const auto lmGroupUids = appData.imageToLandmarkGroupUids( imgUid );
+        if ( lmGroupUids.empty() ) continue;
+
+        // Slice spacing of the image along the view normal
+        const float sliceSpacing = data::sliceScrollDistance( -worldViewNormal, *img );
+
+        for ( const auto& lmGroupUid : lmGroupUids )
+        {
+            const LandmarkGroup* lmGroup = appData.landmarkGroup( lmGroupUid );
+            if ( ! lmGroup )
             {
-                // Non-existent image
+                spdlog::error( "Null landmark group for image {}", imgUid );
                 continue;
             }
 
-            const auto imgUid = *( imgSegPair.first );
-            const Image* img = appData.image( imgUid );
-
-            if ( ! img )
+            if ( ! lmGroup->getVisibility() )
             {
-                spdlog::error( "Null image {} when rendering landmarks", imgUid );
                 continue;
             }
 
-            const auto lmGroupUids = appData.imageToLandmarkGroupUids( imgUid );
-            if ( lmGroupUids.empty() ) continue;
+            // Matrix that transforms landmark position from either Voxel or Subject to World space.
+            const glm::mat4 world_T_landmark = ( lmGroup->getInVoxelSpace() )
+                    ? img->transformations().worldDef_T_pixel()
+                    : img->transformations().worldDef_T_subject();
 
-            // Slice spacing of the image along the view normal
-            const float sliceSpacing = data::sliceScrollDistance( -worldViewNormal, *img );
+            const float pixelsMaxLmSize = glm::clamp(
+                        lmGroup->getRadiusFactor() * std::min( viewWidth, viewHeight ),
+                        sk_minSize , sk_maxSize );
 
-            for ( const auto& lmGroupUid : lmGroupUids )
+            for ( const auto& p : lmGroup->getPoints() )
             {
-                const LandmarkGroup* lmGroup = appData.landmarkGroup( lmGroupUid );
-                if ( ! lmGroup )
-                {
-                    spdlog::error( "Null landmark group for image {}", imgUid );
-                    continue;
-                }
+                const size_t index = p.first;
+                const PointRecord<glm::vec3>& point = p.second;
 
-                if ( ! lmGroup->getVisibility() )
+                if ( ! point.getVisibility() ) continue;
+
+                // Put landmark into World space
+                const glm::vec4 worldLmPos = world_T_landmark * glm::vec4{ point.getPosition(), 1.0f };
+                const glm::vec3 worldLmPos3 = glm::vec3{ worldLmPos / worldLmPos.w };
+
+                // Landmark must be within a distance of half the image slice spacing along the
+                // direction of the view to be rendered in the view
+                const float distLmToPlane = std::abs( math::signedDistancePointToPlane( worldLmPos3, worldViewPlane ) );
+
+                // Maximum distance beyond which the landmark is not rendered:
+                const float maxDist = 0.5f * sliceSpacing;
+
+                if ( distLmToPlane >= maxDist )
                 {
                     continue;
                 }
 
-                // Matrix that transforms landmark position from either Voxel or Subject to World space.
-                const glm::mat4 world_T_landmark = ( lmGroup->getInVoxelSpace() )
-                        ? img->transformations().worldDef_T_pixel()
-                        : img->transformations().worldDef_T_subject();
+                const glm::vec2 mousePos = convertWorldToMousePos( worldLmPos3 );
 
-                const float pixelsMaxLmSize = glm::clamp(
-                            lmGroup->getRadiusFactor() * std::min( viewWidth, viewHeight ),
-                            sk_minSize , sk_maxSize );
+                const bool inView = ( viewBL.x < mousePos.x && viewBL.y < mousePos.y &&
+                                      mousePos.x < viewTR.x && mousePos.y < viewTR.y );
 
-                for ( const auto& p : lmGroup->getPoints() )
+                if ( ! inView ) continue;
+
+                // Use the landmark group color if defined
+                const bool lmGroupColorOverride = lmGroup->getColorOverride();
+                const glm::vec3 lmGroupColor = lmGroup->getColor();
+                const float lmGroupOpacity = lmGroup->getOpacity();
+
+                // Non-premult. alpha:
+                const glm::vec4 fillColor{ ( lmGroupColorOverride )
+                            ? lmGroupColor : point.getColor(),
+                            lmGroupOpacity };
+
+                /// @todo If landmark is selected, then highlight it here:
+                const float strokeOpacity = 1.0f - std::pow( ( lmGroupOpacity - 1.0f ), 2.0f );
+
+                const glm::vec4 strokeColor{ ( lmGroupColorOverride )
+                            ? lmGroupColor : point.getColor(),
+                            strokeOpacity };
+
+                // Landmark radius depends on distance of the view plane from the landmark center
+                const float radius = pixelsMaxLmSize *
+                        std::sqrt( std::abs( 1.0f - std::pow( distLmToPlane / maxDist, 2.0f ) ) );
+
+                drawCircle( nvg, mousePos, radius, fillColor, strokeColor, strokeWidth );
+
+
+                const bool renderIndices = lmGroup->getRenderLandmarkIndices();
+                const bool renderNames = lmGroup->getRenderLandmarkNames();
+
+                if ( renderIndices || renderNames )
                 {
-                    const size_t index = p.first;
-                    const PointRecord<glm::vec3>& point = p.second;
+                    const float textOffset = radius + 0.7f;
+                    const float textSize = 0.9f * pixelsMaxLmSize;
 
-                    if ( ! point.getVisibility() ) continue;
+                    std::string indexString = ( renderIndices ) ? std::to_string( index ) : "";
+                    std::string nameString = ( renderNames ) ? point.getName() : "";
 
-                    // Put landmark into World space
-                    const glm::vec4 worldLmPos = world_T_landmark * glm::vec4{ point.getPosition(), 1.0f };
-                    const glm::vec3 worldLmPos3 = glm::vec3{ worldLmPos / worldLmPos.w };
+                    // Non premult. alpha:
+                    const auto lmGroupTextColor = lmGroup->getTextColor();
+                    const glm::vec4 textColor{ ( lmGroupTextColor )
+                                ? *lmGroupTextColor : fillColor, lmGroupOpacity };
 
-                    // Landmark must be within a distance of half the image slice spacing along the
-                    // direction of the view to be rendered in the view
-                    const float distLmToPlane = std::abs( math::signedDistancePointToPlane( worldLmPos3, worldViewPlane ) );
-
-                    // Maximum distance beyond which the landmark is not rendered:
-                    const float maxDist = 0.5f * sliceSpacing;
-
-                    if ( distLmToPlane < maxDist )
-                    {
-                        const glm::vec2 mousePos = convertWorldToMousePos( worldLmPos3 );
-
-                        const bool inView =
-                                ( view.winMouseMinMaxCoords().first.x < mousePos.x &&
-                                  view.winMouseMinMaxCoords().first.y < mousePos.y &&
-                                  mousePos.x < view.winMouseMinMaxCoords().second.x &&
-                                  mousePos.y < view.winMouseMinMaxCoords().second.y );
-
-                        if ( ! inView ) continue;
-
-                        // Use the landmark group color if defined
-                        const bool lmGroupColorOverride = lmGroup->getColorOverride();
-                        const glm::vec3 lmGroupColor = lmGroup->getColor();
-                        const float lmGroupOpacity = lmGroup->getOpacity();
-
-                        // Non-premult. alpha:
-                        const glm::vec4 fillColor{ ( lmGroupColorOverride )
-                                    ? lmGroupColor : point.getColor(),
-                                    lmGroupOpacity };
-
-                        /// @todo If landmark is selected, then highlight it here:
-                        const float strokeOpacity = 1.0f - std::pow( ( lmGroupOpacity - 1.0f ), 2.0f );
-
-                        const glm::vec4 strokeColor{ ( lmGroupColorOverride )
-                                    ? lmGroupColor : point.getColor(),
-                                    strokeOpacity };
-
-                        // Landmark radius depends on distance of the view plane from the landmark center
-                        const float radius = pixelsMaxLmSize *
-                                std::sqrt( std::abs( 1.0f - std::pow( distLmToPlane / maxDist, 2.0f ) ) );
-
-                        drawCircle( mousePos, radius, fillColor, strokeColor, strokeWidth );
-
-
-                        const bool renderIndices = lmGroup->getRenderLandmarkIndices();
-                        const bool renderNames = lmGroup->getRenderLandmarkNames();
-
-                        if ( renderIndices || renderNames )
-                        {
-                            const float textOffset = radius + 0.7f;
-                            const float textSize = 0.9f * pixelsMaxLmSize;
-
-                            std::string indexString = ( renderIndices ) ? std::to_string( index ) : "";
-                            std::string nameString = ( renderNames ) ? point.getName() : "";
-
-                            // Non premult. alpha:
-                            const auto lmGroupTextColor = lmGroup->getTextColor();
-                            const glm::vec4 textColor{ ( lmGroupTextColor )
-                                        ? *lmGroupTextColor : fillColor, lmGroupOpacity };
-
-                            drawText( mousePos, indexString, nameString, textColor, textOffset, textSize );
-                        }
-                    }
+                    drawText( nvg, mousePos, indexString, nameString, textColor, textOffset, textSize );
                 }
             }
         }
     }
-    endNvgFrame( nvg );
+
+    nvgResetScissor( nvg );
+
+    endNvgFrame( nvg ); /*** END FRAME ***/
 }
 
 
 void renderAnnotations(
         NVGcontext* /*nvg*/,
         const Viewport& /*windowVP*/,
-        const glm::vec3& /*worldCrosshairs*/,
         AppData& /*appData*/,
         const View& /*view*/,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& /*I*/ )
 {
+}
 
+
+void renderImageViewIntersections(
+        NVGcontext* nvg,
+        const Viewport& windowVP,
+        AppData& appData,
+        const View& view,
+        const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
+{
+    auto mouse_T_world = [&view, &windowVP] ( const glm::vec4& worldPos ) -> glm::vec2
+    {
+        const glm::vec4 winClipPos = view.winClip_T_viewClip() * camera::clip_T_world( view.camera() ) * worldPos;
+        const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos } );
+        return camera::mouse_T_view( windowVP, pixelPos );
+    };
+
+    nvgLineCap( nvg, NVG_BUTT );
+    nvgLineJoin( nvg, NVG_MITER );
+
+    nvgStrokeWidth( nvg, 1.0f );
+
+    startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
+
+    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
+    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+
+    const float viewWidth = viewTR.x - viewBL.x;
+    const float viewHeight = viewTR.y - viewBL.y;
+
+    // Clip against the view bounds
+    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
+
+    // Render border for each image
+    for ( const auto& imgSegPair : I )
+    {
+        if ( ! imgSegPair.first ) continue;
+        const auto imgUid = *( imgSegPair.first );
+        const Image* img = appData.image( imgUid );
+        if ( ! img ) continue;
+
+        const auto worldIntersections = view.computeImageSliceIntersection(
+                    img, appData.settings().worldCrosshairs() );
+
+        if ( ! worldIntersections ) continue;
+
+        const glm::vec3 color = img->settings().borderColor();
+        const float opacity = static_cast<float>( img->settings().visibility() ) * img->settings().opacity();
+
+        nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
+
+        nvgBeginPath( nvg );
+        {
+            const glm::vec2 firstPos = mouse_T_world( worldIntersections->at( 0 ) );
+            nvgMoveTo( nvg, firstPos.x, firstPos.y );
+
+            // Skip the last point, because it is the centroid of the intersection points
+            for ( size_t i = 1; i < worldIntersections->size() - 1; ++i )
+            {
+                const glm::vec2 mousePos = mouse_T_world( worldIntersections->at( i ) );
+                nvgLineTo( nvg, mousePos.x, mousePos.y );
+            }
+        }
+        nvgClosePath( nvg );
+        nvgStroke( nvg );
+    }
+
+    nvgResetScissor( nvg );
+
+    endNvgFrame( nvg ); /*** END FRAME ***/
 }
 
 
@@ -1091,31 +1181,38 @@ void renderCrosshairsOverlay(
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, 0.5f * color.a ) );
     }
 
-    const auto& minMaxCoords = view.winMouseMinMaxCoords();
+    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
+    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+
+    const float viewWidth = viewTR.x - viewBL.x;
+    const float viewHeight = viewTR.y - viewBL.y;
+
+    // Clip against the view bounds, even though not strictly necessary with how lines are defined
+    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
 
     // Vertical crosshair
-    if ( minMaxCoords.first.x < mouseXhairPos.x &&
-         mouseXhairPos.x < minMaxCoords.second.x )
+    if ( viewBL.x < mouseXhairPos.x && mouseXhairPos.x < viewTR.x )
     {
         nvgBeginPath( nvg );
         {
-            nvgMoveTo( nvg, mouseXhairPos.x, minMaxCoords.first.y );
-            nvgLineTo( nvg, mouseXhairPos.x, minMaxCoords.second.y );
+            nvgMoveTo( nvg, mouseXhairPos.x, viewBL.y );
+            nvgLineTo( nvg, mouseXhairPos.x, viewTR.y );
             nvgStroke( nvg );
         }
     }
 
     // Horizontal crosshair
-    if ( minMaxCoords.first.y < mouseXhairPos.y &&
-         mouseXhairPos.y < minMaxCoords.second.y )
+    if ( viewBL.y < mouseXhairPos.y && mouseXhairPos.y < viewTR.y )
     {
         nvgBeginPath( nvg );
         {
-            nvgMoveTo( nvg, minMaxCoords.first.x, mouseXhairPos.y );
-            nvgLineTo( nvg, minMaxCoords.second.x, mouseXhairPos.y );
+            nvgMoveTo( nvg, viewBL.x, mouseXhairPos.y );
+            nvgLineTo( nvg, viewTR.x, mouseXhairPos.y );
             nvgStroke( nvg );
         }
     }
+
+    nvgResetScissor( nvg );
 }
 
 
@@ -1178,7 +1275,7 @@ Rendering::Rendering( AppData& appData )
     :
       m_appData( appData ),
 
-      m_nvg( nvgCreateGL3( NVG_ANTIALIAS | NVG_STENCIL_STROKES | NVG_DEBUG ) ),
+      m_nvg( nvgCreateGL3( NVG_ANTIALIAS | NVG_STENCIL_STROKES /*| NVG_DEBUG*/ ) ),
 
       m_crossCorrelationProgram( "CrossCorrelationProgram" ),
       m_differenceProgram( "DifferenceProgram" ),
@@ -2223,64 +2320,72 @@ void Rendering::renderImages()
         return ( imageUid ? m_appData.image( *imageUid ) : nullptr );
     };
 
-    const glm::vec3 worldCrosshairs = m_appData.settings().worldCrosshairs().worldOrigin();
+    const glm::vec3 worldCrosshairsOrigin = m_appData.settings().worldCrosshairs().worldOrigin();
     const Layout& layout = m_appData.windowData().currentLayout();
 
     const bool renderLandmarksOnTop = m_appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
     const bool renderAnnotationsOnTop = m_appData.renderData().m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
+    const bool renderImageIntersections = m_appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections;
 
     if ( layout.isLightbox() )
     {
         auto renderImagesForAllCurrentViews =
-                [this, &layout, &worldCrosshairs, &renderLandmarksOnTop, &renderAnnotationsOnTop, &getImage]
+                [this, &layout, &worldCrosshairsOrigin, &renderLandmarksOnTop, &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
                 ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
         {
             for ( const auto& view : layout.views() )
             {
                 if ( ! view.second ) continue;
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairs ) ) continue;
+                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
 
                 renderPlane( program, layout.shaderType(),
-                             m_appData.renderData().m_quad, *view.second, worldCrosshairs,
+                             m_appData.renderData().m_quad, *view.second, worldCrosshairsOrigin,
                              m_appData.renderData().m_flashlightRadius,
                              I, getImage, showEdges );
 
                 if ( ! renderLandmarksOnTop )
                 {
-                    renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairs, m_appData, *view.second, I );
+                    renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                     setupOpenGlState();
                 }
 
                 if ( ! renderAnnotationsOnTop )
                 {
-                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairs, m_appData, *view.second, I );
+                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
                     setupOpenGlState();
                 }
+
+                // This breaks image rendering in the layout:
+//                if ( renderImageIntersections )
+//                {
+//                    renderImageViewIntersections( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
+//                    setupOpenGlState();
+//                }
             }
         };
 
-        auto renderLandmarksForAllCurrentViews = [this, &layout, &worldCrosshairs]
+        auto renderLandmarksForAllCurrentViews = [this, &layout, &worldCrosshairsOrigin]
                 ( const CurrentImages& I )
         {
             for ( const auto& view : layout.views() )
             {
                 if ( ! view.second ) continue;
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairs ) ) continue;
+                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
 
-                renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairs, m_appData, *view.second, I );
+                renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                 setupOpenGlState();
             }
         };
 
-        auto renderAnnotationsForAllCurrentViews = [this, &layout, &worldCrosshairs]
+        auto renderAnnotationsForAllCurrentViews = [this, &layout, &worldCrosshairsOrigin]
                 ( const CurrentImages& I )
         {
             for ( const auto& view : layout.views() )
             {
                 if ( ! view.second ) continue;
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairs ) ) continue;
+                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
 
-                renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairs, m_appData, *view.second, I );
+                renderAnnotations( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
                 setupOpenGlState();
             }
         };
@@ -2316,43 +2421,49 @@ void Rendering::renderImages()
         {
             if ( ! view.second ) continue;
 
-            auto renderImagesForView = [this, view, &worldCrosshairs, &renderLandmarksOnTop, &renderAnnotationsOnTop, &getImage]
+            auto renderImagesForView = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop, &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
                     ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
             {
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairs ) ) return;
+                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
 
                 renderPlane( program, view.second->shaderType(), m_appData.renderData().m_quad, *view.second,
-                             worldCrosshairs, m_appData.renderData().m_flashlightRadius,
+                             worldCrosshairsOrigin, m_appData.renderData().m_flashlightRadius,
                              I, getImage, showEdges );
 
                 if ( ! renderLandmarksOnTop )
                 {
-                    renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairs, m_appData, *view.second, I );
+                    renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                     setupOpenGlState();
                 }
 
                 if ( ! renderAnnotationsOnTop )
                 {
-                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairs, m_appData, *view.second, I );
+                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
+                    setupOpenGlState();
+                }
+
+                if ( renderImageIntersections )
+                {
+                    renderImageViewIntersections( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
                     setupOpenGlState();
                 }
             };
 
-            auto renderLandmarksForView = [this, view, &worldCrosshairs]
+            auto renderLandmarksForView = [this, view, &worldCrosshairsOrigin]
                     ( const CurrentImages& I )
             {
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairs ) ) return;
+                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
 
-                renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairs, m_appData, *view.second, I );
+                renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                 setupOpenGlState();
             };
 
-            auto renderAnnotationsForView = [this, view, &worldCrosshairs]
+            auto renderAnnotationsForView = [this, view, &worldCrosshairsOrigin]
                     ( const CurrentImages& I )
             {
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairs ) ) return;
+                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
 
-                renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairs, m_appData, *view.second, I );
+                renderAnnotations( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
                 setupOpenGlState();
             };
 

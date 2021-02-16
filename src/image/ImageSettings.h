@@ -46,6 +46,13 @@ public:
     const std::string& displayName() const;
 
 
+    /// Set the border color
+    void setBorderColor( glm::vec3 borderColor );
+
+    /// Get the border color
+    const glm::vec3& borderColor() const;
+
+
     /// Set window (in image intensity units) for a given component.
     void setWindow( uint32_t component, double window );
     void setWindow( double window );
@@ -105,6 +112,13 @@ public:
     /// Get the visibility of a given component
     bool visibility( uint32_t component ) const;
     bool visibility() const;
+
+
+    /// Set the global visibility for all components
+    void setGlobalVisibility( bool visible );
+
+    /// Get the global visibility for all components
+    bool globalVisibility() const;
 
 
     /// Set whether edges are shown for a given component
@@ -324,7 +338,11 @@ private:
         std::pair<double, double> m_minMaxThresholdRange; //!< Valid threshold range
     };
 
-    std::string m_displayName;
+    /*** Start settings for all components ***/
+    std::string m_displayName; //!< Display name of the image in the UI
+    bool m_globalVisibility; //!< Global visibility
+    glm::vec3 m_borderColor; //!< Border color
+    /*** End settings for all components ***/
 
     uint32_t m_numComponents; //!< Number of components per pixel
     ComponentType m_componentType; //!< Component type

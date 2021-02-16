@@ -10,6 +10,7 @@ class AppData;
 class ImageColorMap;
 class ImageTransformations;
 class LandmarkGroup;
+class ParcellationLabelTable;
 
 
 void renderActiveImageSelectionCombo(
@@ -18,6 +19,17 @@ void renderActiveImageSelectionCombo(
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex,
         bool showText = true );
+
+/**
+ * @brief Render child window that shows the labels for a given segmentation label table
+ * @param[in] tableIndex Index of the label table
+ * @param[in,out] labelTable Pointer to the label table
+ * @param[in] updateLabelColorTableTexture Function to update the label table texture
+ */
+void renderSegLabelsChildWindow(
+        size_t tableIndex,
+        ParcellationLabelTable* labelTable,
+        const std::function< void ( size_t tableIndex ) >& updateLabelColorTableTexture );
 
 void renderLandmarkChildWindow(
         const ImageTransformations& imageTransformations,

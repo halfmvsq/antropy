@@ -710,7 +710,26 @@ void renderSettingsWindow(
                                    glm::value_ptr( appData.renderData().m_anatomicalLabelColor ),
                                    colorAlphaEditFlags );
 
-                ImGui::Spacing();
+                // Show image-view intersection border
+                ImGui::Checkbox( "Image border",
+                                 &( appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections ) );
+                ImGui::SameLine();
+                helpMarker( "Show border of image intersection with view" );
+
+                /// @note strokeWidth seems to not work with NanoVG
+                /*
+                if ( appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections )
+                {
+                    constexpr float k_minWidth = 1.0f;
+                    constexpr float k_maxWidth = 5.0f;
+
+                    ImGui::SliderScalar( "Border width", ImGuiDataType_Float,
+                                         &appData.renderData().m_globalSliceIntersectionParams.strokeWidth,
+                                         &k_minWidth, &k_maxWidth, "%.1f" );
+
+                    ImGui::SameLine(); helpMarker( "Border width" );
+                }
+                */
 
 
                 // Crosshair snapping
@@ -776,21 +795,21 @@ void renderSettingsWindow(
                         appData.renderData().m_numCheckerboardSquares = numSquares;
                     }
                 }
-                ImGui::SameLine();
-                helpMarker( "Number of squares in 'checkerboard' views" );
+                ImGui::SameLine(); helpMarker( "Number of squares in 'checkerboard' views" );
 
 
                 // Flashlight radius
-                float radius = appData.renderData().m_flashlightRadius;
-                constexpr float k_minRadius = 0.01f;
-                constexpr float k_maxRadius = 1.00f;
+                const float radius = appData.renderData().m_flashlightRadius;
+                int radiusPercent = static_cast<int>( 100 * radius );
+                constexpr int k_minRadius = 1;
+                constexpr int k_maxRadius = 100;
 
-                if ( ImGui::SliderScalar( "Flashlight size", ImGuiDataType_Float, &radius, &k_minRadius, &k_maxRadius, "%.2f" ) )
+                if ( ImGui::SliderScalar( "Flashlight size", ImGuiDataType_S32, &radiusPercent, &k_minRadius, &k_maxRadius, "%d" ) )
                 {
-                    appData.renderData().m_flashlightRadius = radius;
+                    appData.renderData().m_flashlightRadius = static_cast<float>( radiusPercent ) / 100.0f;
                 }
                 ImGui::SameLine();
-                helpMarker( "Circle size for 'flashlight' views" );
+                helpMarker( "Circle size for 'flashlight' views, as a percentage of the view size" );
 
 
 

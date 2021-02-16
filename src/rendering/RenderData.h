@@ -177,8 +177,17 @@ struct RenderData
         bool renderOnTopOfAllImagePlanes = false;
     };
 
+    struct SliceIntersectionParams
+    {
+        float strokeWidth = 1.0f;
+
+        /// Render the intersections of images with the view planes?
+        bool renderImageViewIntersections = true;
+    };
+
     LandmarkParams m_globalLandmarkParams;
     AnnotationParams m_globalAnnotationParams;
+    SliceIntersectionParams m_globalSliceIntersectionParams;
 };
 
 #endif // RENDER_DATA_H

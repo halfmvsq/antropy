@@ -536,7 +536,7 @@ bool AppData::setActiveImageUid( const uuids::uuid& uid )
     return false;
 }
 
-void AppData::setRainbowColorsForImageEdges()
+void AppData::setRainbowColorsForImage()
 {
     constexpr float sat = 0.80f;
     constexpr float val = 0.90f;
@@ -551,6 +551,9 @@ void AppData::setRainbowColorsForImageEdges()
         {
             const float hue = 255.0f * static_cast<float>( i ) / N;
             const glm::vec3 color = glm::rgbColor( glm::vec3{ hue, sat, val } );
+
+            // Set the border color
+            img->settings().setBorderColor( color );
 
             // All image components get the same edge color
             for ( uint32_t c = 0; c < img->header().numComponentsPerPixel(); ++c )

@@ -13,6 +13,9 @@ ImageSettings::ImageSettings(
         std::vector< ComponentStats<double> > componentStats )
     :
       m_displayName( std::move( displayName ) ),
+      m_globalVisibility( true ),
+      m_borderColor{ 1.0f, 0.0f, 1.0f },
+
       m_numComponents( numComponents ),
       m_componentType( std::move( componentType ) ),
       m_componentStats( std::move( componentStats ) ),
@@ -77,6 +80,9 @@ ImageSettings::ImageSettings(
 
 void ImageSettings::setDisplayName( std::string name ) { m_displayName = std::move( name ); }
 const std::string& ImageSettings::displayName() const { return m_displayName; }
+
+void ImageSettings::setBorderColor( glm::vec3 borderColor ) { m_borderColor = std::move( borderColor ); }
+const glm::vec3& ImageSettings::borderColor() const { return m_borderColor; }
 
 void ImageSettings::setLevel( uint32_t i, double level )
 {
@@ -180,6 +186,9 @@ void ImageSettings::setVisibility( bool visible ) { setVisibility( m_activeCompo
 bool ImageSettings::visibility( uint32_t i ) const { return m_settings[i].m_visible; }
 bool ImageSettings::visibility() const { return visibility( m_activeComponent ); }
 
+
+void ImageSettings::setGlobalVisibility( bool visible ) { m_globalVisibility = visible; }
+bool ImageSettings::globalVisibility() const { return m_globalVisibility; }
 
 
 void ImageSettings::setShowEdges( uint32_t i, bool show ) { m_settings[i].m_showEdges = show; }

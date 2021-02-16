@@ -7,9 +7,10 @@
 
 /**
  * @brief helpMarker Helper to display a little (?) mark which shows a tooltip when hovered.
- * @param desc
+ * @param[in] tooltip
+ * @todo Set sameLine to true and remove other SameLine() calls
  */
-void helpMarker( const char* desc );
+void helpMarker( const char* tooltip, bool sameLine = false );
 
 bool mySliderS32( const char *label, int32_t* value,
                   int32_t min = 0, int32_t max = 100, const char* format = "%d" );

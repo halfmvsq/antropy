@@ -3,6 +3,8 @@
 #include "common/DataHelper.h"
 #include "common/Exception.hpp"
 
+#include "image/Image.h"
+
 #include "logic/AppData.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/CameraStartFrameType.h"
@@ -25,6 +27,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
+#include <array>
 #include <unordered_map>
 
 
@@ -63,20 +66,6 @@ smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap =
     { CameraStartFrameType::Crosshairs_Sagittal_ASR, glm::quat_cast( glm::mat3{ 0,-1,0, 0,0,1, -1,0,0 } ) },
 };
 
-
-/**
- * @brief Compute the matrix transformation between view Clip space and window Clip space.
- * @note This matrix does no transform the z coordinate.
- * @param clipVP The view's viewport, defined in Clip coordinates of the enclosing Window
- * @return Transformation
- */
-glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& clipVP )
-{
-    const glm::vec3 T{ clipVP[0] + 0.5f * clipVP[2], clipVP[1] + 0.5f * clipVP[3], 0.0f };
-    const glm::vec3 S{ 0.5f * clipVP[2], 0.5f * clipVP[3], 1.0f };
-    return glm::translate( T ) * glm::scale( S );
-}
-
 } // anonymous
 
 
@@ -89,7 +78,7 @@ View::View( Viewport winClipViewport,
             std::optional<uuids::uuid> zoomSyncGroup )
     :
       m_winClipViewport( std::move( winClipViewport ) ),
-      m_winClip_T_viewClip( compute_windowClip_T_viewClip( m_winClipViewport.getAsVec4() ) ),
+      m_winClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport.getAsVec4() ) ),
       m_viewClip_T_winClip( glm::inverse( m_winClip_T_viewClip ) ),
 
       m_numOffsets( numOffsets ),
@@ -111,13 +100,19 @@ View::View( Viewport winClipViewport,
       m_cameraZoomSyncGroupUid( zoomSyncGroup ),
 
       m_clipPlaneDepth( 0.0f ),
-      m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } )
+      m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } ),
+
+      m_sliceIntersector()
 {
     const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
     const glm::quat& anatomicalRotation = smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType );
 
     /// @todo we use should use the camera's anatomy_T_start transformation instead of start_T_world
     m_camera.set_start_T_world( CoordinateFrame( sk_origin, anatomicalRotation ).frame_T_world() );
+
+    // Configure the slice intersector:
+    m_sliceIntersector.setPositioningMethod( SliceIntersector::PositioningMethod::FrameOrigin, std::nullopt );
+    m_sliceIntersector.setAlignmentMethod( SliceIntersector::AlignmentMethod::CameraZ );
 }
 
 
@@ -160,6 +155,50 @@ bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCross
 
     return true;
 }
+
+
+std::optional< SliceIntersector::IntersectionVerticesVec4 >
+View::computeImageSliceIntersection(
+        const Image* image,
+        const CoordinateFrame& crosshairs ) const
+{
+    if ( ! image ) return std::nullopt;
+
+    SliceIntersector intersector;
+    intersector.setPositioningMethod( SliceIntersector::PositioningMethod::FrameOrigin, std::nullopt );
+    intersector.setAlignmentMethod( SliceIntersector::AlignmentMethod::CameraZ );
+
+    std::optional< SliceIntersector::IntersectionVertices > subjectIntersectionPositions;
+    glm::vec3 subjectPlaneNormal;
+
+    // Compute the intersections in Subject space by transforming the camera and crosshairs
+    // from World to Subject space
+    const glm::mat4 world_T_subject = image->transformations().worldDef_T_subject();
+    const glm::mat4 subject_T_world = glm::inverse( world_T_subject );
+
+    std::tie( subjectIntersectionPositions, subjectPlaneNormal ) =
+            intersector.computePlaneIntersections(
+                subject_T_world * m_camera.world_T_camera(),
+                subject_T_world * crosshairs.world_T_frame(),
+                image->header().boundingBoxCorners() );
+
+    if ( ! subjectIntersectionPositions )
+    {
+        // No slice intersection to render
+        return std::nullopt;
+    }
+
+    // Convert Subject intersection positions to World space
+    SliceIntersector::IntersectionVerticesVec4 worldIntersectionPositions;
+
+    for ( uint32_t i = 0; i < SliceIntersector::s_numVertices; ++i )
+    {
+        worldIntersectionPositions[i] = world_T_subject * glm::vec4{ (*subjectIntersectionPositions)[i], 1.0f };
+    }
+
+    return worldIntersectionPositions;
+}
+
 
 void View::setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners )
 {

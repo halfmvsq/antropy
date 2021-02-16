@@ -7,15 +7,17 @@
 #include <stdio.h>
 
 
-void helpMarker( const char* desc )
+void helpMarker( const char* tooltip, bool sameLine )
 {
+    if ( sameLine ) ImGui::SameLine();
+
     ImGui::TextDisabled( ICON_FK_QUESTION_CIRCLE_O );
 
     if ( ImGui::IsItemHovered() )
     {
         ImGui::BeginTooltip();
         ImGui::PushTextWrapPos( ImGui::GetFontSize() * 35.0f );
-        ImGui::TextUnformatted(desc);
+        ImGui::TextUnformatted( tooltip );
         ImGui::PopTextWrapPos();
         ImGui::EndTooltip();
     }

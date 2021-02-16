@@ -832,4 +832,12 @@ float computeSmallestWorldDepthOffset( const camera::Camera& camera, const glm::
     return glm::length( worldPos - worldPosOffset );
 }
 
+
+glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& clipVP )
+{
+    const glm::vec3 T{ clipVP[0] + 0.5f * clipVP[2], clipVP[1] + 0.5f * clipVP[3], 0.0f };
+    const glm::vec3 S{ 0.5f * clipVP[2], 0.5f * clipVP[3], 1.0f };
+    return glm::translate( T ) * glm::scale( S );
+}
+
 } // namespace camera

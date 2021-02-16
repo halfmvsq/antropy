@@ -107,20 +107,25 @@ std::pair< glm::dvec3, glm::dvec3 > computeImageSubjectAABBoxCorners(
         const glm::dvec3& spacing,
         const glm::dvec3& origin )
 {
-    static constexpr size_t N = 8; // Image has 8 corners
+    constexpr size_t N = 8; // Image has 8 corners
 
     const glm::dmat4 subject_T_pixel = computeImagePixelToSubjectTransformation( directions, spacing, origin );
-    const glm::u64vec3 D = pixelDims - glm::u64vec3{ 1, 1, 1 };
+
+    // Offset integer coordinates by half a pixel, because
+    // the integer pixel coordinates are at the CENTER of a pixel
+    static const glm::dvec3 sk_halfPixel{ 0.5, 0.5, 0.5 };
+
+    const glm::dvec3 D = glm::dvec3{ pixelDims } - sk_halfPixel;
 
     const std::array< glm::dvec3, N > pixelCorners =
     {
-        glm::dvec3{ 0.0, 0.0, 0.0 },
-        glm::dvec3{ D.x, 0.0, 0.0 },
-        glm::dvec3{ 0.0, D.y, 0.0 },
-        glm::dvec3{ D.x, D.y, 0.0 },
-        glm::dvec3{ 0.0, 0.0, D.z },
-        glm::dvec3{ D.x, 0.0, D.z },
-        glm::dvec3{ 0.0, D.y, D.z },
+        glm::dvec3{ -0.5, -0.5, -0.5 },
+        glm::dvec3{ D.x, -0.5, -0.5 },
+        glm::dvec3{ -0.5, D.y, -0.5 },
+        glm::dvec3{ D.x, D.y, -0.5 },
+        glm::dvec3{ -0.5, -0.5, D.z },
+        glm::dvec3{ D.x, -0.5, D.z },
+        glm::dvec3{ -0.5, D.y, D.z },
         glm::dvec3{ D.x, D.y, D.z }
     };
 

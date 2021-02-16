@@ -1,4 +1,5 @@
 #include "logic/annotation/Annotation.h"
+#include "logic/annotation/Polygon.tpp"
 
 #include <glm/glm.hpp>
 
@@ -12,10 +13,10 @@ static const glm::vec3 sk_defaultColor{ 0.5f, 0.5f, 0.5f };
 } // anonymous
 
 
-Annotation::Annotation( Polygon polygon )
+Annotation::Annotation( std::shared_ptr< Polygon<float, 2> > polygon )
     :
       m_name(),
-      m_polygon( std::move( polygon ) ),
+      m_polygon( polygon ),
       m_layer( 0 ),
       m_maxLayer( 0 ),
       m_visibility( true ),
@@ -24,12 +25,7 @@ Annotation::Annotation( Polygon polygon )
 {
 }
 
-Polygon& Annotation::polygon()
-{
-    return m_polygon;
-}
-
-const Polygon& Annotation::polygon() const
+std::weak_ptr< Polygon<float, 2> > Annotation::polygon()
 {
     return m_polygon;
 }

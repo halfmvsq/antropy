@@ -1,8 +1,8 @@
-.vs/*
-.vscode/*
-build/*
-out/*
+.vs/**
+.vscode/**
+build/**
+out/**
 src/**/*.autosave
-CMakeFiles/*
+CMakeFiles/**
 CMakeCache.txt
 CMakeLists.txt.user*

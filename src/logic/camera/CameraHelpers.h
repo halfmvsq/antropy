@@ -302,6 +302,15 @@ glm::vec2 worldPixelSizeAtWorldPosition(
 
 float computeSmallestWorldDepthOffset( const camera::Camera& camera, const glm::vec3& worldPos );
 
+
+/**
+ * @brief Compute the matrix transformation between view Clip space and window Clip space.
+ * @note This matrix does no transform the z coordinate.
+ * @param clipVP The view's viewport, defined in Clip coordinates of the enclosing Window
+ * @return Transformation
+ */
+glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& clipVP );
+
 } // namespace camera
 
 #endif // CAMERA_HELPERS_H

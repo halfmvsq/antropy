@@ -36,17 +36,19 @@
 namespace
 {
 
+/// Size of small toolbar buttons (pixels)
 static const ImVec2 sk_smallToolbarButtonSize( 24, 24 );
 
 /// Color of the reference image header
+/// (Currently set to the same color as for non-reference images)
+static const ImVec4 imgRefHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
 //static const ImVec4 imgRefHeaderColor( 0.70f, 0.075f, 0.03f, 1.00f );
-static const ImVec4 imgRefHeaderColor( 0.20f, 0.41f, 0.68f, 1.00f );
 
-/// Color of the image header
-static const ImVec4 imgHeaderColor( 0.20f, 0.41f, 0.68f, 1.00f );
+/// Color of the image headers for non-reference and non-active images
+static const ImVec4 imgHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
 
 /// Color of the active image header
-static const ImVec4 imgActiveHeaderColor( 0.20f, 0.62f, 0.45f, 1.00f );
+static const ImVec4 imgActiveHeaderColor( 0.20f, 0.62f, 0.45f, 1.0f );
 
 } // anonymous
 
@@ -59,8 +61,7 @@ void renderImageHeaderInformation(
     // File name:
     std::string fileName = imgHeader.fileName();
     ImGui::InputText( "File name", &fileName, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Image file name" );
+    ImGui::SameLine(); helpMarker( "Image file name" );
     ImGui::Spacing();
 
 
@@ -70,8 +71,7 @@ void renderImageHeaderInformation(
     {
         imgSettings.setDisplayName( displayName );
     }
-    ImGui::SameLine();
-    helpMarker( "Set the display name" );
+    ImGui::SameLine(); helpMarker( "Set the display name" );
     ImGui::Spacing();
 
     ImGui::Separator();
@@ -81,8 +81,7 @@ void renderImageHeaderInformation(
     glm::uvec3 dimensions = imgHeader.pixelDimensions();
     ImGui::InputScalarN( "Dimensions (vox)", ImGuiDataType_U32, glm::value_ptr( dimensions ), 3,
                          nullptr, nullptr, nullptr, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Matrix dimensions in voxels" );
+    ImGui::SameLine(); helpMarker( "Matrix dimensions in voxels" );
     ImGui::Spacing();
 
 
@@ -90,8 +89,7 @@ void renderImageHeaderInformation(
     glm::vec3 spacing = imgHeader.spacing();
     ImGui::InputScalarN( "Spacing (mm)", ImGuiDataType_Float, glm::value_ptr( spacing ), 3,
                          nullptr, nullptr, "%.6f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Voxel spacing (mm)" );
+    ImGui::SameLine(); helpMarker( "Voxel spacing (mm)" );
     ImGui::Spacing();
 
 
@@ -99,8 +97,7 @@ void renderImageHeaderInformation(
     glm::vec3 origin = imgHeader.origin();
     ImGui::InputScalarN( "Origin (mm)", ImGuiDataType_Float, glm::value_ptr( origin ), 3,
                          nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Image origin (mm): physical coordinates of voxel (0, 0, 0)" );
+    ImGui::SameLine(); helpMarker( "Image origin (mm): physical coordinates of voxel (0, 0, 0)" );
     ImGui::Spacing();
 
 
@@ -112,41 +109,36 @@ void renderImageHeaderInformation(
     auto boxMinMax = imgHeader.boundingBoxMinMaxCorners();
     ImGui::InputScalarN( "Min. corner (mm)", ImGuiDataType_Float, glm::value_ptr( boxMinMax.first ), 3,
                          nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Minimum corner of bounding box in Subject space (mm)" );
+    ImGui::SameLine(); helpMarker( "Minimum corner of bounding box in Subject space (mm)" );
     ImGui::Spacing();
 
 
     ImGui::InputScalarN( "Max. corner (mm)", ImGuiDataType_Float, glm::value_ptr( boxMinMax.second ), 3,
                          nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Maximum corner of bounding box in Subject space (mm)" );
+    ImGui::SameLine(); helpMarker( "Maximum corner of bounding box in Subject space (mm)" );
     ImGui::Spacing();
 
 
     glm::vec3 boxCenter = imgHeader.boundingBoxCenter();
     ImGui::InputScalarN( "Center (mm)", ImGuiDataType_Float, glm::value_ptr( boxCenter ), 3,
                          nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Bounding box center in Subject space (mm)" );
+    ImGui::SameLine(); helpMarker( "Bounding box center in Subject space (mm)" );
     ImGui::Spacing();
 
 
     glm::vec3 boxSize = imgHeader.boundingBoxSize();
     ImGui::InputScalarN( "Size (mm)", ImGuiDataType_Float, glm::value_ptr( boxSize ), 3,
                          nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Bounding box size (mm)" );
+    ImGui::SameLine(); helpMarker( "Bounding box size (mm)" );
     ImGui::Spacing();
 
-
     ImGui::Separator();
+
 
     // Pixel type:
     std::string pixelType = imgHeader.pixelTypeAsString();
     ImGui::InputText( "Pixel type", &pixelType, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Image pixel type" );
+    ImGui::SameLine(); helpMarker( "Image pixel type" );
     ImGui::Spacing();
 
 
@@ -154,16 +146,14 @@ void renderImageHeaderInformation(
     uint32_t numComponentsPerPixel = imgHeader.numComponentsPerPixel();
     ImGui::InputScalar( "Num. components", ImGuiDataType_U32, &numComponentsPerPixel,
                         nullptr, nullptr, nullptr, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Number of components per pixel" );
+    ImGui::SameLine(); helpMarker( "Number of components per pixel" );
     ImGui::Spacing();
 
 
     // Component type:
     std::string componentType = imgHeader.fileComponentTypeAsString();
     ImGui::InputText( "Component type", &componentType, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Image component type" );
+    ImGui::SameLine(); helpMarker( "Image component type" );
     ImGui::Spacing();
 
 
@@ -171,8 +161,7 @@ void renderImageHeaderInformation(
     uint64_t fileSizeBytes = imgHeader.fileImageSizeInBytes();
     ImGui::InputScalar( "Size (bytes)", ImGuiDataType_U64, &fileSizeBytes,
                         nullptr, nullptr, nullptr, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Image size in bytes" );
+    ImGui::SameLine(); helpMarker( "Image size in bytes" );
     ImGui::Spacing();
 
 
@@ -180,16 +169,14 @@ void renderImageHeaderInformation(
     double fileSizeMiB = static_cast<double>( imgHeader.fileImageSizeInBytes() ) / ( 1024.0 * 1024.0 );
     ImGui::InputScalar( "Size (MiB)", ImGuiDataType_Double, &fileSizeMiB,
                         nullptr, nullptr, nullptr, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Image size in mebibytes (MiB)" );
+    ImGui::SameLine(); helpMarker( "Image size in mebibytes (MiB)" );
     ImGui::Spacing();
-
 
     ImGui::Separator();
 
+    // subject_T_voxels:
     ImGui::Text( "Voxels to Subject transformation:" );
-    ImGui::SameLine();
-    helpMarker( "Transformation from Voxels to Subject (LPS) space" );
+    ImGui::SameLine(); helpMarker( "Transformation from Voxels to Subject (LPS) space" );
 
     glm::mat4 s_T_p = glm::transpose( imgTx.subject_T_pixel() );
     ImGui::InputFloat4( "Matrix", glm::value_ptr( s_T_p[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
@@ -197,8 +184,8 @@ void renderImageHeaderInformation(
     ImGui::InputFloat4( "", glm::value_ptr( s_T_p[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
     ImGui::InputFloat4( "", glm::value_ptr( s_T_p[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
 
-
     ImGui::Spacing();
+
 
     // Directions:
     glm::mat3 directions = imgHeader.directions();
@@ -207,7 +194,8 @@ void renderImageHeaderInformation(
     ImGui::InputFloat3( "Y", glm::value_ptr( directions[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
     ImGui::InputFloat3( "Z", glm::value_ptr( directions[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
 
-    // Closest orientation:
+
+    // Closest orientation code:
     std::string orientation = imgHeader.spiralCode();
     orientation += ( imgHeader.isOblique() ? " (oblique)" : "" );
     ImGui::InputText( "Orientation", &orientation, ImGuiInputTextFlags_ReadOnly );
@@ -235,6 +223,22 @@ void renderImageHeader(
         const std::function< bool ( const uuids::uuid& imageUid ) >& moveImageToFront,
         const std::function< bool ( const uuids::uuid& imageUid, bool locked ) >& setLockManualImageTransformation )
 {
+    static const ImGuiColorEditFlags sk_colorNoAlphaEditFlags =
+            ImGuiColorEditFlags_PickerHueBar |
+            ImGuiColorEditFlags_DisplayRGB |
+            ImGuiColorEditFlags_DisplayHex |
+            ImGuiColorEditFlags_Uint8 |
+            ImGuiColorEditFlags_InputRGB;
+
+    static const ImGuiColorEditFlags sk_colorAlphaEditFlags =
+            ImGuiColorEditFlags_PickerHueBar |
+            ImGuiColorEditFlags_DisplayRGB |
+            ImGuiColorEditFlags_DisplayHex |
+            ImGuiColorEditFlags_AlphaBar |
+            ImGuiColorEditFlags_AlphaPreviewHalf |
+            ImGuiColorEditFlags_Uint8 |
+            ImGuiColorEditFlags_InputRGB;
+
     if ( ! image ) return;
 
     const auto& imgHeader = image->header();
@@ -340,7 +344,8 @@ void renderImageHeader(
                 {
                     moveImageToBack( imageUid );
                 }
-                if ( ImGui::IsItemHovered() ) {
+                if ( ImGui::IsItemHovered() )
+                {
                     ImGui::SetTooltip( "Move image to backmost layer" );
                 }
 
@@ -349,7 +354,8 @@ void renderImageHeader(
                 {
                     moveImageBackward( imageUid );
                 }
-                if ( ImGui::IsItemHovered() ) {
+                if ( ImGui::IsItemHovered() )
+                {
                     ImGui::SetTooltip( "Move image backwards in layers (decrease the image order)" );
                 }
             }
@@ -361,7 +367,8 @@ void renderImageHeader(
                 {
                     moveImageForward( imageUid );
                 }
-                if ( ImGui::IsItemHovered() ) {
+                if ( ImGui::IsItemHovered() )
+                {
                     ImGui::SetTooltip( "Move image forwards in layers (increase the image order)" );
                 }
 
@@ -370,7 +377,8 @@ void renderImageHeader(
                 {
                     moveImageToFront( imageUid );
                 }
-                if ( ImGui::IsItemHovered() ) {
+                if ( ImGui::IsItemHovered() )
+                {
                     ImGui::SetTooltip( "Move image to frontmost layer" );
                 }
             }
@@ -407,8 +415,7 @@ void renderImageHeader(
 
                 ImGui::EndCombo();
 
-                ImGui::SameLine();
-                helpMarker( "Select the image component to display and adjust" );
+                ImGui::SameLine(); helpMarker( "Select the image component to display and adjust" );
             }
 
 
@@ -419,38 +426,37 @@ void renderImageHeader(
                 imgSettings.setVisibility( visible );
                 updateImageUniforms();
             }
-            ImGui::SameLine();
-            helpMarker( "Show/hide the image on all views (W)" );
+            ImGui::SameLine(); helpMarker( "Show/hide the image on all views (W)" );
 
 
-            // Image opacity slider:
             if ( visible )
             {
-                double opacity = imgSettings.opacity();
-                if ( mySliderF64( "Opacity", &opacity, 0.0, 1.0 ) )
+                // Image opacity slider:
+                double imageOpacity = imgSettings.opacity();
+                if ( mySliderF64( "Opacity", &imageOpacity, 0.0, 1.0 ) )
                 {
-                    imgSettings.setOpacity( opacity );
+                    imgSettings.setOpacity( imageOpacity );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Image layer opacity" );
-            }
+                ImGui::SameLine(); helpMarker( "Image layer opacity" );
 
 
-            // Segmentation opacity slider:
-            auto activeSegUid = appData.imageToActiveSegUid( imageUid );
-            Image* activeSeg = ( activeSegUid ) ? appData.seg( *activeSegUid ) : nullptr;
+                // Segmentation opacity slider:
+                auto activeSegUid = appData.imageToActiveSegUid( imageUid );
+                Image* activeSeg = ( activeSegUid ) ? appData.seg( *activeSegUid ) : nullptr;
 
-            if ( activeSeg )
-            {
-                double opacity = activeSeg->settings().opacity();
-                if ( mySliderF64( "Segmentation", &opacity, 0.0, 1.0 ) )
+                if ( activeSeg )
                 {
-                    activeSeg->settings().setOpacity( opacity );
-                    updateImageUniforms();
+                    double segOpacity = activeSeg->settings().opacity();
+                    if ( mySliderF64( "Segmentation", &segOpacity, 0.0, 1.0 ) )
+                    {
+                        activeSeg->settings().setOpacity( segOpacity );
+                        updateImageUniforms();
+                    }
+                    ImGui::SameLine(); helpMarker( "Segmentation layer opacity" );
                 }
-                ImGui::SameLine();
-                helpMarker( "Segmentation layer opacity" );
+
+                ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
             }
 
 
@@ -502,24 +508,21 @@ void renderImageHeader(
                     imgSettings.setLevel( newLevel );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Set the minimum and maximum of the window range" );
+                ImGui::SameLine(); helpMarker( "Set the minimum and maximum of the window range" );
 
                 if ( mySliderF32( "Width", &window, windowMin, windowMax ) )
                 {
                     imgSettings.setWindow( static_cast<double>( window ) );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Window width" );
+                ImGui::SameLine(); helpMarker( "Window width" );
 
                 if ( mySliderF32( "Level", &level, levelMin, levelMax ) )
                 {
                     imgSettings.setLevel( static_cast<double>( level ) );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Window level (center)" );
+                ImGui::SameLine(); helpMarker( "Window level (center)" );
             }
             else
             {
@@ -537,8 +540,7 @@ void renderImageHeader(
                     updateImageUniforms();
                 }
 
-                ImGui::SameLine();
-                helpMarker( "Lower and upper image thresholds" );
+                ImGui::SameLine(); helpMarker( "Lower and upper image thresholds" );
 
 
                 const int32_t valueMin = static_cast<int32_t>( imgSettings.componentStatistics().m_minimum );
@@ -566,24 +568,21 @@ void renderImageHeader(
                     imgSettings.setLevel( newLevel );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Minimum and maximum of the window range" );
+                ImGui::SameLine(); helpMarker( "Minimum and maximum of the window range" );
 
                 if ( mySliderS32( "Width", &window, windowMin, windowMax ) )
                 {
                     imgSettings.setWindow( static_cast<double>( window ) );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Window width" );
+                ImGui::SameLine(); helpMarker( "Window width" );
 
                 if ( mySliderS32( "Level", &level, levelMin, levelMax ) )
                 {
                     imgSettings.setLevel( static_cast<double>( level ) );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Window level (center)" );
+                ImGui::SameLine(); helpMarker( "Window level (center)" );
             }
 
 
@@ -602,8 +601,7 @@ void renderImageHeader(
                 imgSettings.setInterpolationMode( InterpolationMode::Linear );
                 updateImageInterpolationMode();
             }
-            ImGui::SameLine();
-            helpMarker( "Nearest neighbor or trilinear interpolation" );
+            ImGui::SameLine(); helpMarker( "Nearest neighbor or trilinear interpolation" );
 
 
             // Image colormap dialog:
@@ -618,8 +616,7 @@ void renderImageHeader(
                 imgSettings.setColorMapInverted( invertedCmap );
                 updateImageUniforms();
             }
-            ImGui::SameLine();
-            helpMarker( "Select/invert the image colormap" );
+            ImGui::SameLine(); helpMarker( "Select/invert the image colormap" );
 
             renderPaletteWindow(
                         std::string( "Select colormap for " + imgSettings.displayName() ).c_str(),
@@ -652,6 +649,20 @@ void renderImageHeader(
             }
 
 
+            ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
+//            ImGui::Spacing();
+
+            glm::vec3 borderColor{ imgSettings.borderColor() };
+
+            if ( ImGui::ColorEdit3( "Border", glm::value_ptr( borderColor ), sk_colorNoAlphaEditFlags ) )
+            {
+                imgSettings.setBorderColor( borderColor );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Image border color" );
+
+
+
             // Edge settings
             ImGui::Separator();
 
@@ -662,8 +673,7 @@ void renderImageHeader(
                 imgSettings.setShowEdges( showEdges );
                 updateImageUniforms();
             }
-            ImGui::SameLine();
-            helpMarker( "Show/hide the edges of the image (E)" );
+            ImGui::SameLine(); helpMarker( "Show/hide the edges of the image (E)" );
 
 
             if ( showEdges )
@@ -684,8 +694,7 @@ void renderImageHeader(
                     imgSettings.setThresholdEdges( thresholdEdges );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Apply thresholding to edge gradient magnitude to get hard edges" );
+                ImGui::SameLine(); helpMarker( "Apply thresholding to edge gradient magnitude to get hard edges" );
 
 
                 // Edge magnitude (only shown if thresholding edges):
@@ -697,8 +706,7 @@ void renderImageHeader(
                         imgSettings.setEdgeMagnitude( edgeMag );
                         updateImageUniforms();
                     }
-                    ImGui::SameLine();
-                    helpMarker( "Magnitude of threshold above which hard edges are shown" );
+                    ImGui::SameLine(); helpMarker( "Magnitude of threshold above which hard edges are shown" );
                 }
                 else
                 {
@@ -708,8 +716,7 @@ void renderImageHeader(
                         imgSettings.setEdgeMagnitude( 1.0 - edgeMag );
                         updateImageUniforms();
                     }
-                    ImGui::SameLine();
-                    helpMarker( "Scale applied to edge magnitude" );
+                    ImGui::SameLine(); helpMarker( "Scale applied to edge magnitude" );
                 }
 
 
@@ -748,8 +755,7 @@ void renderImageHeader(
                     imgSettings.setOverlayEdges( overlayEdges );
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Overlay edges on top of the image" );
+                ImGui::SameLine(); helpMarker( "Overlay edges on top of the image" );
 
 
                 // Colormap the edges (always false if overlaying the edges or thresholding the edges):
@@ -774,35 +780,21 @@ void renderImageHeader(
                         imgSettings.setColormapEdges( colormapEdges );
                         updateImageUniforms();
                     }
-                    ImGui::SameLine();
-                    helpMarker( "Apply the image colormap to image edges" );
+                    ImGui::SameLine(); helpMarker( "Apply the image colormap to image edges" );
                 }
 
 
                 if ( ! colormapEdges )
                 {
-                    static const ImGuiColorEditFlags colorAlphaEditFlags =
-                            ImGuiColorEditFlags_PickerHueBar |
-                            ImGuiColorEditFlags_DisplayRGB |
-                            ImGuiColorEditFlags_DisplayHex |
-                            ImGuiColorEditFlags_AlphaBar |
-                            ImGuiColorEditFlags_AlphaPreviewHalf |
-                            ImGuiColorEditFlags_Uint8 |
-                            ImGuiColorEditFlags_InputRGB;
-
                     glm::vec4 edgeColor{ imgSettings.edgeColor(), imgSettings.edgeOpacity() };
 
-                    if ( ImGui::ColorEdit4( "Color", glm::value_ptr( edgeColor ), colorAlphaEditFlags ) )
+                    if ( ImGui::ColorEdit4( "Color", glm::value_ptr( edgeColor ), sk_colorAlphaEditFlags ) )
                     {
+                        imgSettings.setEdgeColor( edgeColor );
+                        imgSettings.setEdgeOpacity( edgeColor.a );
                         updateImageUniforms();
                     }
-
-                    ImGui::SameLine();
-                    helpMarker( "Edge color and opacity" );
-
-                    imgSettings.setEdgeColor( edgeColor );
-                    imgSettings.setEdgeOpacity( edgeColor.a );
-                    updateImageUniforms();
+                    ImGui::SameLine(); helpMarker( "Edge color and opacity" );
                 }
                 else
                 {
@@ -851,8 +843,7 @@ void renderImageHeader(
 
 
             ImGui::Text( "Manual affine transformation:" );
-            ImGui::SameLine();
-            helpMarker( "Manual affine transformation from Subject to World space" );
+            ImGui::SameLine(); helpMarker( "Manual affine transformation from Subject to World space" );
 
 
             bool enable_worldDef_T_affine = imgTx.get_enable_worldDef_T_affine();
@@ -892,8 +883,7 @@ void renderImageHeader(
                         updateImageUniforms();
                     }
                 }
-                ImGui::SameLine();
-                helpMarker( "Image scale in x, y, z" );
+                ImGui::SameLine(); helpMarker( "Image scale in x, y, z" );
 
                 /// @todo Put in a more friendly rotation widget. For now, disable changing the rotation
                 /// @see https://github.com/BrutPitt/imGuIZMO.quat
@@ -910,8 +900,7 @@ void renderImageHeader(
     //                    updateImageUniforms();
     //                }
                 }
-                ImGui::SameLine();
-                helpMarker( "Image rotation angle (degrees) [editing disabled]" );
+                ImGui::SameLine(); helpMarker( "Image rotation angle (degrees) [editing disabled]" );
 
                 if ( ImGui::InputFloat3( "Rotation axis", glm::value_ptr( axis ), "%.3f" ) )
                 {
@@ -923,8 +912,7 @@ void renderImageHeader(
     //                    updateImageUniforms();
     //                }
                 }
-                ImGui::SameLine();
-                helpMarker( "Image rotation axis [editing disabled]" );
+                ImGui::SameLine(); helpMarker( "Image rotation axis [editing disabled]" );
 
     //            if ( ImGui::InputFloat4( "Rotation", glm::value_ptr( w_T_s_rotation ), "%.3f" ) )
     //            {
@@ -949,8 +937,7 @@ void renderImageHeader(
                     imgTx.reset_worldDef_T_affine();
                     updateImageUniforms();
                 }
-                ImGui::SameLine();
-                helpMarker( "Reset the manual component of the affine transformation from Subject to World space" );
+                ImGui::SameLine(); helpMarker( "Reset the manual component of the affine transformation from Subject to World space" );
 
 
                 // Save manual tx to file:
@@ -961,8 +948,7 @@ void renderImageHeader(
                 const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
                             sk_buttonText, sk_dialogTitle, sk_dialogFilters );
 
-                ImGui::SameLine();
-                helpMarker( "Save the manual component of the affine transformation matrix from Subject to World space" );
+                ImGui::SameLine(); helpMarker( "Save the manual component of the affine transformation matrix from Subject to World space" );
 
                 if ( selectedFile )
                 {
@@ -1002,25 +988,35 @@ void renderSegmentationHeader(
         size_t imageIndex,
         Image* image,
         bool isActiveImage,
-        const std::function< void(void) >& updateImageUniforms,
+        const std::function< void( void ) >& updateImageUniforms,
         const std::function< ParcellationLabelTable* ( size_t tableIndex ) >& getLabelTable,
         const std::function< void ( size_t tableIndex ) >& updateLabelColorTableTexture,
         const std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) >& createBlankSeg,
         const std::function< bool( const uuids::uuid& segUid ) >& clearSeg,
         const std::function< bool( const uuids::uuid& segUid ) >& removeSeg )
 {
-    if ( ! image ) return;
+    static const std::string sk_addNewSegString = std::string( ICON_FK_FILE_O ) + std::string( " Create" );
+    static const std::string sk_clearSegString = std::string( ICON_FK_ERASER ) + std::string( " Clear" );
+    static const std::string sk_removeSegString = std::string( ICON_FK_TRASH_O ) + std::string( " Remove" );
+    static const std::string sk_SaveSegString = std::string( ICON_FK_FLOPPY_O ) + std::string( " Save..." );
 
-    auto& imgSettings = image->settings();
+    if ( ! image )
+    {
+        spdlog::error( "Null image" );
+        return;
+    }
 
     ImGuiTreeNodeFlags headerFlags = ImGuiTreeNodeFlags_CollapsingHeader;
 
     if ( isActiveImage )
     {
+        // Open header for the active image by default:
         headerFlags |= ImGuiTreeNodeFlags_DefaultOpen;
     }
 
-    ImGui::PushID( uuids::to_string( imageUid ).c_str() );
+    ImGui::PushID( uuids::to_string( imageUid ).c_str() ); /*** PushID imageUid ***/
+
+    auto& imgSettings = image->settings();
 
     // Header is ID'ed only by the image index.
     // ### allows the header name to change without changing its ID.
@@ -1030,11 +1026,10 @@ void renderSegmentationHeader(
             "###" + std::to_string( imageIndex );
 
     ImGui::PushStyleColor( ImGuiCol_Header,
-                           ( isActiveImage
-                             ? imgActiveHeaderColor
-                             : ( 0 == imageIndex )
-                               ? imgRefHeaderColor
-                               : imgHeaderColor ) );
+                           ( isActiveImage ? imgActiveHeaderColor
+                                           : ( 0 == imageIndex )
+                                             ? imgRefHeaderColor
+                                             : imgHeaderColor ) );
 
     const bool open = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
 
@@ -1042,7 +1037,7 @@ void renderSegmentationHeader(
 
     if ( ! open )
     {
-        ImGui::PopID(); // imageUid
+        ImGui::PopID(); // /*** PopID imageUid ***/
         return;
     }
 
@@ -1064,6 +1059,7 @@ void renderSegmentationHeader(
     }
     else
     {
+        // Serves as a reminder to the user that the image is not active:
         ImGui::Text( "This is not the active image." );
     }
 
@@ -1076,6 +1072,7 @@ void renderSegmentationHeader(
     }
 
     auto activeSegUid = appData.imageToActiveSegUid( imageUid );
+
     if ( ! activeSegUid )
     {
         spdlog::error( "Image {} has no active segmentation", imageUid );
@@ -1083,138 +1080,126 @@ void renderSegmentationHeader(
     }
 
     Image* activeSeg = appData.seg( *activeSegUid );
+
     if ( ! activeSeg )
     {
         spdlog::error( "Active segmentation for image {} is null", imageUid );
         return;
     }
 
-    // Show a combo box if there are multiple segmentations
-    const bool showSegCombo = true; //( segUids.size() > 1 );
+    ImGui::Text( "Active segmentation:" );
 
-    if ( showSegCombo )
+    if ( ImGui::BeginCombo( "", activeSeg->settings().displayName().c_str() ) )
     {
-        ImGui::Text( "Active segmentation:" );
-
-        if ( ImGui::BeginCombo( "", activeSeg->settings().displayName().c_str() ) )
+        size_t segIndex = 0;
+        for ( const auto& segUid : segUids )
         {
-            size_t segIndex = 0;
-            for ( const auto& segUid : segUids )
+            ImGui::PushID( static_cast<int>( segIndex++ ) );
             {
-                ImGui::PushID( static_cast<int>( segIndex++ ) );
+                if ( Image* seg = appData.seg( segUid ) )
                 {
-                    if ( Image* seg = appData.seg( segUid ) )
+                    const bool isSelected = ( segUid == *activeSegUid );
+
+                    if ( ImGui::Selectable( seg->settings().displayName().c_str(), isSelected ) )
                     {
-                        const bool isSelected = ( segUid == *activeSegUid );
-
-                        if ( ImGui::Selectable( seg->settings().displayName().c_str(), isSelected ) )
-                        {
-                            appData.assignActiveSegUidToImage( imageUid, segUid );
-                            activeSeg = appData.seg( segUid );
-                            updateImageUniforms();
-                        }
-
-                        if ( isSelected ) ImGui::SetItemDefaultFocus();
+                        appData.assignActiveSegUidToImage( imageUid, segUid );
+                        activeSeg = appData.seg( segUid );
+                        updateImageUniforms();
                     }
-                }
-                ImGui::PopID(); // lmGroupIndex
-            }
 
-            ImGui::EndCombo();
-        }
-
-        ImGui::SameLine();
-        helpMarker( "Select the active segmentation for this image" );
-
-//        ImGui::Dummy( ImVec2( 0.0f, 2.0f ) );
-
-        static const std::string sk_addNewSegString = std::string( ICON_FK_FILE_O ) + std::string( " Create" );
-        static const std::string sk_clearSegString = std::string( ICON_FK_ERASER ) + std::string( " Clear" );
-        static const std::string sk_removeSegString = std::string( ICON_FK_TRASH_O ) + std::string( " Remove" );
-        static const std::string sk_SaveSegString = std::string( ICON_FK_FLOPPY_O ) + std::string( " Save..." );
-
-
-        /// @todo Buttons for clearing the segmentation and copy the segmentation
-
-        // Add segmentation:
-        if ( ImGui::Button( sk_addNewSegString.c_str() ) )
-        {
-            const size_t numSegsForImage = appData.imageToSegUids( imageUid ).size();
-
-            std::string segDisplayName =
-                    std::string( "Untitled segmentation " ) +
-                    std::to_string( numSegsForImage + 1 ) +
-                    " for image '" +
-                    image->settings().displayName() + "'";
-
-            createBlankSeg( imageUid, std::move( segDisplayName ) );
-            updateImageUniforms();
-        }
-
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetTooltip( "Create a new blank segmentation for this image" );
-        }
-
-
-        // Remove segmentation:
-        // Do not allow removal of the segmentation if it the only one for this image:
-        if ( appData.imageToSegUids( imageUid ).size() > 1 )
-        {
-            ImGui::SameLine();
-            if ( ImGui::Button( sk_removeSegString.c_str() ) )
-            {
-                if ( removeSeg( *activeSegUid ) )
-                {
-                    updateImageUniforms();
-                    return;
+                    if ( isSelected ) ImGui::SetItemDefaultFocus();
                 }
             }
-            if ( ImGui::IsItemHovered() ) {
-                ImGui::SetTooltip( "Remove this segmentation from the image" );
-            }
+            ImGui::PopID(); // lmGroupIndex
         }
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine(); helpMarker( "Select the active segmentation for this image" );
 
 
-        // Clear segmentation:
-        ImGui::SameLine();
-        if ( ImGui::Button( sk_clearSegString.c_str() ) )
-        {
-            clearSeg( *activeSegUid );
-        }
-        if ( ImGui::IsItemHovered() ) {
-            ImGui::SetTooltip( "Clear all values in this segmentation" );
-        }
+    /// @todo Add button for copying the segmentation to a new segmentation
 
+    // Add segmentation:
+    if ( ImGui::Button( sk_addNewSegString.c_str() ) )
+    {
+        const size_t numSegsForImage = appData.imageToSegUids( imageUid ).size();
 
-        // Save segmentation:
-        static const char* sk_dialogTitle( "Select Segmentation Image" );
-        static const std::vector< const char* > sk_dialogFilters{};
+        std::string segDisplayName =
+                std::string( "Untitled segmentation " ) +
+                std::to_string( numSegsForImage + 1 ) +
+                " for image '" +
+                image->settings().displayName() + "'";
 
-        ImGui::SameLine();
-        const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
-                    sk_SaveSegString.c_str(), sk_dialogTitle, sk_dialogFilters );
-
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "Save the segmentation to an image file on disk" );
-        }
-
-        if ( selectedFile )
-        {
-            if ( activeSeg->saveToDisk( *selectedFile ) )
-            {
-                spdlog::info( "Saved segmentation image to file {}", *selectedFile );
-                activeSeg->header().setFileName( *selectedFile );
-            }
-            else
-            {
-                spdlog::error( "Error saving segmentation image to file {}", *selectedFile );
-            }
-        }
-
-        ImGui::Separator();
+        createBlankSeg( imageUid, std::move( segDisplayName ) );
+        updateImageUniforms();
+    }
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Create a new blank segmentation for this image" );
     }
 
+
+    // Remove segmentation:
+    // (Do not allow removal of the segmentation if it the only one for this image)
+    if ( appData.imageToSegUids( imageUid ).size() > 1 )
+    {
+        ImGui::SameLine();
+        if ( ImGui::Button( sk_removeSegString.c_str() ) )
+        {
+            if ( removeSeg( *activeSegUid ) )
+            {
+                updateImageUniforms();
+                return;
+            }
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Remove this segmentation from the image" );
+        }
+    }
+
+
+    // Clear segmentation:
+    ImGui::SameLine();
+    if ( ImGui::Button( sk_clearSegString.c_str() ) )
+    {
+        clearSeg( *activeSegUid );
+    }
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Clear all values in this segmentation" );
+    }
+
+
+    // Save segmentation:
+    static const char* sk_dialogTitle( "Select Segmentation Image" );
+    static const std::vector< const char* > sk_dialogFilters{};
+
+    ImGui::SameLine();
+    const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
+                sk_SaveSegString.c_str(), sk_dialogTitle, sk_dialogFilters );
+
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Save the segmentation to an image file on disk" );
+    }
+
+    if ( selectedFile )
+    {
+        if ( activeSeg->saveToDisk( *selectedFile ) )
+        {
+            spdlog::info( "Saved segmentation image to file {}", *selectedFile );
+            activeSeg->header().setFileName( *selectedFile );
+        }
+        else
+        {
+            spdlog::error( "Error saving segmentation image to file {}", *selectedFile );
+        }
+    }
+
+    ImGui::Separator();
+
+    // Double check that we still have the active segmentation:
     if ( ! activeSeg )
     {
         spdlog::error( "Active segmentation for image {} is null", imageUid );
@@ -1224,7 +1209,6 @@ void renderSegmentationHeader(
     const auto& segHeader = activeSeg->header();
     const auto& segTx = activeSeg->transformations();
     auto& segSettings = activeSeg->settings();
-
 
     // Header is ID'ed only by "seg_" and the image index.
     // ### allows the header name to change without changing its ID.
@@ -1240,136 +1224,40 @@ void renderSegmentationHeader(
 
     // Open segmentation View Properties on first appearance
     ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
+
     if ( ImGui::TreeNode( "View Properties" ) )
     {
+        // Visibility:
         bool segVisible = segSettings.visibility();
         if ( ImGui::Checkbox( "Visible", &segVisible ) )
         {
             segSettings.setVisibility( segVisible );
             updateImageUniforms();
         }
-        ImGui::SameLine();
-        helpMarker( "Show/hide the segmentation on all views (S)" );
-
+        ImGui::SameLine(); helpMarker( "Show/hide the segmentation on all views (S)" );
 
         if ( segVisible )
         {
+            // Opacity (only shown if segmentation is visible):
             double segOpacity = segSettings.opacity();
             if ( mySliderF64( "Opacity", &segOpacity, 0.0, 1.0 ) )
             {
                 segSettings.setOpacity( segOpacity );
                 updateImageUniforms();
             }
-            ImGui::SameLine();
-            helpMarker( "Segmentation layer opacity" );
+            ImGui::SameLine(); helpMarker( "Segmentation layer opacity" );
         }
-
 
         ImGui::Separator();
         ImGui::TreePop();
     }
 
-
     if ( ImGui::TreeNode( "Segmentation Labels" ) )
     {
-        static const ImGuiColorEditFlags colorEditFlags =
-                ImGuiColorEditFlags_NoInputs |
-                ImGuiColorEditFlags_AlphaPreviewHalf |
-                ImGuiColorEditFlags_AlphaBar |
-                ImGuiColorEditFlags_Uint8 |
-                ImGuiColorEditFlags_DisplayRGB |
-                ImGuiColorEditFlags_DisplayHSV |
-                ImGuiColorEditFlags_DisplayHex;
-
-        const size_t tableIndex = segSettings.labelTableIndex();
-
-        if ( ParcellationLabelTable* labelTable = getLabelTable( tableIndex ) )
-        {
-            static const std::string sk_showAll = std::string( ICON_FK_EYE ) + " Show all";
-            static const std::string sk_hideAll = std::string( ICON_FK_EYE_SLASH ) + " Hide all";
-            static const std::string sk_addNew = std::string( ICON_FK_PLUS ) + " Add new";
-
-            const bool childVisible = ImGui::BeginChild(
-                        "##labelChild", ImVec2( 0, 250.0f ), true,
-                        ImGuiWindowFlags_MenuBar |
-                        ImGuiWindowFlags_HorizontalScrollbar );
-
-            if ( ImGui::BeginMenuBar() )
-            {
-                if ( ImGui::MenuItem( sk_showAll.c_str() ) )
-                {
-                    for ( size_t i = 0; i < labelTable->numLabels(); ++i )
-                    {
-                        labelTable->setVisible( i, true );
-                    }
-                    updateLabelColorTableTexture( tableIndex );
-                }
-
-                if ( ImGui::MenuItem( sk_hideAll.c_str() ) )
-                {
-                    for ( size_t i = 0; i < labelTable->numLabels(); ++i )
-                    {
-                        labelTable->setVisible( i, false );
-                    }
-                    updateLabelColorTableTexture( tableIndex );
-                }
-
-                if ( ImGui::MenuItem( sk_addNew.c_str() ) )
-                {
-                    labelTable->addLabels( 1 );
-                    updateLabelColorTableTexture( tableIndex );
-                }
-
-                ImGui::EndMenuBar();
-            }
-
-            if ( childVisible )
-            {
-                char labelIndexBuffer[8];
-                bool labelVisible;
-                glm::vec4 labelColor;
-                std::string labelName;
-
-                for ( size_t i = 0; i < labelTable->numLabels(); ++i )
-                {
-                    sprintf( labelIndexBuffer, "%03lu", i );
-                    labelVisible = labelTable->getVisible( i );
-                    labelName = labelTable->getName( i );
-
-                    // ImGui::ColorEdit represents color as non-pre-multiplied colors
-                    labelColor = glm::vec4{ labelTable->getColor( i ),
-                            labelTable->getAlpha( i ) };
-
-                    ImGui::PushID( static_cast<int>( i ) );
-                    {
-                        if ( ImGui::Checkbox( "##labelVisible", &labelVisible ) )
-                        {
-                            labelTable->setVisible( i, labelVisible );
-                            updateLabelColorTableTexture( tableIndex );
-                        }
-
-                        ImGui::SameLine();
-                        if ( ImGui::ColorEdit4( labelIndexBuffer,
-                                                glm::value_ptr( labelColor ),
-                                                colorEditFlags ) )
-                        {
-                            labelTable->setColor( i, glm::vec3{ labelColor } );
-                            labelTable->setAlpha( i, labelColor.a );
-                            updateLabelColorTableTexture( tableIndex );
-                        }
-
-                        ImGui::SameLine();
-                        if ( ImGui::InputText( "##labelName", &labelName ) )
-                        {
-                            labelTable->setName( i, labelName );
-                        }
-                    }
-                    ImGui::PopID(); // i
-                }
-            }
-
-            ImGui::EndChild();
-        }
+        renderSegLabelsChildWindow(
+                    segSettings.labelTableIndex(),
+                    getLabelTable( segSettings.labelTableIndex() ),
+                    updateLabelColorTableTexture );
 
         ImGui::Separator();
         ImGui::TreePop();
@@ -1378,12 +1266,14 @@ void renderSegmentationHeader(
     if ( ImGui::TreeNode( "Header Information" ) )
     {
         renderImageHeaderInformation( segHeader, segTx, segSettings );
+
+        ImGui::Separator();
         ImGui::TreePop();
     }
 
     ImGui::Spacing();
 
-    ImGui::PopID(); // imageUid
+    ImGui::PopID(); /*** PopID imageUid ***/
 }
 
 
@@ -1394,6 +1284,12 @@ void renderLandmarkGroupHeader(
         bool isActiveImage,
         const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews )
 {
+    static std::unordered_map<uuids::uuid, uuids::uuid> s_imageToActiveLmGroupUid;
+
+    static const char* sk_saveLmsButtonText( "Save landmarks..." );
+    static const char* sk_saveLmsDialogTitle( "Select Landmark Group" );
+    static const std::vector< const char* > sk_saveLmsDialogFilters{};
+
     static const ImGuiColorEditFlags sk_colorEditFlags =
             ImGuiColorEditFlags_NoInputs |
             ImGuiColorEditFlags_PickerHueBar |
@@ -1403,18 +1299,16 @@ void renderLandmarkGroupHeader(
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
 
+    Image* image = appData.image( imageUid );
+    if ( ! image ) return;
+
     ImGuiTreeNodeFlags headerFlags = ImGuiTreeNodeFlags_CollapsingHeader;
 
-    // This annoyingly pops up the active header each time, not sure why
+    /// @todo This annoyingly pops up the active header each time... not sure why
     if ( isActiveImage )
     {
         headerFlags |= ImGuiTreeNodeFlags_DefaultOpen;
     }
-
-    static std::unordered_map<uuids::uuid, uuids::uuid> s_imageToActiveLmGroupUid;
-
-    Image* image = appData.image( imageUid );
-    if ( ! image ) return;
 
     /****************************************************/
     ImGui::PushID( uuids::to_string( imageUid ).c_str() );
@@ -1428,11 +1322,10 @@ void renderLandmarkGroupHeader(
             "###" + std::to_string( imageIndex );
 
     ImGui::PushStyleColor( ImGuiCol_Header,
-                           ( isActiveImage
-                             ? imgActiveHeaderColor
-                             : ( 0 == imageIndex )
-                               ? imgRefHeaderColor
-                               : imgHeaderColor ) );
+                           ( isActiveImage ? imgActiveHeaderColor
+                                           : ( 0 == imageIndex )
+                                             ? imgRefHeaderColor
+                                             : imgHeaderColor ) );
 
     const bool open = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
     ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
@@ -1526,8 +1419,7 @@ void renderLandmarkGroupHeader(
     // Landmark group file name:
     std::string fileName = activeLmGroup->getFileName();
     ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Comma-separated file with the landmarks" );
+    ImGui::SameLine(); helpMarker( "Comma-separated file with the landmarks" );
     ImGui::Spacing();
 
 
@@ -1537,8 +1429,7 @@ void renderLandmarkGroupHeader(
     {
         activeLmGroup->setName( groupName );
     }
-    ImGui::SameLine();
-    helpMarker( "Edit the name of the group of landmarks" );
+    ImGui::SameLine(); helpMarker( "Edit the name of the group of landmarks" );
     ImGui::Spacing();
 
 
@@ -1548,8 +1439,8 @@ void renderLandmarkGroupHeader(
     {
         activeLmGroup->setVisibility( groupVisible );
     }
-    ImGui::SameLine();
-    helpMarker( "Show/hide the landmarks" );
+    ImGui::SameLine(); helpMarker( "Show/hide the landmarks" );
+    ImGui::Spacing();
 
 
     // Opacity slider:
@@ -1558,8 +1449,8 @@ void renderLandmarkGroupHeader(
     {
         activeLmGroup->setOpacity( groupOpacity );
     }
-    ImGui::SameLine();
-    helpMarker( "Landmark opacity" );
+    ImGui::SameLine(); helpMarker( "Landmark opacity" );
+    ImGui::Spacing();
 
 
     // Radius slider:
@@ -1568,8 +1459,8 @@ void renderLandmarkGroupHeader(
     {
         activeLmGroup->setRadiusFactor( groupRadius / 100.0f );
     }
-    ImGui::SameLine();
-    helpMarker( "Landmark circle radius" );
+    ImGui::SameLine(); helpMarker( "Landmark circle radius" );
+    ImGui::Spacing();
 
 
     // Rendering of landmark indices:
@@ -1578,8 +1469,8 @@ void renderLandmarkGroupHeader(
     {
         activeLmGroup->setRenderLandmarkIndices( renderLandmarkIndices );
     }
-    ImGui::SameLine();
-    helpMarker( "Show/hide the landmark indices" );
+    ImGui::SameLine(); helpMarker( "Show/hide the landmark indices" );
+    ImGui::Spacing();
 
 
     // Rendering of landmark indices:
@@ -1588,8 +1479,8 @@ void renderLandmarkGroupHeader(
     {
         activeLmGroup->setRenderLandmarkNames( renderLandmarkNames );
     }
-    ImGui::SameLine();
-    helpMarker( "Show/hide the landmark names" );
+    ImGui::SameLine(); helpMarker( "Show/hide the landmark names" );
+    ImGui::Spacing();
 
 
     // Uniform color for all landmarks:
@@ -1610,9 +1501,8 @@ void renderLandmarkGroupHeader(
             activeLmGroup->setColor( groupColor );
         }
     }
-
-    ImGui::SameLine();
-    helpMarker( "Set a global color for all landmarks in this group" );
+    ImGui::SameLine(); helpMarker( "Set a global color for all landmarks in this group" );
+    ImGui::Spacing();
 
 
     // Text color for all landmarks:
@@ -1623,9 +1513,8 @@ void renderLandmarkGroupHeader(
         {
             activeLmGroup->setTextColor( textColor );
         }
-
-        ImGui::SameLine();
-        helpMarker( "Set text color for all landmarks" );
+        ImGui::SameLine(); helpMarker( "Set text color for all landmarks" );
+        ImGui::Spacing();
     }
 
 
@@ -1645,8 +1534,8 @@ void renderLandmarkGroupHeader(
         activeLmGroup->setInVoxelSpace( ( 1 == inVoxelSpace ) ? true : false );
     }
 
-    ImGui::SameLine();
-    helpMarker( "Space in which landmark coordinates are defined" );
+    ImGui::SameLine(); helpMarker( "Space in which landmark coordinates are defined" );
+    ImGui::Spacing();
 
 
     // Child window for points:
@@ -1666,16 +1555,11 @@ void renderLandmarkGroupHeader(
 
 
     // Save landmarks to CSV and save settings to project file:
-    static const char* sk_buttonText( "Save landmarks..." );
-    static const char* sk_dialogTitle( "Select Landmark Group" );
-    static const std::vector< const char* > sk_dialogFilters{};
-
     ImGui::Separator();
     const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
-                sk_buttonText, sk_dialogTitle, sk_dialogFilters );
+                sk_saveLmsButtonText, sk_saveLmsDialogTitle, sk_saveLmsDialogFilters );
 
-    ImGui::SameLine();
-    helpMarker( "Save the landmarks to a CSV file" );
+    ImGui::SameLine(); helpMarker( "Save the landmarks to a CSV file" );
 
     if ( selectedFile )
     {

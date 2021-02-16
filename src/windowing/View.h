@@ -1,11 +1,14 @@
 #ifndef VIEW_H
 #define VIEW_H
 
+#include "common/CoordinateFrame.h"
 #include "common/UuidRange.h"
 #include "common/Viewport.h"
 
 #include "logic/camera/Camera.h"
 #include "logic/camera/CameraTypes.h"
+
+#include "rendering/utility/math/SliceIntersector.h"
 
 #include "ui/UiControls.h"
 
@@ -19,6 +22,7 @@
 #include <utility>
 
 class AppData;
+class Image;
 
 
 /**
@@ -46,6 +50,9 @@ public:
     /// Update the view's camera based on the crosshairs World-space position.
     /// @return True iff successful view update
     bool updateImageSlice( const AppData& appData, const glm::vec3& worldCrosshairs );
+
+    std::optional< SliceIntersector::IntersectionVerticesVec4 >
+    computeImageSliceIntersection( const Image* image, const CoordinateFrame& crosshairs ) const;
 
     const Viewport& winClipViewport() const;
 
@@ -101,6 +108,8 @@ public:
 
 private:
 
+    bool updateImageSliceIntersection( const AppData& appData, const glm::vec3& worldCrosshairs );
+
     // Viewport of the view defined in Clip space of the enclosing window,
     // which spans from bottom left [-1, -1] to top right [1, 1].
     // A full-window view has viewport [left = -1, bottom = -1, width = 2, height = 2]
@@ -146,6 +155,9 @@ private:
 
     // Min and max corners of the view in coordinates of the enclosing window
     std::pair< glm::vec2, glm::vec2 > m_winMouseViewMinMaxCorners;
+
+    /// Object for intersecting the view plane with the 3D images
+    SliceIntersector m_sliceIntersector;
 };
 
 #endif // VIEW_H

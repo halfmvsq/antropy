@@ -1,8 +1,6 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
-#include "logic/annotation/Polygon.h"
-
 #include <glm/vec3.hpp>
 
 #include <uuid.h>
@@ -10,8 +8,13 @@
 #include <memory>
 #include <string>
 
+
 class AppData;
 //enum class LayerChangeType;
+
+template<typename TComp, uint32_t Dim>
+class Polygon;
+
 
 
 /**
@@ -32,8 +35,7 @@ class Annotation
 
 public:
 
-    /// Construct an empty annotation
-    explicit Annotation( Polygon polygon );
+    explicit Annotation( std::shared_ptr< Polygon<float, 2> > polygon );
 
     ~Annotation() = default;
 
@@ -43,8 +45,7 @@ public:
     const std::string& getName() const;
 
     /// Gget the annotation's polygon
-    Polygon& polygon();
-    const Polygon& polygon() const;
+    std::weak_ptr< Polygon<float, 2> > polygon();
 
 
     /// Get the annotation layer, with 0 being the backmost layer and layers increasing in value
@@ -82,7 +83,7 @@ private:
     std::string m_name;
 
     /// Annotation polygon, which can include holes
-    Polygon m_polygon;
+    std::shared_ptr< Polygon<float, 2> > m_polygon;
 
     /// Internal layer of the annotation: 0 is the backmost layer and higher layers are more
     /// frontwards.

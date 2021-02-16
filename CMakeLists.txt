@@ -279,7 +279,6 @@ set( ATROPY_SOURCES
     # ${SRC_DIR}/logic/annotation/AnnotationHelper.cpp
     ${SRC_DIR}/logic/annotation/Annotation.cpp
     ${SRC_DIR}/logic/annotation/LandmarkGroup.cpp
-    ${SRC_DIR}/logic/annotation/Polygon.cpp
 
     ${SRC_DIR}/logic/camera/Camera.cpp
     ${SRC_DIR}/logic/camera/CameraHelpers.cpp
@@ -307,6 +306,7 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/rendering/utility/gl/GLTexture.cpp
     ${SRC_DIR}/rendering/utility/gl/GLVersionChecker.cpp
     ${SRC_DIR}/rendering/utility/gl/GLVertexArrayObject.cpp
+    ${SRC_DIR}/rendering/utility/math/SliceIntersector.cpp
 
     ${SRC_DIR}/ui/Headers.cpp
     ${SRC_DIR}/ui/Helpers.cpp
