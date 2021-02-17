@@ -2,6 +2,7 @@
 #define ANNOTATION_H
 
 #include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 #include <uuid.h>
 
@@ -100,6 +101,10 @@ private:
 
     /// Annotation color (non-premultiplied RGB triple)
     glm::vec3 m_color;
+
+    /// Equation of the 3D plane containing this annotation.
+    /// The plane is defined by (A, B, C, D), where Ax + By + Cz + D = 0
+    glm::vec4 m_plane;
 };
 
 #endif // ANNOTATION_H

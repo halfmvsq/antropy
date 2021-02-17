@@ -569,7 +569,7 @@ void renderSettingsWindow(
     static const float sk_windowMin = 0.0f;
     static const float sk_windowMax = 1.0f;
 
-    static const ImGuiColorEditFlags colorEditFlags =
+    static const ImGuiColorEditFlags sk_colorEditFlags =
             ImGuiColorEditFlags_NoInputs |
             ImGuiColorEditFlags_PickerHueBar |
             ImGuiColorEditFlags_DisplayRGB |
@@ -577,7 +577,7 @@ void renderSettingsWindow(
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
 
-    static const ImGuiColorEditFlags colorAlphaEditFlags =
+    static const ImGuiColorEditFlags sk_colorAlphaEditFlags =
             ImGuiColorEditFlags_NoInputs |
             ImGuiColorEditFlags_PickerHueBar |
             ImGuiColorEditFlags_DisplayRGB |
@@ -700,15 +700,15 @@ void renderSettingsWindow(
             {
                 ImGui::ColorEdit3( "Background color",
                                    glm::value_ptr( appData.renderData().m_backgroundColor ),
-                                   colorEditFlags );
+                                   sk_colorEditFlags );
 
                 ImGui::ColorEdit4( "Crosshairs color",
                                    glm::value_ptr( appData.renderData().m_crosshairsColor ),
-                                   colorAlphaEditFlags );
+                                   sk_colorAlphaEditFlags );
 
                 ImGui::ColorEdit4( "Anatomical label color",
                                    glm::value_ptr( appData.renderData().m_anatomicalLabelColor ),
-                                   colorAlphaEditFlags );
+                                   sk_colorAlphaEditFlags );
 
                 // Show image-view intersection border
                 ImGui::Checkbox( "Image border",

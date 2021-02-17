@@ -1098,6 +1098,12 @@ void renderImageViewIntersections(
 
         if ( ! worldIntersections ) continue;
 
+//        const auto activeImageUid = appData.activeImageUid();
+//        if ( const bool isActive = ( activeImageUid && ( *activeImageUid == imgUid ) ) )
+//        {
+            /// @todo Enhance the border of the active image
+//        }
+
         const glm::vec3 color = img->settings().borderColor();
         const float opacity = static_cast<float>( img->settings().visibility() ) * img->settings().opacity();
 

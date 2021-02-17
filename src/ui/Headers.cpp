@@ -224,11 +224,12 @@ void renderImageHeader(
         const std::function< bool ( const uuids::uuid& imageUid, bool locked ) >& setLockManualImageTransformation )
 {
     static const ImGuiColorEditFlags sk_colorNoAlphaEditFlags =
+            ImGuiColorEditFlags_NoInputs |
             ImGuiColorEditFlags_PickerHueBar |
             ImGuiColorEditFlags_DisplayRGB |
             ImGuiColorEditFlags_DisplayHex |
             ImGuiColorEditFlags_Uint8 |
-            ImGuiColorEditFlags_InputRGB;
+            ImGuiColorEditFlags_InputRGB ;
 
     static const ImGuiColorEditFlags sk_colorAlphaEditFlags =
             ImGuiColorEditFlags_PickerHueBar |
@@ -282,17 +283,35 @@ void renderImageHeader(
     const bool clicked = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
     ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
 
-    if ( clicked )
+    if ( ! clicked )
     {
-        ImGui::Spacing();
+        ImGui::PopID(); // imageUid
+        return;
+    }
 
+    ImGui::Spacing();
+
+    if ( ! isActiveImage )
+    {
+        if ( ImGui::Button( ICON_FK_TOGGLE_OFF ) )
+        {
+            if ( appData.setActiveImageUid( imageUid ) ) return;
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Make this the active image." );
+        }
+    }
+    else
+    {
+        ImGui::Button( ICON_FK_TOGGLE_ON );
+
+        ImGui::SameLine();
         if ( ImGui::Button( ( image->transformations().is_worldDef_T_affine_locked()
-                              ? ICON_FK_LOCK : ICON_FK_UNLOCK ),
-                            sk_smallToolbarButtonSize ) )
+                              ? ICON_FK_LOCK : ICON_FK_UNLOCK ), sk_smallToolbarButtonSize ) )
         {
             setLockManualImageTransformation( imageUid, ! image->transformations().is_worldDef_T_affine_locked() );
         }
-
         if ( ImGui::IsItemHovered() )
         {
             if ( image->transformations().is_worldDef_T_affine_locked() )
@@ -304,679 +323,685 @@ void renderImageHeader(
                 ImGui::SetTooltip( "Manual image transformation is unlocked.\nClick to lock and prevent movement." );
             }
         }
+    }
 
-        ImGui::SameLine( 0.0f, 12.0f );
 
-        const bool isRef = ( 0 == imageIndex );
+    ImGui::SameLine( 0.0f, 12.0f );
 
-        if ( isRef && isActiveImage )
+    const bool isRef = ( 0 == imageIndex );
+
+    if ( isRef && isActiveImage )
+    {
+        ImGui::Text( "This is the reference and active image." );
+    }
+    else if ( isRef )
+    {
+        ImGui::Text( "This is the reference image." );
+    }
+    else if ( isActiveImage )
+    {
+        ImGui::Text( "This is the active image." );
+    }
+    else
+    {
+        ImGui::Text( "This is not the active image." );
+    }
+
+    if ( 0 < imageIndex )
+    {
+        // Rules for showing the buttons that change image order:
+        const bool showDecreaseIndex = ( 1 < imageIndex );
+        const bool showIncreaseIndex = ( imageIndex < numImages - 1 );
+
+        if ( showDecreaseIndex || showIncreaseIndex )
         {
-            ImGui::Text( "This is the reference and active image." );
+            ImGui::Text( "Image order: " );
         }
-        else if ( isRef )
+
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+
+        if ( showDecreaseIndex )
         {
-            ImGui::Text( "This is the reference image." );
+            ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_FAST_BACKWARD ) )
+            {
+                moveImageToBack( imageUid );
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "Move image to backmost layer" );
+            }
+
+            ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_BACKWARD ) )
+            {
+                moveImageBackward( imageUid );
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "Move image backwards in layers (decrease the image order)" );
+            }
         }
-        else if ( isActiveImage )
+
+        if ( showIncreaseIndex )
         {
-            ImGui::Text( "This is the active image." );
+            ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_FORWARD ) )
+            {
+                moveImageForward( imageUid );
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "Move image forwards in layers (increase the image order)" );
+            }
+
+            ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_FAST_FORWARD ) )
+            {
+                moveImageToFront( imageUid );
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "Move image to frontmost layer" );
+            }
+        }
+
+        /*** ImGuiStyleVar_ItemSpacing ***/
+        ImGui::PopStyleVar( 1 );
+    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+
+
+    // Open View Properties on first appearance
+    ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
+    if ( ImGui::TreeNode( "View Properties" ) )
+    {
+        // Component selection combo selection list. The component selection is shown only for
+        // multi-component images, where each component is stored as a separate image.
+        const bool showComponentSelection =
+                ( imgHeader.numComponentsPerPixel() > 1 &&
+                  Image::MultiComponentBufferType::SeparateImages == image->bufferType() );
+
+        if ( showComponentSelection &&
+             ImGui::BeginCombo( "Component", std::to_string( imgSettings.activeComponent() ).c_str() ) )
+        {
+            for ( uint32_t comp = 0; comp < imgHeader.numComponentsPerPixel(); ++comp )
+            {
+                const bool isSelected = ( imgSettings.activeComponent() == comp );
+                if ( ImGui::Selectable( std::to_string(comp).c_str(), isSelected) )
+                {
+                    imgSettings.setActiveComponent( comp );
+                    updateImageUniforms();
+                }
+
+                if ( isSelected ) ImGui::SetItemDefaultFocus();
+            }
+
+            ImGui::EndCombo();
+
+            ImGui::SameLine(); helpMarker( "Select the image component to display and adjust" );
+        }
+
+
+        // Visibility checkbox:
+        bool visible = imgSettings.visibility();
+        if ( ImGui::Checkbox( "Visible", &visible ) )
+        {
+            imgSettings.setVisibility( visible );
+            updateImageUniforms();
+        }
+        ImGui::SameLine(); helpMarker( "Show/hide the image on all views (W)" );
+
+
+        if ( visible )
+        {
+            // Image opacity slider:
+            double imageOpacity = imgSettings.opacity();
+            if ( mySliderF64( "Opacity", &imageOpacity, 0.0, 1.0 ) )
+            {
+                imgSettings.setOpacity( imageOpacity );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Image layer opacity" );
+
+
+            // Segmentation opacity slider:
+            auto activeSegUid = appData.imageToActiveSegUid( imageUid );
+            Image* activeSeg = ( activeSegUid ) ? appData.seg( *activeSegUid ) : nullptr;
+
+            if ( activeSeg )
+            {
+                double segOpacity = activeSeg->settings().opacity();
+                if ( mySliderF64( "Segmentation", &segOpacity, 0.0, 1.0 ) )
+                {
+                    activeSeg->settings().setOpacity( segOpacity );
+                    updateImageUniforms();
+                }
+                ImGui::SameLine(); helpMarker( "Segmentation layer opacity" );
+            }
+
+            ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
+        }
+
+
+        if ( ComponentType::Float32 == imgHeader.memoryComponentType() ||
+             ComponentType::Float64 == imgHeader.memoryComponentType() )
+        {
+            // Threshold range:
+            const float threshMin = static_cast<float>( imgSettings.thresholdRange().first );
+            const float threshMax = static_cast<float>( imgSettings.thresholdRange().second );
+
+            float threshLow = static_cast<float>( imgSettings.thresholdLow() );
+            float threshHigh = static_cast<float>( imgSettings.thresholdHigh() );
+
+            /// @todo Change speed of range slider based on the image range. Right now set to 1.0
+            if ( ImGui::DragFloatRange2( "Threshold", &threshLow, &threshHigh, 0.1f, threshMin, threshMax,
+                                         "Min: %.2f", "Max: %.2f", ImGuiSliderFlags_AlwaysClamp ) )
+            {
+                imgSettings.setThresholdLow( static_cast<double>( threshLow ) );
+                imgSettings.setThresholdHigh( static_cast<double>( threshHigh ) );
+                updateImageUniforms();
+            }
+            ImGui::SameLine();
+            helpMarker( "Lower and upper image thresholds" );
+
+
+            // Window/level sliders:
+            const float valueMin = static_cast<float>( imgSettings.componentStatistics().m_minimum );
+            const float valueMax = static_cast<float>( imgSettings.componentStatistics().m_maximum );
+
+            const float windowMin = static_cast<float>( imgSettings.windowRange().first );
+            const float windowMax = static_cast<float>( imgSettings.windowRange().second );
+
+            const float levelMin = static_cast<float>( imgSettings.levelRange().first );
+            const float levelMax = static_cast<float>( imgSettings.levelRange().second );
+
+            float window = static_cast<float>( imgSettings.window() );
+            float level = static_cast<float>( imgSettings.level() );
+
+            float windowLow = std::max( level - 0.5f * window, valueMin );
+            float windowHigh = std::min( level + 0.5f * window, valueMax );
+
+            if ( ImGui::DragFloatRange2( "Window", &windowLow, &windowHigh, 0.1f, valueMin, valueMax,
+                                         "Min: %.2f", "Max: %.2f", ImGuiSliderFlags_AlwaysClamp ) )
+            {
+                const double newWindow = static_cast<double>( windowHigh - windowLow );
+                const double newLevel = static_cast<double>( 0.5f * ( windowLow + windowHigh ) );
+
+                imgSettings.setWindow( newWindow );
+                imgSettings.setLevel( newLevel );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Set the minimum and maximum of the window range" );
+
+            if ( mySliderF32( "Width", &window, windowMin, windowMax ) )
+            {
+                imgSettings.setWindow( static_cast<double>( window ) );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Window width" );
+
+            if ( mySliderF32( "Level", &level, levelMin, levelMax ) )
+            {
+                imgSettings.setLevel( static_cast<double>( level ) );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Window level (center)" );
         }
         else
         {
-            ImGui::Text( "This is no the active image." );
+            const int32_t threshMin = static_cast<int32_t>( imgSettings.thresholdRange().first );
+            const int32_t threshMax = static_cast<int32_t>( imgSettings.thresholdRange().second );
+
+            int32_t threshLow = static_cast<int32_t>( imgSettings.thresholdLow() );
+            int32_t threshHigh = static_cast<int32_t>( imgSettings.thresholdHigh() );
+
+            if ( ImGui::DragIntRange2( "Threshold", &threshLow, &threshHigh, 1.0f, threshMin, threshMax,
+                                       "Min: %d", "Max: %d", ImGuiSliderFlags_AlwaysClamp ) )
+            {
+                imgSettings.setThresholdLow( static_cast<double>( threshLow ) );
+                imgSettings.setThresholdHigh( static_cast<double>( threshHigh ) );
+                updateImageUniforms();
+            }
+
+            ImGui::SameLine(); helpMarker( "Lower and upper image thresholds" );
+
+
+            const int32_t valueMin = static_cast<int32_t>( imgSettings.componentStatistics().m_minimum );
+            const int32_t valueMax = static_cast<int32_t>( imgSettings.componentStatistics().m_maximum );
+
+            const int32_t windowMin = static_cast<int32_t>( imgSettings.windowRange().first );
+            const int32_t windowMax = static_cast<int32_t>( imgSettings.windowRange().second );
+
+            const int32_t levelMin = static_cast<int32_t>( imgSettings.levelRange().first );
+            const int32_t levelMax = static_cast<int32_t>( imgSettings.levelRange().second );
+
+            int32_t window = static_cast<int32_t>( imgSettings.window() );
+            int32_t level = static_cast<int32_t>( imgSettings.level() );
+
+            int32_t windowLow = std::max( static_cast<int32_t>( level - 0.5 * window ), valueMin );
+            int32_t windowHigh = std::min( static_cast<int32_t>( level + 0.5 * window ), valueMax );
+
+            if ( ImGui::DragIntRange2( "Window", &windowLow, &windowHigh, 1.0f, valueMin, valueMax,
+                                       "Min: %d", "Max: %d", ImGuiSliderFlags_AlwaysClamp ) )
+            {
+                const double newWindow = static_cast<double>( windowHigh - windowLow );
+                const double newLevel = static_cast<double>( 0.5 * ( windowLow + windowHigh ) );
+
+                imgSettings.setWindow( newWindow );
+                imgSettings.setLevel( newLevel );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Minimum and maximum of the window range" );
+
+            if ( mySliderS32( "Width", &window, windowMin, windowMax ) )
+            {
+                imgSettings.setWindow( static_cast<double>( window ) );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Window width" );
+
+            if ( mySliderS32( "Level", &level, levelMin, levelMax ) )
+            {
+                imgSettings.setLevel( static_cast<double>( level ) );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Window level (center)" );
         }
 
-        if ( 0 < imageIndex )
+
+        // Interpolation radio buttons:
+        int interp = ( InterpolationMode::NearestNeighbor == imgSettings.interpolationMode() ) ? 0 : 1;
+
+        if ( ImGui::RadioButton( "Nearest", &interp, 0 ) )
         {
-            // Rules for showing the buttons that change image order:
-            const bool showDecreaseIndex = ( 1 < imageIndex );
-            const bool showIncreaseIndex = ( imageIndex < numImages - 1 );
+            imgSettings.setInterpolationMode( InterpolationMode::NearestNeighbor );
+            updateImageInterpolationMode();
+        }
 
-            if ( showDecreaseIndex || showIncreaseIndex )
+        ImGui::SameLine();
+        if ( ImGui::RadioButton( "Linear interpolation", &interp, 1 ) )
+        {
+            imgSettings.setInterpolationMode( InterpolationMode::Linear );
+            updateImageInterpolationMode();
+        }
+        ImGui::SameLine(); helpMarker( "Nearest neighbor or trilinear interpolation" );
+
+
+        // Image colormap dialog:
+        bool* showImageColormapWindow = &( guiData.m_showImageColormapWindow[imageUid] );
+        *showImageColormapWindow |= ImGui::Button( "Colormap" );
+
+        bool invertedCmap = imgSettings.isColorMapInverted();
+
+        ImGui::SameLine();
+        if ( ImGui::Checkbox( "Inverted", &invertedCmap ) )
+        {
+            imgSettings.setColorMapInverted( invertedCmap );
+            updateImageUniforms();
+        }
+        ImGui::SameLine(); helpMarker( "Select/invert the image colormap" );
+
+        renderPaletteWindow(
+                    std::string( "Select colormap for " + imgSettings.displayName() ).c_str(),
+                    showImageColormapWindow,
+                    getNumImageColorMaps,
+                    getImageColorMap,
+                    getCurrentImageColormapIndex,
+                    setCurrentImageColormapIndex,
+                    updateImageUniforms );
+
+
+        // Colormap preview:
+        const float contentWidth = ImGui::GetContentRegionAvail().x;
+        const float height = ( ImGui::GetIO().Fonts->Fonts[0]->FontSize * ImGui::GetIO().FontGlobalScale );
+
+        char label[128];
+        if ( const ImageColorMap* cmap = getImageColorMap( getCurrentImageColormapIndex() ) )
+        {
+            sprintf( label, "%s##cmap_%lu", cmap->name().c_str(), imageIndex );
+
+            ImGui::paletteButton(
+                        label, cmap->numColors(), cmap->data_RGBA_F32(),
+                        imgSettings.isColorMapInverted(),
+                        ImVec2( contentWidth, height ) );
+
+            if ( ImGui::IsItemHovered() )
             {
-                ImGui::Text( "Change image order:" );
+                ImGui::SetTooltip( "%s", cmap->description().c_str() );
+            }
+        }
+
+
+//        ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
+        ImGui::Spacing();
+
+        glm::vec3 borderColor{ imgSettings.borderColor() };
+
+        if ( ImGui::ColorEdit3( "Border color", glm::value_ptr( borderColor ), sk_colorNoAlphaEditFlags ) )
+        {
+            imgSettings.setBorderColor( borderColor );
+            updateImageUniforms();
+        }
+        ImGui::SameLine(); helpMarker( "Image border color" );
+
+
+
+        // Edge settings
+        ImGui::Separator();
+
+        // Show edges:
+        bool showEdges = imgSettings.showEdges();
+        if ( ImGui::Checkbox( "Show edges", &showEdges ) )
+        {
+            imgSettings.setShowEdges( showEdges );
+            updateImageUniforms();
+        }
+        ImGui::SameLine(); helpMarker( "Show/hide the edges of the image (E)" );
+
+
+        if ( showEdges )
+        {
+            // Recommend linear interpolation:
+            if ( InterpolationMode::NearestNeighbor == imgSettings.interpolationMode() )
+            {
+                ImGui::Text( "Note: Linear interpolation is recommended when showing edges." );
+                //                    imgSettings.setInterpolationMode( InterpolationMode::Linear );
+                //                    updateImageInterpolationMode();
             }
 
-            if ( showDecreaseIndex )
-            {
-                ImGui::SameLine();
-                if ( ImGui::Button( ICON_FK_FAST_BACKWARD ) )
-                {
-                    moveImageToBack( imageUid );
-                }
-                if ( ImGui::IsItemHovered() )
-                {
-                    ImGui::SetTooltip( "Move image to backmost layer" );
-                }
 
-                ImGui::SameLine();
-                if ( ImGui::Button( ICON_FK_BACKWARD ) )
+            // Threshold edges:
+            bool thresholdEdges = imgSettings.thresholdEdges();
+            if ( ImGui::Checkbox( "Hard edges", &thresholdEdges ) )
+            {
+                imgSettings.setThresholdEdges( thresholdEdges );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Apply thresholding to edge gradient magnitude to get hard edges" );
+
+
+            // Edge magnitude (only shown if thresholding edges):
+            if ( thresholdEdges )
+            {
+                double edgeMag = imgSettings.edgeMagnitude();
+                if ( mySliderF64( "Magnitude", &edgeMag, 0.01, 1.00 ) )
                 {
-                    moveImageBackward( imageUid );
+                    imgSettings.setEdgeMagnitude( edgeMag );
+                    updateImageUniforms();
                 }
-                if ( ImGui::IsItemHovered() )
+                ImGui::SameLine(); helpMarker( "Magnitude of threshold above which hard edges are shown" );
+            }
+            else
+            {
+                double edgeMag = 1.0 - imgSettings.edgeMagnitude();
+                if ( mySliderF64( "Scale", &edgeMag, 0.01, 1.00 ) )
                 {
-                    ImGui::SetTooltip( "Move image backwards in layers (decrease the image order)" );
+                    imgSettings.setEdgeMagnitude( 1.0 - edgeMag );
+                    updateImageUniforms();
                 }
+                ImGui::SameLine(); helpMarker( "Scale applied to edge magnitude" );
             }
 
-            if ( showIncreaseIndex )
+
+            //                // Windowed edges:
+            //                bool windowedEdges = imgSettings.windowedEdges();
+            //                if ( ImGui::Checkbox( "Compute edges after windowing", &windowedEdges ) )
+            //                {
+            //                    imgSettings.setWindowedEdges( windowedEdges );
+            //                    updateImageUniforms();
+            //                }
+            //                ImGui::SameLine();
+            //                HelpMarker( "Compute edges after applying windowing (width/level) to the image" );
+
+
+            // Use Sobel or Frei-Chen:
+            //                bool useFreiChen = imgSettings.useFreiChen();
+            //                if ( ImGui::Checkbox( "Frei-Chen filter", &useFreiChen ) )
+            //                {
+            //                    imgSettings.setUseFreiChen( useFreiChen );
+            //                    updateImageUniforms();
+            //                }
+            //                ImGui::SameLine();
+            //                HelpMarker( "Compute edges using Sobel or Frei-Chen convolution filters" );
+
+
+            // Overlay edges:
+            bool overlayEdges = imgSettings.overlayEdges();
+            if ( ImGui::Checkbox( "Overlay edges on image", &overlayEdges ) )
             {
-                ImGui::SameLine();
-                if ( ImGui::Button( ICON_FK_FORWARD ) )
+                if ( imgSettings.colormapEdges() )
                 {
-                    moveImageForward( imageUid );
-                }
-                if ( ImGui::IsItemHovered() )
-                {
-                    ImGui::SetTooltip( "Move image forwards in layers (increase the image order)" );
+                    // Do not allow edge overlay if edges are colormapped
+                    overlayEdges = false;
                 }
 
-                ImGui::SameLine();
-                if ( ImGui::Button( ICON_FK_FAST_FORWARD ) )
+                imgSettings.setOverlayEdges( overlayEdges );
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Overlay edges on top of the image" );
+
+
+            // Colormap the edges (always false if overlaying the edges or thresholding the edges):
+            if ( overlayEdges || thresholdEdges )
+            {
+                imgSettings.setColormapEdges( false );
+                updateImageUniforms();
+            }
+
+
+            bool colormapEdges = imgSettings.colormapEdges();
+
+            if ( ! overlayEdges && ! thresholdEdges )
+            {
+                if ( ImGui::Checkbox( "Apply colormap to edges", &colormapEdges ) )
                 {
-                    moveImageToFront( imageUid );
+                    if ( overlayEdges )
+                    {
+                        colormapEdges = false;
+                    }
+
+                    imgSettings.setColormapEdges( colormapEdges );
+                    updateImageUniforms();
                 }
-                if ( ImGui::IsItemHovered() )
+                ImGui::SameLine(); helpMarker( "Apply the image colormap to image edges" );
+            }
+
+
+            if ( ! colormapEdges )
+            {
+                glm::vec4 edgeColor{ imgSettings.edgeColor(), imgSettings.edgeOpacity() };
+
+                if ( ImGui::ColorEdit4( "Edge color", glm::value_ptr( edgeColor ), sk_colorAlphaEditFlags ) )
                 {
-                    ImGui::SetTooltip( "Move image to frontmost layer" );
+                    imgSettings.setEdgeColor( edgeColor );
+                    imgSettings.setEdgeOpacity( edgeColor.a );
+                    updateImageUniforms();
+                }
+                ImGui::SameLine(); helpMarker( "Edge color and opacity" );
+            }
+            else
+            {
+                // Cannot overlay edges with colormapping enabled
+                imgSettings.setOverlayEdges( false );
+                updateImageUniforms();
+            }
+        }
+
+        ImGui::Separator();
+        ImGui::TreePop();
+    }
+
+    if ( ImGui::TreeNode( "Transformations" ) )
+    {
+        ImGui::Text( "Initial affine transformation:" );
+        ImGui::SameLine();
+        helpMarker( "Initial affine transformation (read from file)" );
+
+
+        bool enable_affine_T_subject = imgTx.get_enable_affine_T_subject();
+        if ( ImGui::Checkbox( "Enabled##affine_T_subject", &enable_affine_T_subject ) )
+        {
+            imgTx.set_enable_affine_T_subject( enable_affine_T_subject );
+            updateImageUniforms();
+        }
+        ImGui::SameLine();
+        helpMarker( "Enable/disable application of the initial affine transformation" );
+
+        if ( enable_affine_T_subject )
+        {
+            if ( auto fileName = imgTx.get_affine_T_subject_fileName() )
+            {
+                ImGui::InputText( "File", &( *fileName ), ImGuiInputTextFlags_ReadOnly );
+                ImGui::Spacing();
+            }
+
+            glm::mat4 aff_T_sub = glm::transpose( imgTx.get_affine_T_subject() );
+            ImGui::InputFloat4( "Matrix", glm::value_ptr( aff_T_sub[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::Spacing();
+        }
+        ImGui::Separator();
+
+
+        ImGui::Text( "Manual affine transformation:" );
+        ImGui::SameLine(); helpMarker( "Manual affine transformation from Subject to World space" );
+
+
+        bool enable_worldDef_T_affine = imgTx.get_enable_worldDef_T_affine();
+        if ( ImGui::Checkbox( "Enabled##worldDef_T_affine", &enable_worldDef_T_affine ) )
+        {
+            imgTx.set_enable_worldDef_T_affine( enable_worldDef_T_affine );
+            updateImageUniforms();
+        }
+        ImGui::SameLine();
+        helpMarker( "Enable/disable application of the manual affine transformation from Subject to World space" );
+
+
+        if ( enable_worldDef_T_affine )
+        {
+            glm::quat w_T_s_rotation = imgTx.get_worldDef_T_affine_rotation();
+            glm::vec3 w_T_s_scale = imgTx.get_worldDef_T_affine_scale();
+            glm::vec3 w_T_s_trans = imgTx.get_worldDef_T_affine_translation();
+
+            float angle = glm::degrees( glm::angle( w_T_s_rotation ) );
+            glm::vec3 axis = glm::normalize( glm::axis( w_T_s_rotation ) );
+
+            if ( ImGui::InputFloat3( "Translation", glm::value_ptr( w_T_s_trans ), "%.3f" ) )
+            {
+                imgTx.set_worldDef_T_affine_translation( w_T_s_trans );
+                updateImageUniforms();
+            }
+            ImGui::SameLine();
+            helpMarker( "Image translation in x, y, z" );
+
+            if ( ImGui::InputFloat3( "Scale", glm::value_ptr( w_T_s_scale ), "%.3f" ) )
+            {
+                if ( glm::epsilonNotEqual( w_T_s_scale.x, 0.0f, glm::epsilon<float>() ) &&
+                     glm::epsilonNotEqual( w_T_s_scale.y, 0.0f, glm::epsilon<float>() ) &&
+                     glm::epsilonNotEqual( w_T_s_scale.z, 0.0f, glm::epsilon<float>() ) )
+                {
+                    imgTx.set_worldDef_T_affine_scale( w_T_s_scale );
+                    updateImageUniforms();
+                }
+            }
+            ImGui::SameLine(); helpMarker( "Image scale in x, y, z" );
+
+            /// @todo Put in a more friendly rotation widget. For now, disable changing the rotation
+            /// @see https://github.com/BrutPitt/imGuIZMO.quat
+            /// @see https://github.com/CedricGuillemet/ImGuizmo
+
+            //            ImGui::Text( "Rotation" );
+            if ( ImGui::InputFloat( "Rotation angle", &angle, 0.01f, 0.1f, "%.3f" ) )
+            {
+                //                const float n = glm::length( axis );
+                //                if ( n < 1e-6f )
+                //                {
+                //                    const glm::quat newRot = glm::angleAxis( glm::radians( angle ), glm::normalize( axis ) );
+                //                    imgTx.set_worldDef_T_affine_rotation( newRot );
+                //                    updateImageUniforms();
+                //                }
+            }
+            ImGui::SameLine(); helpMarker( "Image rotation angle (degrees) [editing disabled]" );
+
+            if ( ImGui::InputFloat3( "Rotation axis", glm::value_ptr( axis ), "%.3f" ) )
+            {
+                //                const float n = glm::length( axis );
+                //                if ( n < 1e-6f )
+                //                {
+                //                    const glm::quat newRot = glm::angleAxis( glm::radians( angle ), glm::normalize( axis ) );
+                //                    imgTx.set_worldDef_T_affine_rotation( newRot );
+                //                    updateImageUniforms();
+                //                }
+            }
+            ImGui::SameLine(); helpMarker( "Image rotation axis [editing disabled]" );
+
+            //            if ( ImGui::InputFloat4( "Rotation", glm::value_ptr( w_T_s_rotation ), "%.3f" ) )
+            //            {
+            //                imgTx.set_worldDef_T_affine_rotation( w_T_s_rotation );
+            //                updateImageUniforms();
+            //            }
+            //            ImGui::SameLine();
+            //            HelpMarker( "Image rotation defined as a quaternion" );
+
+
+            ImGui::Spacing();
+            glm::mat4 world_T_affine = glm::transpose( imgTx.get_worldDef_T_affine() );
+            ImGui::InputFloat4( "Matrix", glm::value_ptr( world_T_affine[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+
+
+            ImGui::Spacing();
+            if ( ImGui::Button( "Reset to identity" ) )
+            {
+                imgTx.reset_worldDef_T_affine();
+                updateImageUniforms();
+            }
+            ImGui::SameLine(); helpMarker( "Reset the manual component of the affine transformation from Subject to World space" );
+
+
+            // Save manual tx to file:
+            static const char* sk_buttonText( "Save manual transformation..." );
+            static const char* sk_dialogTitle( "Select Manual Transformation" );
+            static const std::vector< const char* > sk_dialogFilters{};
+
+            const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
+                        sk_buttonText, sk_dialogTitle, sk_dialogFilters );
+
+            ImGui::SameLine(); helpMarker( "Save the manual component of the affine transformation matrix from Subject to World space" );
+
+            if ( selectedFile )
+            {
+                const glm::dmat4 worldDef_T_affine{ imgTx.get_worldDef_T_affine() };
+
+                if ( serialize::saveAffineTxFile( worldDef_T_affine, *selectedFile ) )
+                {
+                    spdlog::info( "Saved manual transformation matrix to file {}", *selectedFile );
+                }
+                else
+                {
+                    spdlog::error( "Error saving manual transformation matrix to file {}", *selectedFile );
                 }
             }
         }
 
         ImGui::Separator();
-        ImGui::Spacing();
-
-
-        // Open View Properties on first appearance
-        ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
-        if ( ImGui::TreeNode( "View Properties" ) )
-        {
-            // Component selection combo selection list. The component selection is shown only for
-            // multi-component images, where each component is stored as a separate image.
-            const bool showComponentSelection =
-                    ( imgHeader.numComponentsPerPixel() > 1 &&
-                      Image::MultiComponentBufferType::SeparateImages == image->bufferType() );
-
-            if ( showComponentSelection &&
-                 ImGui::BeginCombo( "Component", std::to_string( imgSettings.activeComponent() ).c_str() ) )
-            {
-                for ( uint32_t comp = 0; comp < imgHeader.numComponentsPerPixel(); ++comp )
-                {
-                    const bool isSelected = ( imgSettings.activeComponent() == comp );
-                    if ( ImGui::Selectable( std::to_string(comp).c_str(), isSelected) )
-                    {
-                        imgSettings.setActiveComponent( comp );
-                        updateImageUniforms();
-                    }
-
-                    if ( isSelected ) ImGui::SetItemDefaultFocus();
-                }
-
-                ImGui::EndCombo();
-
-                ImGui::SameLine(); helpMarker( "Select the image component to display and adjust" );
-            }
-
-
-            // Visibility checkbox:
-            bool visible = imgSettings.visibility();
-            if ( ImGui::Checkbox( "Visible", &visible ) )
-            {
-                imgSettings.setVisibility( visible );
-                updateImageUniforms();
-            }
-            ImGui::SameLine(); helpMarker( "Show/hide the image on all views (W)" );
-
-
-            if ( visible )
-            {
-                // Image opacity slider:
-                double imageOpacity = imgSettings.opacity();
-                if ( mySliderF64( "Opacity", &imageOpacity, 0.0, 1.0 ) )
-                {
-                    imgSettings.setOpacity( imageOpacity );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Image layer opacity" );
-
-
-                // Segmentation opacity slider:
-                auto activeSegUid = appData.imageToActiveSegUid( imageUid );
-                Image* activeSeg = ( activeSegUid ) ? appData.seg( *activeSegUid ) : nullptr;
-
-                if ( activeSeg )
-                {
-                    double segOpacity = activeSeg->settings().opacity();
-                    if ( mySliderF64( "Segmentation", &segOpacity, 0.0, 1.0 ) )
-                    {
-                        activeSeg->settings().setOpacity( segOpacity );
-                        updateImageUniforms();
-                    }
-                    ImGui::SameLine(); helpMarker( "Segmentation layer opacity" );
-                }
-
-                ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
-            }
-
-
-            if ( ComponentType::Float32 == imgHeader.memoryComponentType() ||
-                 ComponentType::Float64 == imgHeader.memoryComponentType() )
-            {
-                // Threshold range:
-                const float threshMin = static_cast<float>( imgSettings.thresholdRange().first );
-                const float threshMax = static_cast<float>( imgSettings.thresholdRange().second );
-
-                float threshLow = static_cast<float>( imgSettings.thresholdLow() );
-                float threshHigh = static_cast<float>( imgSettings.thresholdHigh() );
-
-                /// @todo Change speed of range slider based on the image range. Right now set to 1.0
-                if ( ImGui::DragFloatRange2( "Threshold", &threshLow, &threshHigh, 0.1f, threshMin, threshMax,
-                                             "Min: %.2f", "Max: %.2f", ImGuiSliderFlags_AlwaysClamp ) )
-                {
-                    imgSettings.setThresholdLow( static_cast<double>( threshLow ) );
-                    imgSettings.setThresholdHigh( static_cast<double>( threshHigh ) );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine();
-                helpMarker( "Lower and upper image thresholds" );
-
-
-                // Window/level sliders:
-                const float valueMin = static_cast<float>( imgSettings.componentStatistics().m_minimum );
-                const float valueMax = static_cast<float>( imgSettings.componentStatistics().m_maximum );
-
-                const float windowMin = static_cast<float>( imgSettings.windowRange().first );
-                const float windowMax = static_cast<float>( imgSettings.windowRange().second );
-
-                const float levelMin = static_cast<float>( imgSettings.levelRange().first );
-                const float levelMax = static_cast<float>( imgSettings.levelRange().second );
-
-                float window = static_cast<float>( imgSettings.window() );
-                float level = static_cast<float>( imgSettings.level() );
-
-                float windowLow = std::max( level - 0.5f * window, valueMin );
-                float windowHigh = std::min( level + 0.5f * window, valueMax );
-
-                if ( ImGui::DragFloatRange2( "Window", &windowLow, &windowHigh, 0.1f, valueMin, valueMax,
-                                             "Min: %.2f", "Max: %.2f", ImGuiSliderFlags_AlwaysClamp ) )
-                {
-                    const double newWindow = static_cast<double>( windowHigh - windowLow );
-                    const double newLevel = static_cast<double>( 0.5f * ( windowLow + windowHigh ) );
-
-                    imgSettings.setWindow( newWindow );
-                    imgSettings.setLevel( newLevel );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Set the minimum and maximum of the window range" );
-
-                if ( mySliderF32( "Width", &window, windowMin, windowMax ) )
-                {
-                    imgSettings.setWindow( static_cast<double>( window ) );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Window width" );
-
-                if ( mySliderF32( "Level", &level, levelMin, levelMax ) )
-                {
-                    imgSettings.setLevel( static_cast<double>( level ) );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Window level (center)" );
-            }
-            else
-            {
-                const int32_t threshMin = static_cast<int32_t>( imgSettings.thresholdRange().first );
-                const int32_t threshMax = static_cast<int32_t>( imgSettings.thresholdRange().second );
-
-                int32_t threshLow = static_cast<int32_t>( imgSettings.thresholdLow() );
-                int32_t threshHigh = static_cast<int32_t>( imgSettings.thresholdHigh() );
-
-                if ( ImGui::DragIntRange2( "Threshold", &threshLow, &threshHigh, 1.0f, threshMin, threshMax,
-                                           "Min: %d", "Max: %d", ImGuiSliderFlags_AlwaysClamp ) )
-                {
-                    imgSettings.setThresholdLow( static_cast<double>( threshLow ) );
-                    imgSettings.setThresholdHigh( static_cast<double>( threshHigh ) );
-                    updateImageUniforms();
-                }
-
-                ImGui::SameLine(); helpMarker( "Lower and upper image thresholds" );
-
-
-                const int32_t valueMin = static_cast<int32_t>( imgSettings.componentStatistics().m_minimum );
-                const int32_t valueMax = static_cast<int32_t>( imgSettings.componentStatistics().m_maximum );
-
-                const int32_t windowMin = static_cast<int32_t>( imgSettings.windowRange().first );
-                const int32_t windowMax = static_cast<int32_t>( imgSettings.windowRange().second );
-
-                const int32_t levelMin = static_cast<int32_t>( imgSettings.levelRange().first );
-                const int32_t levelMax = static_cast<int32_t>( imgSettings.levelRange().second );
-
-                int32_t window = static_cast<int32_t>( imgSettings.window() );
-                int32_t level = static_cast<int32_t>( imgSettings.level() );
-
-                int32_t windowLow = std::max( static_cast<int32_t>( level - 0.5 * window ), valueMin );
-                int32_t windowHigh = std::min( static_cast<int32_t>( level + 0.5 * window ), valueMax );
-
-                if ( ImGui::DragIntRange2( "Window", &windowLow, &windowHigh, 1.0f, valueMin, valueMax,
-                                           "Min: %d", "Max: %d", ImGuiSliderFlags_AlwaysClamp ) )
-                {
-                    const double newWindow = static_cast<double>( windowHigh - windowLow );
-                    const double newLevel = static_cast<double>( 0.5 * ( windowLow + windowHigh ) );
-
-                    imgSettings.setWindow( newWindow );
-                    imgSettings.setLevel( newLevel );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Minimum and maximum of the window range" );
-
-                if ( mySliderS32( "Width", &window, windowMin, windowMax ) )
-                {
-                    imgSettings.setWindow( static_cast<double>( window ) );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Window width" );
-
-                if ( mySliderS32( "Level", &level, levelMin, levelMax ) )
-                {
-                    imgSettings.setLevel( static_cast<double>( level ) );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Window level (center)" );
-            }
-
-
-            // Interpolation radio buttons:
-            int interp = ( InterpolationMode::NearestNeighbor == imgSettings.interpolationMode() ) ? 0 : 1;
-
-            if ( ImGui::RadioButton( "Nearest", &interp, 0 ) )
-            {
-                imgSettings.setInterpolationMode( InterpolationMode::NearestNeighbor );
-                updateImageInterpolationMode();
-            }
-
-            ImGui::SameLine();
-            if ( ImGui::RadioButton( "Linear interpolation", &interp, 1 ) )
-            {
-                imgSettings.setInterpolationMode( InterpolationMode::Linear );
-                updateImageInterpolationMode();
-            }
-            ImGui::SameLine(); helpMarker( "Nearest neighbor or trilinear interpolation" );
-
-
-            // Image colormap dialog:
-            bool* showImageColormapWindow = &( guiData.m_showImageColormapWindow[imageUid] );
-            *showImageColormapWindow |= ImGui::Button( "Colormap" );
-
-            bool invertedCmap = imgSettings.isColorMapInverted();
-
-            ImGui::SameLine();
-            if ( ImGui::Checkbox( "Inverted", &invertedCmap ) )
-            {
-                imgSettings.setColorMapInverted( invertedCmap );
-                updateImageUniforms();
-            }
-            ImGui::SameLine(); helpMarker( "Select/invert the image colormap" );
-
-            renderPaletteWindow(
-                        std::string( "Select colormap for " + imgSettings.displayName() ).c_str(),
-                        showImageColormapWindow,
-                        getNumImageColorMaps,
-                        getImageColorMap,
-                        getCurrentImageColormapIndex,
-                        setCurrentImageColormapIndex,
-                        updateImageUniforms );
-
-
-            // Colormap preview:
-            const float contentWidth = ImGui::GetContentRegionAvail().x;
-            const float height = ( ImGui::GetIO().Fonts->Fonts[0]->FontSize * ImGui::GetIO().FontGlobalScale );
-
-            char label[128];
-            if ( const ImageColorMap* cmap = getImageColorMap( getCurrentImageColormapIndex() ) )
-            {
-                sprintf( label, "%s##cmap_%lu", cmap->name().c_str(), imageIndex );
-
-                ImGui::paletteButton(
-                            label, cmap->numColors(), cmap->data_RGBA_F32(),
-                            imgSettings.isColorMapInverted(),
-                            ImVec2( contentWidth, height ) );
-
-                if ( ImGui::IsItemHovered() )
-                {
-                    ImGui::SetTooltip( "%s", cmap->description().c_str() );
-                }
-            }
-
-
-            ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
-//            ImGui::Spacing();
-
-            glm::vec3 borderColor{ imgSettings.borderColor() };
-
-            if ( ImGui::ColorEdit3( "Border", glm::value_ptr( borderColor ), sk_colorNoAlphaEditFlags ) )
-            {
-                imgSettings.setBorderColor( borderColor );
-                updateImageUniforms();
-            }
-            ImGui::SameLine(); helpMarker( "Image border color" );
-
-
-
-            // Edge settings
-            ImGui::Separator();
-
-            // Show edges:
-            bool showEdges = imgSettings.showEdges();
-            if ( ImGui::Checkbox( "Show edges", &showEdges ) )
-            {
-                imgSettings.setShowEdges( showEdges );
-                updateImageUniforms();
-            }
-            ImGui::SameLine(); helpMarker( "Show/hide the edges of the image (E)" );
-
-
-            if ( showEdges )
-            {
-                // Recommend linear interpolation:
-                if ( InterpolationMode::NearestNeighbor == imgSettings.interpolationMode() )
-                {
-                    ImGui::Text( "Note: Linear interpolation is recommended when showing edges." );
-//                    imgSettings.setInterpolationMode( InterpolationMode::Linear );
-//                    updateImageInterpolationMode();
-                }
-
-
-                // Threshold edges:
-                bool thresholdEdges = imgSettings.thresholdEdges();
-                if ( ImGui::Checkbox( "Hard edges", &thresholdEdges ) )
-                {
-                    imgSettings.setThresholdEdges( thresholdEdges );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Apply thresholding to edge gradient magnitude to get hard edges" );
-
-
-                // Edge magnitude (only shown if thresholding edges):
-                if ( thresholdEdges )
-                {
-                    double edgeMag = imgSettings.edgeMagnitude();
-                    if ( mySliderF64( "Magnitude", &edgeMag, 0.01, 1.00 ) )
-                    {
-                        imgSettings.setEdgeMagnitude( edgeMag );
-                        updateImageUniforms();
-                    }
-                    ImGui::SameLine(); helpMarker( "Magnitude of threshold above which hard edges are shown" );
-                }
-                else
-                {
-                    double edgeMag = 1.0 - imgSettings.edgeMagnitude();
-                    if ( mySliderF64( "Scale", &edgeMag, 0.01, 1.00 ) )
-                    {
-                        imgSettings.setEdgeMagnitude( 1.0 - edgeMag );
-                        updateImageUniforms();
-                    }
-                    ImGui::SameLine(); helpMarker( "Scale applied to edge magnitude" );
-                }
-
-
-//                // Windowed edges:
-//                bool windowedEdges = imgSettings.windowedEdges();
-//                if ( ImGui::Checkbox( "Compute edges after windowing", &windowedEdges ) )
-//                {
-//                    imgSettings.setWindowedEdges( windowedEdges );
-//                    updateImageUniforms();
-//                }
-//                ImGui::SameLine();
-//                HelpMarker( "Compute edges after applying windowing (width/level) to the image" );
-
-
-                // Use Sobel or Frei-Chen:
-//                bool useFreiChen = imgSettings.useFreiChen();
-//                if ( ImGui::Checkbox( "Frei-Chen filter", &useFreiChen ) )
-//                {
-//                    imgSettings.setUseFreiChen( useFreiChen );
-//                    updateImageUniforms();
-//                }
-//                ImGui::SameLine();
-//                HelpMarker( "Compute edges using Sobel or Frei-Chen convolution filters" );
-
-
-                // Overlay edges:
-                bool overlayEdges = imgSettings.overlayEdges();
-                if ( ImGui::Checkbox( "Overlay edges on image", &overlayEdges ) )
-                {
-                    if ( imgSettings.colormapEdges() )
-                    {
-                        // Do not allow edge overlay if edges are colormapped
-                        overlayEdges = false;
-                    }
-
-                    imgSettings.setOverlayEdges( overlayEdges );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Overlay edges on top of the image" );
-
-
-                // Colormap the edges (always false if overlaying the edges or thresholding the edges):
-                if ( overlayEdges || thresholdEdges )
-                {
-                    imgSettings.setColormapEdges( false );
-                    updateImageUniforms();
-                }
-
-
-                bool colormapEdges = imgSettings.colormapEdges();
-
-                if ( ! overlayEdges && ! thresholdEdges )
-                {
-                    if ( ImGui::Checkbox( "Apply colormap to edges", &colormapEdges ) )
-                    {
-                        if ( overlayEdges )
-                        {
-                            colormapEdges = false;
-                        }
-
-                        imgSettings.setColormapEdges( colormapEdges );
-                        updateImageUniforms();
-                    }
-                    ImGui::SameLine(); helpMarker( "Apply the image colormap to image edges" );
-                }
-
-
-                if ( ! colormapEdges )
-                {
-                    glm::vec4 edgeColor{ imgSettings.edgeColor(), imgSettings.edgeOpacity() };
-
-                    if ( ImGui::ColorEdit4( "Color", glm::value_ptr( edgeColor ), sk_colorAlphaEditFlags ) )
-                    {
-                        imgSettings.setEdgeColor( edgeColor );
-                        imgSettings.setEdgeOpacity( edgeColor.a );
-                        updateImageUniforms();
-                    }
-                    ImGui::SameLine(); helpMarker( "Edge color and opacity" );
-                }
-                else
-                {
-                    // Cannot overlay edges with colormapping enabled
-                    imgSettings.setOverlayEdges( false );
-                    updateImageUniforms();
-                }
-            }
-
-            ImGui::Separator();
-            ImGui::TreePop();
-        }
-
-        if ( ImGui::TreeNode( "Transformations" ) )
-        {
-            ImGui::Text( "Initial affine transformation:" );
-            ImGui::SameLine();
-            helpMarker( "Initial affine transformation (read from file)" );
-
-
-            bool enable_affine_T_subject = imgTx.get_enable_affine_T_subject();
-            if ( ImGui::Checkbox( "Enabled##affine_T_subject", &enable_affine_T_subject ) )
-            {
-                imgTx.set_enable_affine_T_subject( enable_affine_T_subject );
-                updateImageUniforms();
-            }
-            ImGui::SameLine();
-            helpMarker( "Enable/disable application of the initial affine transformation" );
-
-            if ( enable_affine_T_subject )
-            {
-                if ( auto fileName = imgTx.get_affine_T_subject_fileName() )
-                {
-                    ImGui::InputText( "File", &( *fileName ), ImGuiInputTextFlags_ReadOnly );
-                    ImGui::Spacing();
-                }
-
-                glm::mat4 aff_T_sub = glm::transpose( imgTx.get_affine_T_subject() );
-                ImGui::InputFloat4( "Matrix", glm::value_ptr( aff_T_sub[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-                ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-                ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-                ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-                ImGui::Spacing();
-            }
-            ImGui::Separator();
-
-
-            ImGui::Text( "Manual affine transformation:" );
-            ImGui::SameLine(); helpMarker( "Manual affine transformation from Subject to World space" );
-
-
-            bool enable_worldDef_T_affine = imgTx.get_enable_worldDef_T_affine();
-            if ( ImGui::Checkbox( "Enabled##worldDef_T_affine", &enable_worldDef_T_affine ) )
-            {
-                imgTx.set_enable_worldDef_T_affine( enable_worldDef_T_affine );
-                updateImageUniforms();
-            }
-            ImGui::SameLine();
-            helpMarker( "Enable/disable application of the manual affine transformation from Subject to World space" );
-
-
-            if ( enable_worldDef_T_affine )
-            {
-                glm::quat w_T_s_rotation = imgTx.get_worldDef_T_affine_rotation();
-                glm::vec3 w_T_s_scale = imgTx.get_worldDef_T_affine_scale();
-                glm::vec3 w_T_s_trans = imgTx.get_worldDef_T_affine_translation();
-
-                float angle = glm::degrees( glm::angle( w_T_s_rotation ) );
-                glm::vec3 axis = glm::normalize( glm::axis( w_T_s_rotation ) );
-
-                if ( ImGui::InputFloat3( "Translation", glm::value_ptr( w_T_s_trans ), "%.3f" ) )
-                {
-                    imgTx.set_worldDef_T_affine_translation( w_T_s_trans );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine();
-                helpMarker( "Image translation in x, y, z" );
-
-                if ( ImGui::InputFloat3( "Scale", glm::value_ptr( w_T_s_scale ), "%.3f" ) )
-                {
-                    if ( glm::epsilonNotEqual( w_T_s_scale.x, 0.0f, glm::epsilon<float>() ) &&
-                         glm::epsilonNotEqual( w_T_s_scale.y, 0.0f, glm::epsilon<float>() ) &&
-                         glm::epsilonNotEqual( w_T_s_scale.z, 0.0f, glm::epsilon<float>() ) )
-                    {
-                        imgTx.set_worldDef_T_affine_scale( w_T_s_scale );
-                        updateImageUniforms();
-                    }
-                }
-                ImGui::SameLine(); helpMarker( "Image scale in x, y, z" );
-
-                /// @todo Put in a more friendly rotation widget. For now, disable changing the rotation
-                /// @see https://github.com/BrutPitt/imGuIZMO.quat
-                /// @see https://github.com/CedricGuillemet/ImGuizmo
-
-    //            ImGui::Text( "Rotation" );
-                if ( ImGui::InputFloat( "Rotation angle", &angle, 0.01f, 0.1f, "%.3f" ) )
-                {
-    //                const float n = glm::length( axis );
-    //                if ( n < 1e-6f )
-    //                {
-    //                    const glm::quat newRot = glm::angleAxis( glm::radians( angle ), glm::normalize( axis ) );
-    //                    imgTx.set_worldDef_T_affine_rotation( newRot );
-    //                    updateImageUniforms();
-    //                }
-                }
-                ImGui::SameLine(); helpMarker( "Image rotation angle (degrees) [editing disabled]" );
-
-                if ( ImGui::InputFloat3( "Rotation axis", glm::value_ptr( axis ), "%.3f" ) )
-                {
-    //                const float n = glm::length( axis );
-    //                if ( n < 1e-6f )
-    //                {
-    //                    const glm::quat newRot = glm::angleAxis( glm::radians( angle ), glm::normalize( axis ) );
-    //                    imgTx.set_worldDef_T_affine_rotation( newRot );
-    //                    updateImageUniforms();
-    //                }
-                }
-                ImGui::SameLine(); helpMarker( "Image rotation axis [editing disabled]" );
-
-    //            if ( ImGui::InputFloat4( "Rotation", glm::value_ptr( w_T_s_rotation ), "%.3f" ) )
-    //            {
-    //                imgTx.set_worldDef_T_affine_rotation( w_T_s_rotation );
-    //                updateImageUniforms();
-    //            }
-    //            ImGui::SameLine();
-    //            HelpMarker( "Image rotation defined as a quaternion" );
-
-
-                ImGui::Spacing();
-                glm::mat4 world_T_affine = glm::transpose( imgTx.get_worldDef_T_affine() );
-                ImGui::InputFloat4( "Matrix", glm::value_ptr( world_T_affine[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-                ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-                ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-                ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-
-
-                ImGui::Spacing();
-                if ( ImGui::Button( "Reset to identity" ) )
-                {
-                    imgTx.reset_worldDef_T_affine();
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Reset the manual component of the affine transformation from Subject to World space" );
-
-
-                // Save manual tx to file:
-                static const char* sk_buttonText( "Save manual transformation..." );
-                static const char* sk_dialogTitle( "Select Manual Transformation" );
-                static const std::vector< const char* > sk_dialogFilters{};
-
-                const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
-                            sk_buttonText, sk_dialogTitle, sk_dialogFilters );
-
-                ImGui::SameLine(); helpMarker( "Save the manual component of the affine transformation matrix from Subject to World space" );
-
-                if ( selectedFile )
-                {
-                    const glm::dmat4 worldDef_T_affine{ imgTx.get_worldDef_T_affine() };
-
-                    if ( serialize::saveAffineTxFile( worldDef_T_affine, *selectedFile ) )
-                    {
-                        spdlog::info( "Saved manual transformation matrix to file {}", *selectedFile );
-                    }
-                    else
-                    {
-                        spdlog::error( "Error saving manual transformation matrix to file {}", *selectedFile );
-                    }
-                }
-            }
-
-            ImGui::Separator();
-            ImGui::TreePop();
-        }
-
-        if ( ImGui::TreeNode( "Header Information" ) )
-        {
-            renderImageHeaderInformation( imgHeader, imgTx, imgSettings );
-            ImGui::TreePop();
-        }
-
-        ImGui::Spacing();
+        ImGui::TreePop();
     }
+
+    if ( ImGui::TreeNode( "Header Information" ) )
+    {
+        renderImageHeaderInformation( imgHeader, imgTx, imgSettings );
+        ImGui::TreePop();
+    }
+
+    ImGui::Spacing();
 
     ImGui::PopID(); // imageUid
 }
@@ -1037,13 +1062,32 @@ void renderSegmentationHeader(
 
     if ( ! open )
     {
-        ImGui::PopID(); // /*** PopID imageUid ***/
+        ImGui::PopID(); /*** PopID imageUid ***/
         return;
     }
 
     ImGui::Spacing();
 
+    if ( ! isActiveImage )
+    {
+        if ( ImGui::Button( ICON_FK_TOGGLE_OFF ) )
+        {
+            if ( appData.setActiveImageUid( imageUid ) ) return;
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Make this the active image." );
+        }
+    }
+    else
+    {
+        ImGui::Button( ICON_FK_TOGGLE_ON );
+    }
+
+
     const bool isRef = ( 0 == imageIndex );
+
+    ImGui::SameLine();
 
     if ( isRef && isActiveImage )
     {
@@ -1062,6 +1106,7 @@ void renderSegmentationHeader(
         // Serves as a reminder to the user that the image is not active:
         ImGui::Text( "This is not the active image." );
     }
+
 
     const auto segUids = appData.imageToSegUids( imageUid );
     if ( segUids.empty() )
@@ -1087,6 +1132,7 @@ void renderSegmentationHeader(
         return;
     }
 
+    ImGui::Separator();
     ImGui::Text( "Active segmentation:" );
 
     if ( ImGui::BeginCombo( "", activeSeg->settings().displayName().c_str() ) )

@@ -21,7 +21,8 @@ Annotation::Annotation( std::shared_ptr< Polygon<float, 2> > polygon )
       m_maxLayer( 0 ),
       m_visibility( true ),
       m_opacity( sk_defaultOpacity ),
-      m_color{ sk_defaultColor }
+      m_color{ sk_defaultColor },
+      m_plane{ 1.0f, 0.0f, 0.0f, 0.0f }
 {
 }
 
