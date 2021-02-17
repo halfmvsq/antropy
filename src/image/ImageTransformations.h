@@ -79,6 +79,9 @@ public:
     bool is_worldDef_T_affine_locked() const;
     void set_worldDef_T_affine_locked( bool locked );
 
+    bool isDirty() const;
+    void setDirty( bool set );
+
     glm::vec3 invPixelDimensions() const;
 
     void set_worldDef_T_affine_translation( glm::vec3 get_worldDef_T_affine_translation );
@@ -142,6 +145,9 @@ private:
 
     /// When true, prevents the worldDef_T_affine ("manual") transformation from changing
     bool m_is_worldDef_T_affine_locked;
+
+    /// Flag that the transformation has changed since the image was last saved
+    bool m_dirty;
 
     /// Inverses of the pixel dimensions
     glm::vec3 m_invPixelDimensions;

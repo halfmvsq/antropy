@@ -28,6 +28,7 @@ ImageTransformations::ImageTransformations(
         const glm::mat3& pixelDirections )
     :
       m_is_worldDef_T_affine_locked( true ),
+      m_dirty( false ),
 
       m_invPixelDimensions( math::computeInvPixelDimensions( pixelDimensions ) ),
 
@@ -76,6 +77,16 @@ bool ImageTransformations::is_worldDef_T_affine_locked() const
 void ImageTransformations::set_worldDef_T_affine_locked( bool locked )
 {
     m_is_worldDef_T_affine_locked = locked;
+}
+
+bool ImageTransformations::isDirty() const
+{
+    return m_dirty;
+}
+
+void ImageTransformations::setDirty( bool set )
+{
+    m_dirty = set;
 }
 
 glm::vec3 ImageTransformations::invPixelDimensions() const

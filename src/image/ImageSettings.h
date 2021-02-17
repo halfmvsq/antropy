@@ -52,6 +52,10 @@ public:
     /// Get the border color
     const glm::vec3& borderColor() const;
 
+    /// Set/get the dirty flag
+    void setDirty( bool set );
+    bool isDirty() const;
+
 
     /// Set window (in image intensity units) for a given component.
     void setWindow( uint32_t component, double window );
@@ -350,6 +354,8 @@ private:
     std::vector<ComponentSettings> m_settings; //!< Per-component settings
 
     uint32_t m_activeComponent; //!< Active component
+
+    bool m_dirty; //!< Flag that the settings have changed since the image was last saved
 };
 
 

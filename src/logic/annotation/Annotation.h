@@ -69,6 +69,10 @@ public:
     void setColor( glm::vec3 color );
     const glm::vec3& getColor() const;
 
+    /// Set/get the annotation plane
+    void setPlane( glm::vec4 plane );
+    const glm::vec4& getPlane() const;
+
 
 private:
 

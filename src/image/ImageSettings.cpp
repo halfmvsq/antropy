@@ -19,7 +19,8 @@ ImageSettings::ImageSettings(
       m_numComponents( numComponents ),
       m_componentType( std::move( componentType ) ),
       m_componentStats( std::move( componentStats ) ),
-      m_activeComponent( 0 )
+      m_activeComponent( 0 ),
+      m_dirty( false )
 {
     // Default window covers 1st to 99th quantile intensity range of the first pixel component
     static constexpr int qLow = 1;
@@ -83,6 +84,9 @@ const std::string& ImageSettings::displayName() const { return m_displayName; }
 
 void ImageSettings::setBorderColor( glm::vec3 borderColor ) { m_borderColor = std::move( borderColor ); }
 const glm::vec3& ImageSettings::borderColor() const { return m_borderColor; }
+
+bool ImageSettings::isDirty() const { return m_dirty; }
+void ImageSettings::setDirty( bool set ) { m_dirty = set; }
 
 void ImageSettings::setLevel( uint32_t i, double level )
 {

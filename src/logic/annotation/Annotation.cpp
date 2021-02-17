@@ -83,3 +83,13 @@ const glm::vec3& Annotation::getColor() const
 {
     return m_color;
 }
+
+void Annotation::setPlane( glm::vec4 plane )
+{
+    m_plane = std::move( plane );
+}
+
+const glm::vec4& Annotation::getPlane() const
+{
+    return m_plane;
+}
