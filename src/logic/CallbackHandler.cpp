@@ -237,9 +237,15 @@ void CallbackHandler::recenterViews(
         spdlog::warn( "No images loaded: preparing views using default bounds" );
     }
 
-    /// @todo should we recenter crosshairs to the imageSelection instead of always to refImage?
+    // Compute the AABB that we are recentering views on:
+    const auto worldBox = data::enclosingWorldBox( m_appData, imageSelection );
+
     if ( recenterCrosshairs )
     {
+        /// @note The commented-out code used to recenter crosshairs on only the reference image.
+        /// Instead, we now recenter crosshairs on the center of the worldBox
+
+        /*
         // Initialize crosshairs to center of the reference image
         glm::vec3 worldPos = sk_defaultCrosshairsWorldPos;
 
@@ -248,7 +254,7 @@ void CallbackHandler::recenterViews(
             const auto& tx = refImg->transformations();
 
             const glm::vec4 centerWorldPos = tx.worldDef_T_subject() *
-                    glm::vec4{ refImg->header().boundingBoxCenter(), 1 };
+                    glm::vec4{ refImg->header().subjectBBoxCenter(), 1 };
 
             const glm::vec4 centerPixelPos = tx.pixel_T_worldDef() * centerWorldPos;
 
@@ -262,9 +268,11 @@ void CallbackHandler::recenterViews(
         }
 
         m_appData.settings().setWorldCrosshairsPos( worldPos );
-    }
+        */
 
-    const auto worldBox = data::enclosingWorldBox( m_appData, imageSelection );
+        const glm::vec3 worldPos = math::computeAABBoxCenter( worldBox );
+        m_appData.settings().setWorldCrosshairsPos( worldPos );
+    }
 
     // Scale images slightly down
     static constexpr float sk_scale = 1.03f;
@@ -781,6 +789,7 @@ void CallbackHandler::doCameraZoomDrag(
 
     View* currView = m_appData.windowData().currentView( *currViewUid );
     if ( ! currView ) return;
+
     if ( camera::ShaderType::Disabled == currView->shaderType() ) return;
 
     const auto& windowVP = m_appData.windowData().viewport();
@@ -792,7 +801,10 @@ void CallbackHandler::doCameraZoomDrag(
     const glm::vec4 startWinClipPos{ camera::ndc2d_T_view( windowVP, startWindowPos ),
                 currView->clipPlaneDepth(), 1 };
 
-    auto getCenterViewClipPos = [this, &zoomBehavior, &startWinClipPos]
+    const glm::vec4 startViewClipPos = currView->viewClip_T_winClip() * startWinClipPos;
+    const glm::vec4 startWorldPos = camera::world_T_clip( currView->camera() ) * startViewClipPos;
+
+    auto getCenterViewClipPos = [this, &zoomBehavior, &startWorldPos]
             ( const View* view ) -> glm::vec2
     {
         glm::vec2 centerViewClipPos;
@@ -807,8 +819,8 @@ void CallbackHandler::doCameraZoomDrag(
         }
         case ZoomBehavior::ToStartPosition:
         {
-            const glm::vec4 startViewClipPos = view->viewClip_T_winClip() * startWinClipPos;
-            centerViewClipPos = glm::vec2{ startViewClipPos / startViewClipPos.w };
+            const glm::vec4 _startViewClipPos = camera::clip_T_world( view->camera() ) * startWorldPos;
+            centerViewClipPos = glm::vec2{ _startViewClipPos / _startViewClipPos.w };
             break;
         }
         case ZoomBehavior::ToViewCenter:
@@ -871,6 +883,7 @@ void CallbackHandler::doCameraZoomScroll(
 
     View* currView = m_appData.windowData().currentView( *currViewUid );
     if ( ! currView ) return;
+
     if ( camera::ShaderType::Disabled == currView->shaderType() ) return;
 
     // The pointer is in the view bounds! Make this the active view
@@ -878,10 +891,14 @@ void CallbackHandler::doCameraZoomScroll(
 
     const auto& windowVP = m_appData.windowData().viewport();
 
-    const glm::vec4 currWinClipPos{
-        camera::ndc2d_T_view( windowVP, currWindowPos ), currView->clipPlaneDepth(), 1 };
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
+                currView->clipPlaneDepth(), 1 };
 
-    auto getCenterViewClipPos = [this, &zoomBehavior, &currWinClipPos] ( const View* view ) -> glm::vec2
+    const glm::vec4 currViewClipPos = currView->viewClip_T_winClip() * currWinClipPos;
+    const glm::vec4 currWorldPos = camera::world_T_clip( currView->camera() ) * currViewClipPos;
+
+    auto getCenterViewClipPos = [this, &zoomBehavior, &currWorldPos]
+            ( const View* view ) -> glm::vec2
     {
         glm::vec2 centerViewClipPos;
 
@@ -895,8 +912,8 @@ void CallbackHandler::doCameraZoomScroll(
         }
         case ZoomBehavior::ToStartPosition:
         {
-            const glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
-            centerViewClipPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
+            const glm::vec4 _currViewClipPos = camera::clip_T_world( view->camera() ) * currWorldPos;
+            centerViewClipPos = glm::vec2{ _currViewClipPos / _currViewClipPos.w };
             break;
         }
         case ZoomBehavior::ToViewCenter:

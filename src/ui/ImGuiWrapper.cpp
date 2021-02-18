@@ -464,7 +464,8 @@ void ImGuiWrapper::render()
                         m_appData,
                         getNumImageColorMaps,
                         getImageColorMap,
-                        m_updateMetricUniforms );
+                        m_updateMetricUniforms,
+                        recenterViews );
         }
 
         if ( m_appData.guiData().m_showInspectionWindow )

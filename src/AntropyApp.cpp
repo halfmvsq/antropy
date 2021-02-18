@@ -123,14 +123,13 @@ AntropyApp::AntropyApp()
     m_imgui.setCallbacks(
             [this] ( const uuids::uuid& viewUid )
             {
-                m_callbackHandler.recenterView(
-                            ImageSelection::AllLoadedImages, viewUid );
+                m_callbackHandler.recenterView( m_data.settings().recenteringMode(), viewUid );
             },
 
             [this] ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition )
             {
                 m_callbackHandler.recenterViews(
-                            ImageSelection::AllLoadedImages,
+                            m_data.settings().recenteringMode(),
                             recenterCrosshairs,
                             recenterOnCurrentCrosshairsPosition );
             },
@@ -311,7 +310,7 @@ void AntropyApp::run()
         constexpr bool k_recenterCrosshairs = true;
         constexpr bool k_recenterOnCurrentCrosshairsPos = false;
 
-        m_callbackHandler.recenterViews( ImageSelection::AllLoadedImages,
+        m_callbackHandler.recenterViews( m_data.settings().recenteringMode(),
                                          k_recenterCrosshairs,
                                          k_recenterOnCurrentCrosshairsPos );
 

@@ -14,6 +14,9 @@
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/string_cast.hpp>
 
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
+
 #include <boost/range/any_range.hpp>
 
 #include <array>

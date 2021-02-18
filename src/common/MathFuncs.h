@@ -78,36 +78,44 @@ glm::dmat4 computeImagePixelToTextureTransformation(
  * @param pixelDimensions
  * @return
  */
-glm::vec3 computeInvPixelDimensions(
+glm::vec3 computeInvPixelDimensions( const glm::u64vec3& pixelDimensions );
+
+
+
+std::array< glm::vec3, 8 > computeImagePixelAABBoxCorners(
         const glm::u64vec3& pixelDimensions );
 
 
 /**
- * @brief Compute the axis-aligned bounding box of the image in Subject space.
+ * @brief Compute the bounding box of the image in physical Subject space.
  *
  * @param[in] pixelDimensions Number of pixels per image dimension
- * @param[in] directions Directions of image Pixel axes in Subject space
+ * @param[in] directions Direction cosine matrix of image Pixel axes in Subject space
  * @param[in] pixelSpacing Pixel spacing in Subject space
  * @param[in] origin Image origin in Subject space
  *
- * @return Pair of minimum and maximum corners of the image AABB in Subject space
+ * @return Array of corners of the image bounding box in Subject space
  */
-std::pair< glm::dvec3, glm::dvec3 >
-computeImageSubjectAABBoxCorners(
+std::array< glm::vec3, 8 > computeImageSubjectBoundingBoxCorners(
         const glm::u64vec3& pixelDimensions,
-        const glm::dmat3& directions,
-        const glm::dvec3& pixelSpacing,
-        const glm::dvec3& origin );
+        const glm::mat3& directions,
+        const glm::vec3& pixelSpacing,
+        const glm::vec3& origin );
+
+
+
+std::pair< glm::vec3, glm::vec3 > computeMinMaxCornersOfAABBox(
+        const std::array< glm::vec3, 8 >& subjectCorners );
 
 
 /**
- * @brief Compute the corners of the axis-aligned bounding box with given min/max corners
+ * @brief Compute the corners of an axis-aligned bounding box with given min/max corners
  *
- * @param[in] boxMinMaxCorners Min/max corners of the box
+ * @param[in] boxMinMaxCorners Min/max corners of the AABB
  *
- * @return All eight box corners
+ * @return All eight AABB corners
  */
-std::array< glm::vec3, 8 > computeAllBoxCorners(
+std::array< glm::vec3, 8 > computeAllAABBoxCornersFromMinMaxCorners(
         const std::pair< glm::vec3, glm::vec3 >& boxMinMaxCorners );
 
 
@@ -121,8 +129,7 @@ std::array< glm::vec3, 8 > computeAllBoxCorners(
  *
  * @todo SPIRAL CODE IS WRONG FOR hippo warp image
  */
-std::pair< std::string, bool >
-computeSpiralCodeFromDirectionMatrix(
+std::pair< std::string, bool > computeSpiralCodeFromDirectionMatrix(
         const glm::dmat3& directions );
 
 

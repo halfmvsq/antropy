@@ -72,8 +72,8 @@ void renderImageHeaderInformation(
         imgSettings.setDisplayName( displayName );
     }
     ImGui::SameLine(); helpMarker( "Set the display name" );
-    ImGui::Spacing();
 
+    ImGui::Spacing();
     ImGui::Separator();
 
 
@@ -101,37 +101,106 @@ void renderImageHeaderInformation(
     ImGui::Spacing();
 
 
+    // Directions:
+    glm::mat3 directions = imgHeader.directions();
+    ImGui::Text( "Voxel coordinate directions:" );
+    ImGui::SameLine(); helpMarker( "Direction vectors in physical Subject space of the X, Y, Z image voxel axes. "
+                                   "Also known as the voxel direction cosines matrix." );
+
+    ImGui::InputFloat3( "X", glm::value_ptr( directions[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat3( "Y", glm::value_ptr( directions[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat3( "Z", glm::value_ptr( directions[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+
+
+    // Closest orientation code:
+    std::string orientation = imgHeader.spiralCode();
+    orientation += ( imgHeader.isOblique() ? " (oblique)" : "" );
+    ImGui::InputText( "Orientation", &orientation, ImGuiInputTextFlags_ReadOnly );
+    ImGui::SameLine();
+    helpMarker( "Closest orientation 'SPIRAL' code (-x to +x: R to L; -y to +y: A to P; -z to +z: I to S" );
+
+    ImGui::Spacing();
     ImGui::Separator();
 
+#if 0
+    // Ignore spacing checkbox:
+    bool visible1 = imgSettings.visibility();
+    if ( ImGui::Checkbox( "Ignore spacing", &visible1 ) )
+    {
+        imgSettings.setVisibility( visible1 );
+//        updateImageUniforms();
+    }
+    ImGui::SameLine(); helpMarker( "Ignore voxel spacing from header: force spacing to (1.0, 1.0, 1.0) mm" );
+
+
+    // Ignore origin checkbox:
+    bool visible = imgSettings.visibility();
+    if ( ImGui::Checkbox( "Ignore origin", &visible ) )
+    {
+        imgSettings.setVisibility( visible );
+//        updateImageUniforms();
+    }
+    ImGui::SameLine(); helpMarker( "Ignore image origin from header: force origin to (0.0, 0.0, 0.0) mm" );
+
+
+    // Ignore directions checkbox:
+    bool visible2 = imgSettings.visibility();
+    if ( ImGui::Checkbox( "Ignore directions", &visible2 ) )
+    {
+        imgSettings.setVisibility( visible );
+//        updateImageUniforms();
+    }
+    ImGui::SameLine(); helpMarker( "Ignore voxel directions from header: force direction cosines matrix to identity" );
+
+    ImGui::Spacing();
+    ImGui::Separator();
+#endif
+
+
+    // subject_T_voxels:
+    ImGui::Text( "Voxels to Subject transformation:" );
+    ImGui::SameLine(); helpMarker( "Transformation from Voxels to Subject (LPS) space" );
+
+    glm::mat4 s_T_p = glm::transpose( imgTx.subject_T_pixel() );
+    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+
+    ImGui::Spacing();
+    ImGui::Separator();
+
+
+
     // Bounding box:
-    ImGui::Text( "Bounding box:" );
+    ImGui::Text( "Bounding box (in Subject space):" );
 
-    auto boxMinMax = imgHeader.boundingBoxMinMaxCorners();
-    ImGui::InputScalarN( "Min. corner (mm)", ImGuiDataType_Float, glm::value_ptr( boxMinMax.first ), 3,
-                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine(); helpMarker( "Minimum corner of bounding box in Subject space (mm)" );
-    ImGui::Spacing();
-
-
-    ImGui::InputScalarN( "Max. corner (mm)", ImGuiDataType_Float, glm::value_ptr( boxMinMax.second ), 3,
-                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine(); helpMarker( "Maximum corner of bounding box in Subject space (mm)" );
-    ImGui::Spacing();
+    //    auto boxMinMax = imgHeader.boundingBoxMinMaxCorners();
+    //    ImGui::InputScalarN( "Min. corner (mm)", ImGuiDataType_Float, glm::value_ptr( boxMinMax.first ), 3,
+    //                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
+    //    ImGui::SameLine(); helpMarker( "Minimum corner of bounding box in Subject space (mm)" );
+    //    ImGui::Spacing();
 
 
-    glm::vec3 boxCenter = imgHeader.boundingBoxCenter();
+    //    ImGui::InputScalarN( "Max. corner (mm)", ImGuiDataType_Float, glm::value_ptr( boxMinMax.second ), 3,
+    //                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
+    //    ImGui::SameLine(); helpMarker( "Maximum corner of bounding box in Subject space (mm)" );
+    //    ImGui::Spacing();
+
+
+    glm::vec3 boxCenter = imgHeader.subjectBBoxCenter();
     ImGui::InputScalarN( "Center (mm)", ImGuiDataType_Float, glm::value_ptr( boxCenter ), 3,
                          nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Bounding box center in Subject space (mm)" );
     ImGui::Spacing();
 
 
-    glm::vec3 boxSize = imgHeader.boundingBoxSize();
+    glm::vec3 boxSize = imgHeader.subjectBBoxSize();
     ImGui::InputScalarN( "Size (mm)", ImGuiDataType_Float, glm::value_ptr( boxSize ), 3,
                          nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Bounding box size (mm)" );
-    ImGui::Spacing();
 
+    ImGui::Spacing();
     ImGui::Separator();
 
 
@@ -170,37 +239,7 @@ void renderImageHeaderInformation(
     ImGui::InputScalar( "Size (MiB)", ImGuiDataType_Double, &fileSizeMiB,
                         nullptr, nullptr, nullptr, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Image size in mebibytes (MiB)" );
-    ImGui::Spacing();
 
-    ImGui::Separator();
-
-    // subject_T_voxels:
-    ImGui::Text( "Voxels to Subject transformation:" );
-    ImGui::SameLine(); helpMarker( "Transformation from Voxels to Subject (LPS) space" );
-
-    glm::mat4 s_T_p = glm::transpose( imgTx.subject_T_pixel() );
-    ImGui::InputFloat4( "Matrix", glm::value_ptr( s_T_p[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-
-    ImGui::Spacing();
-
-
-    // Directions:
-    glm::mat3 directions = imgHeader.directions();
-    ImGui::Text( "Voxel coordinate directions:" );
-    ImGui::InputFloat3( "X", glm::value_ptr( directions[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat3( "Y", glm::value_ptr( directions[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat3( "Z", glm::value_ptr( directions[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-
-
-    // Closest orientation code:
-    std::string orientation = imgHeader.spiralCode();
-    orientation += ( imgHeader.isOblique() ? " (oblique)" : "" );
-    ImGui::InputText( "Orientation", &orientation, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "Orientation 'SPIRAL' code (-x to +x: R to L; -y to +y: A to P; -z to +z: I to S" );
     ImGui::Spacing();
 }
 

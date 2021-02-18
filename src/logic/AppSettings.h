@@ -37,6 +37,9 @@ public:
 
     ButtonState& buttonState();
 
+    ImageSelection recenteringMode() const;
+    void setRecenteringMode( ImageSelection );
+
     bool synchronizeZooms() const;
     void setSynchronizeZooms( bool );
 
@@ -87,6 +90,7 @@ private:
 
     MouseMode m_mouseMode; //!< Current mouse interaction mode
     ButtonState m_buttonState; //!< Global button state
+    ImageSelection m_recenteringMode; //!< Image selection to use when recentering views
 
     bool m_synchronizeZoom; //!< Synchronize zoom between views
     bool m_animating; //!< Is the app currently animating?

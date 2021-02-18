@@ -8,6 +8,8 @@ AppSettings::AppSettings()
     :
       m_mouseMode( MouseMode::Pointer ),
       m_buttonState(),
+      m_recenteringMode( ImageSelection::AllLoadedImages ),
+
       m_synchronizeZoom( true ),
       m_animating( false ),
       m_overlays( true ),
@@ -78,20 +80,13 @@ const CoordinateFrame& AppSettings::worldCrosshairs() const
     return m_worldCrosshairs;
 }
 
-MouseMode AppSettings::mouseMode() const
-{
-    return m_mouseMode;
-}
+MouseMode AppSettings::mouseMode() const { return m_mouseMode; }
+void AppSettings::setMouseMode( MouseMode mode ) { m_mouseMode = mode; }
 
-void AppSettings::setMouseMode( MouseMode mode )
-{
-    m_mouseMode = mode;
-}
+ButtonState& AppSettings::buttonState() { return m_buttonState; }
 
-ButtonState& AppSettings::buttonState()
-{
-    return m_buttonState;
-}
+ImageSelection AppSettings::recenteringMode() const { return m_recenteringMode; }
+void AppSettings::setRecenteringMode( ImageSelection mode ) { m_recenteringMode = mode; }
 
 bool AppSettings::synchronizeZooms() const { return m_synchronizeZoom; }
 void AppSettings::setSynchronizeZooms( bool sync ) { m_synchronizeZoom = sync; }

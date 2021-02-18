@@ -59,23 +59,28 @@ public:
 
 
     const glm::uvec3& pixelDimensions() const; //!< Pixel dimensions (i.e. pixel matrix size)
-    const glm::vec3& origin() const; //!< Origin in Subject space
-    const glm::vec3& spacing() const; //!< Pixel spacing in Subject space
-    const glm::mat3& directions() const; //!< Axis directions in Subject space, stored column-wise
+    const glm::vec3& origin() const; //!< Origin in physical Subject space
+    const glm::vec3& spacing() const; //!< Pixel spacing in physical Subject space
+    const glm::mat3& directions() const; //!< Axis directions in physical Subject space, stored column-wise
 
-    /// Minimum and maximum corners of the image's axis-aligned bounding box in Subject space
-    const std::pair< glm::vec3, glm::vec3 >& boundingBoxMinMaxCorners() const;
+    /// All corners of the image's AXIS-ALIGNED bounding box in Voxel space
+    const std::array< glm::vec3, 8 >& pixelBBoxCorners() const;
 
-    /// All corners of the image's axis-aligned bounding box in Subject space
-    const std::array< glm::vec3, 8 >& boundingBoxCorners() const;
+    /// All corners of the image's bounding box in physical Subject space
+    /// @note The bounding box will NOT be axis-aligned when the image directions are oblique
+    const std::array< glm::vec3, 8 >& subjectBBoxCorners() const;
 
-    /// Center of the image's axis-aligned bounding box in Subject space
-    const glm::vec3& boundingBoxCenter() const;
+    /// Min/max corners of the image's AXIS-ALIGNED bounding box in physical Subject space
+    /// @note The bounding box will NOT be axis-aligned when the image directions are oblique
+    const std::pair< glm::vec3, glm::vec3 >& subjectAABboxMinMaxCorners() const;
 
-    /// Size of the image's axis-aligned bounding box in Subject space
-    const glm::vec3& boundingBoxSize() const;
+    /// Center of the image's bounding box in physical Subject space
+    const glm::vec3& subjectBBoxCenter() const;
 
-    /// Three-character "SPIRAL" code defining the anatomical orientation of the image in Subject space,
+    /// Size of the image's bounding box in physical Subject space
+    const glm::vec3& subjectBBoxSize() const;
+
+    /// Three-character "SPIRAL" code defining the anatomical orientation of the image in physical Subject space,
     /// where positive X, Y, and Z axes correspond to the physical Left, Posterior, and Superior directions,
     /// respectively. The acroynm stands for "Superior, Posterior, Inferior, Right, Anterior, Left".
     const std::string& spiralCode() const;
@@ -112,21 +117,26 @@ private:
     uint32_t m_memoryComponentSizeInBytes; //!< Size of component in bytes, as loaded in memory buffer
 
     glm::uvec3 m_pixelDimensions; //!< Pixel dimensions (i.e. pixel matrix size)
-    glm::vec3 m_origin; //!< Origin in Subject space
-    glm::vec3 m_spacing; /// Pixel spacing in Subject space
-    glm::mat3 m_directions; /// Axis directions in Subject space, stored column-wise
+    glm::vec3 m_origin; //!< Origin in physical Subject space
+    glm::vec3 m_spacing; /// Pixel spacing in physical Subject space
+    glm::mat3 m_directions; /// Axis directions in physical Subject space, stored column-wise
 
-    /// Minimum and maximum corners of the image's axis-aligned bounding box in Subject space
-    std::pair< glm::vec3, glm::vec3 > m_boundingBoxMinMaxCorners;
+    /// All corners of the image's AXIS-ALIGNED bounding box in Pixel space
+    std::array< glm::vec3, 8 > m_pixelBBoxCorners;
 
-    /// All corners of the image's axis-aligned bounding box in Subject space
-    std::array< glm::vec3, 8 > m_boundingBoxCorners;
+    /// All corners of the image's bounding box in physical Subject space
+    /// @note The bounding box will NOT be axis-aligned when the image directions are oblique
+    std::array< glm::vec3, 8 > m_subjectBBoxCorners;
 
-    /// Center of the image's axis-aligned bounding box in Subject space
-    glm::vec3 m_boundingBoxCenter;
+    /// Min/max corners of the image's bounding box in physical Subject space
+    /// @note The bounding box will NOT be axis-aligned when the image directions are oblique
+    std::pair< glm::vec3, glm::vec3 > m_subjectMinMaxAABBoxCorners;
 
-    /// Size of the image's axis-aligned bounding box in Subject space
-    glm::vec3 m_boundingBoxSize;
+    /// Center of the image's bounding box in physical Subject space
+    glm::vec3 m_subjectBBoxCenter;
+
+    /// Size of the image's bounding box in physical Subject space
+    glm::vec3 m_subjectBBoxSize;
 
     /// Three-character "SPIRAL" code defining the anatomical orientation of the image in Subject space,
     /// where positive X, Y, and Z axes correspond to the physical Left, Posterior, and Superior directions,

@@ -255,7 +255,7 @@ AABB<float> enclosingWorldBox(
         anyImagesUsed = true;
 
         const auto world_T_subject = img->transformations().worldDef_T_subject();
-        const auto subjectCorners = img->header().boundingBoxMinMaxCorners();
+        const auto subjectCorners = img->header().subjectAABboxMinMaxCorners();
 
         corners.push_back( glm::vec3{ world_T_subject * glm::vec4{ subjectCorners.first, 1.0f } } );
         corners.push_back( glm::vec3{ world_T_subject * glm::vec4{ subjectCorners.second, 1.0f } } );

@@ -564,7 +564,8 @@ void renderSettingsWindow(
         AppData& appData,
         const std::function< size_t (void) >& getNumImageColorMaps,
         const std::function< const ImageColorMap* ( size_t cmapIndex ) >& getImageColorMap,
-        const std::function< void(void) >& updateMetricUniforms )
+        const std::function< void(void) >& updateMetricUniforms,
+        const std::function< void(void) >& recenterViews )
 {
     static const float sk_windowMin = 0.0f;
     static const float sk_windowMax = 1.0f;
@@ -696,7 +697,7 @@ void renderSettingsWindow(
 
         if ( ImGui::BeginTabBar( "##SettingsTabs", tab_bar_flags ) )
         {
-            if ( ImGui::BeginTabItem( "General" ) )
+            if ( ImGui::BeginTabItem( "Views" ) )
             {
                 ImGui::ColorEdit3( "Background color",
                                    glm::value_ptr( appData.renderData().m_backgroundColor ),
@@ -711,12 +712,13 @@ void renderSettingsWindow(
                                    sk_colorAlphaEditFlags );
 
                 // Show image-view intersection border
-                ImGui::Checkbox( "Image border",
+                ImGui::Checkbox( "Show image borders",
                                  &( appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections ) );
                 ImGui::SameLine();
-                helpMarker( "Show border of image intersection with view" );
+                helpMarker( "Show borders of image intersections with views" );
 
-                /// @note strokeWidth seems to not work with NanoVG
+
+                /// @note strokeWidth seems to not work with NanoVG across all platforms
                 /*
                 if ( appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections )
                 {
@@ -735,93 +737,233 @@ void renderSettingsWindow(
                 // Crosshair snapping
                 ImGui::Checkbox( "Snap crosshairs to voxels",
                                  &( appData.renderData().m_snapCrosshairsToReferenceVoxels ) );
-                ImGui::SameLine();
-                helpMarker( "Snap crosshairs to reference image voxel centers" );
+                ImGui::SameLine(); helpMarker( "Snap crosshairs to reference image voxel centers" );
 
 
                 // Image masking
-                ImGui::Checkbox( "Mask images", &( appData.renderData().m_maskedImages ) );
-                ImGui::SameLine();
-                helpMarker( "Render images only in masked regions" );
-
+                ImGui::Checkbox( "Mask images by segmentation", &( appData.renderData().m_maskedImages ) );
+                ImGui::SameLine(); helpMarker( "Render images only in regions masked by a segmentation label" );
                 ImGui::Spacing();
 
+                ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
 
-                // Overlay style:
-                if ( ImGui::RadioButton( "Magenta/cyan", true == appData.renderData().m_overlayMagentaCyan ) )
+
+
+                // View centering:
+                if ( ImGui::TreeNode( "View Recentering" ) )
                 {
-                    appData.renderData().m_overlayMagentaCyan = true;
-                }
+                    ImGui::Text( "Center views and crosshairs on:" );
 
-                ImGui::SameLine();
-                if ( ImGui::RadioButton( "Red/green overlay", false == appData.renderData().m_overlayMagentaCyan ) )
-                {
-                    appData.renderData().m_overlayMagentaCyan = false;
-                }
-                ImGui::SameLine();
-                helpMarker( "Color style for 'overlay' views" );
+                    ImGui::SameLine();
+                    helpMarker( "Default view and crosshairs centering behavior" );
 
-
-                // Quadrants style:
-                const glm::bvec2 Q = appData.renderData().m_quadrants;
-
-                if ( ImGui::RadioButton( "X", true == ( Q.x && ! Q.y ) ) )
-                {
-                    appData.renderData().m_quadrants = glm::bvec2{ true, false };
-                }
-
-                ImGui::SameLine();
-                if ( ImGui::RadioButton( "Y", true == ( ! Q.x && Q.y ) ) )
-                {
-                    appData.renderData().m_quadrants = glm::bvec2{ false, true };
-                }
-
-                ImGui::SameLine();
-                if ( ImGui::RadioButton( "X and Y comparison", true == ( Q.x && Q.y ) ) )
-                {
-                    appData.renderData().m_quadrants = glm::bvec2{ true, true };
-                }
-
-                ImGui::SameLine();
-                helpMarker( "Comparison directions in 'quadrant' views" );
-
-
-                // Checkerboard squares
-                int numSquares = appData.renderData().m_numCheckerboardSquares;
-                if ( ImGui::InputInt( "Checkers", &numSquares ) )
-                {
-                    if ( 2 <= numSquares && numSquares <= 2048 )
+                    if ( ImGui::RadioButton(
+                             "Reference image",
+                             ImageSelection::ReferenceImage == appData.settings().recenteringMode() ) )
                     {
-                        appData.renderData().m_numCheckerboardSquares = numSquares;
+                        appData.settings().setRecenteringMode( ImageSelection::ReferenceImage );
+                        recenterViews();
                     }
+                    ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference image" );
+
+                    if ( ImGui::RadioButton(
+                             "Active image",
+                             ImageSelection::ActiveImage == appData.settings().recenteringMode() ) )
+                    {
+                        appData.settings().setRecenteringMode( ImageSelection::ActiveImage );
+                        recenterViews();
+                    }
+                    ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the active image" );
+
+                    if ( ImGui::RadioButton(
+                             "Reference and active images",
+                             ImageSelection::ReferenceAndActiveImages == appData.settings().recenteringMode() ) )
+                    {
+                        appData.settings().setRecenteringMode( ImageSelection::ReferenceAndActiveImages );
+                        recenterViews();
+                    }
+                    ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference and active images" );
+
+                    /// @todo These don't work yet
+                    /*
+                    if ( ImGui::RadioButton( "All visible images", ImageSelection::VisibleImagesInView == appData.settings().recenteringMode() ) )
+                    {
+                        appData.settings().setRecenteringMode( ImageSelection::VisibleImagesInView );
+                        recenterViews();
+                    }
+                    ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the visible images in each view" );
+
+                    if ( ImGui::RadioButton( "Fixed image", ImageSelection::FixedImageInView == appData.settings().recenteringMode() ) )
+                    {
+                        appData.settings().setRecenteringMode( ImageSelection::FixedImageInView );
+                        recenterViews();
+                    }
+                    ImGui::SameLine(); helpMarker( "Recenter views on the fixed image in each view" );
+
+                    if ( ImGui::RadioButton( "Moving image", ImageSelection::MovingImageInView == appData.settings().recenteringMode() ) )
+                    {
+                        appData.settings().setRecenteringMode( ImageSelection::MovingImageInView );
+                        recenterViews();
+                    }
+                    ImGui::SameLine(); helpMarker( "Recenter views on the moving image in each view" );
+
+                    if ( ImGui::RadioButton( "Fixed and moving images", ImageSelection::FixedAndMovingImagesInView == appData.settings().recenteringMode() ) )
+                    {
+                        appData.settings().setRecenteringMode( ImageSelection::FixedAndMovingImagesInView );
+                        recenterViews();
+                    }
+                    ImGui::SameLine(); helpMarker( "Recenter views on the fixed and moving images in each view" );
+                    */
+
+                    if ( ImGui::RadioButton(
+                             "All loaded images",
+                             ImageSelection::AllLoadedImages == appData.settings().recenteringMode() ) )
+                    {
+                        appData.settings().setRecenteringMode( ImageSelection::AllLoadedImages );
+                        recenterViews();
+                    }
+                    ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on all loaded images" );
+
+                    ImGui::Spacing();
+
+                    ImGui::TreePop();
                 }
-                ImGui::SameLine(); helpMarker( "Number of squares in 'checkerboard' views" );
-
-
-                // Flashlight radius
-                const float radius = appData.renderData().m_flashlightRadius;
-                int radiusPercent = static_cast<int>( 100 * radius );
-                constexpr int k_minRadius = 1;
-                constexpr int k_maxRadius = 100;
-
-                if ( ImGui::SliderScalar( "Flashlight size", ImGuiDataType_S32, &radiusPercent, &k_minRadius, &k_maxRadius, "%d" ) )
-                {
-                    appData.renderData().m_flashlightRadius = static_cast<float>( radiusPercent ) / 100.0f;
-                }
-                ImGui::SameLine();
-                helpMarker( "Circle size for 'flashlight' views, as a percentage of the view size" );
-
 
 
                 ImGui::Separator();
-                ImGui::Checkbox( "Demo window", &( appData.guiData().m_showDemoWindow ) );
+                ImGui::Checkbox( "Show ImGui demo window", &( appData.guiData().m_showDemoWindow ) );
 
                 ImGui::EndTabItem();
             }
 
+
+            if ( ImGui::BeginTabItem( "Metrics" ) )
+            {
+                ImGui::PushID( "metrics" ); /*** PushID metrics ***/
+
+                if ( ImGui::TreeNode( "General" ) )
+                {
+                    // Overlay style:
+                    if ( ImGui::RadioButton( "Magenta/cyan", true == appData.renderData().m_overlayMagentaCyan ) )
+                    {
+                        appData.renderData().m_overlayMagentaCyan = true;
+                    }
+
+                    ImGui::SameLine();
+                    if ( ImGui::RadioButton( "Red/green overlay", false == appData.renderData().m_overlayMagentaCyan ) )
+                    {
+                        appData.renderData().m_overlayMagentaCyan = false;
+                    }
+                    ImGui::SameLine();
+                    helpMarker( "Color style for 'overlay' views" );
+
+
+                    // Quadrants style:
+                    const glm::bvec2 Q = appData.renderData().m_quadrants;
+
+                    if ( ImGui::RadioButton( "X", true == ( Q.x && ! Q.y ) ) )
+                    {
+                        appData.renderData().m_quadrants = glm::bvec2{ true, false };
+                    }
+
+                    ImGui::SameLine();
+                    if ( ImGui::RadioButton( "Y", true == ( ! Q.x && Q.y ) ) )
+                    {
+                        appData.renderData().m_quadrants = glm::bvec2{ false, true };
+                    }
+
+                    ImGui::SameLine();
+                    if ( ImGui::RadioButton( "X and Y comparison", true == ( Q.x && Q.y ) ) )
+                    {
+                        appData.renderData().m_quadrants = glm::bvec2{ true, true };
+                    }
+
+                    ImGui::SameLine();
+                    helpMarker( "Comparison directions in 'quadrant' views" );
+
+
+                    // Checkerboard squares
+                    int numSquares = appData.renderData().m_numCheckerboardSquares;
+                    if ( ImGui::InputInt( "Checkerboard size", &numSquares ) )
+                    {
+                        if ( 2 <= numSquares && numSquares <= 2048 )
+                        {
+                            appData.renderData().m_numCheckerboardSquares = numSquares;
+                        }
+                    }
+                    ImGui::SameLine(); helpMarker( "Number of squares in 'checkerboard' views" );
+
+
+                    // Flashlight radius
+                    const float radius = appData.renderData().m_flashlightRadius;
+                    int radiusPercent = static_cast<int>( 100 * radius );
+                    constexpr int k_minRadius = 1;
+                    constexpr int k_maxRadius = 100;
+
+                    if ( ImGui::SliderScalar( "Flashlight size", ImGuiDataType_S32, &radiusPercent, &k_minRadius, &k_maxRadius, "%d" ) )
+                    {
+                        appData.renderData().m_flashlightRadius = static_cast<float>( radiusPercent ) / 100.0f;
+                    }
+                    ImGui::SameLine();
+                    helpMarker( "Circle size for 'flashlight' views, as a percentage of the view size" );
+
+                    ImGui::Separator();
+                    ImGui::TreePop();
+                }
+
+
+                if ( ImGui::TreeNode( "Difference" ) )
+                {
+                    ImGui::PushID( "diff" );
+                    {
+                        // Difference type:
+                        if ( ImGui::RadioButton( "Absolute", false == appData.renderData().m_useSquare ) )
+                        {
+                            appData.renderData().m_useSquare = false;
+                        }
+
+                        ImGui::SameLine();
+                        if ( ImGui::RadioButton( "Squared difference", true == appData.renderData().m_useSquare ) )
+                        {
+                            appData.renderData().m_useSquare = true;
+                        }
+                        ImGui::SameLine();
+                        helpMarker( "Compute absolute or squared difference" );
+
+                        renderMetricSettingsTab( appData.renderData().m_squaredDifferenceParams,
+                                                 appData.guiData().m_showDifferenceColormapWindow,
+                                                 "sqdiff" );
+                    }
+                    ImGui::PopID(); // "diff"
+
+                    ImGui::Separator();
+                    ImGui::TreePop();
+                }
+
+
+                if ( ImGui::TreeNode( "Cross-correlation" ) )
+                {
+                    ImGui::PushID( "crosscorr" );
+                    {
+                        renderMetricSettingsTab( appData.renderData().m_crossCorrelationParams,
+                                                 appData.guiData().m_showCorrelationColormapWindow,
+                                                 "crosscorr" );
+                    }
+                    ImGui::PopID(); // "crosscorr"
+
+                    ImGui::Separator();
+                    ImGui::TreePop();
+                }
+
+
+                ImGui::PopID(); /*** PopID metrics ***/
+                ImGui::EndTabItem();
+            }
+
+
             if ( ImGui::BeginTabItem( "Landmarks" ) )
             {
-                ImGui::PushID( "landmarks" );
+                ImGui::PushID( "landmarks" ); /*** PushID landmarks ***/
 
                 bool onTop = appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
                 if ( ImGui::Checkbox( "Landmarks on top", &onTop ) )
@@ -831,45 +973,7 @@ void renderSettingsWindow(
                 ImGui::SameLine();
                 helpMarker( "Render landmarks on top of all image layers" );
 
-                ImGui::PopID(); // "landmarks"
-                ImGui::EndTabItem();
-            }
-
-            if ( ImGui::BeginTabItem( "Difference Metric" ) )
-            {
-                ImGui::PushID( "diff" );
-                {
-                    // Difference type:
-                    if ( ImGui::RadioButton( "Absolute", false == appData.renderData().m_useSquare ) )
-                    {
-                        appData.renderData().m_useSquare = false;
-                    }
-
-                    ImGui::SameLine();
-                    if ( ImGui::RadioButton( "Squared difference", true == appData.renderData().m_useSquare ) )
-                    {
-                        appData.renderData().m_useSquare = true;
-                    }
-                    ImGui::SameLine();
-                    helpMarker( "Compute absolute or squared difference" );
-
-                    renderMetricSettingsTab( appData.renderData().m_squaredDifferenceParams,
-                                             appData.guiData().m_showDifferenceColormapWindow,
-                                             "sqdiff" );
-                }
-                ImGui::PopID(); // "diff"
-                ImGui::EndTabItem();
-            }
-
-            if ( ImGui::BeginTabItem( "Cross-Correlation" ) )
-            {
-                ImGui::PushID( "crosscorr" );
-                {
-                    renderMetricSettingsTab( appData.renderData().m_crossCorrelationParams,
-                                             appData.guiData().m_showCorrelationColormapWindow,
-                                             "crosscorr" );
-                }
-                ImGui::PopID(); // "crosscorr"
+                ImGui::PopID(); /*** PopID landmarks ***/
                 ImGui::EndTabItem();
             }
 

@@ -134,7 +134,7 @@ enum class ZoomBehavior
 enum class ImageSelection
 {
     /// The unique reference image that defines the World coordinate system.
-    /// Tthere is one reference image in the app at a given time.
+    /// There is one reference image in the app at a given time.
     ReferenceImage,
 
     /// The unique image that is being actively transformed or modified.

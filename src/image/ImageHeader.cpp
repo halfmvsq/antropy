@@ -104,12 +104,24 @@ void ImageHeader::setSpace( const ImageIoInfo& ioInfo )
 
 void ImageHeader::setBoundingBox()
 {
-    m_boundingBoxMinMaxCorners = math::computeImageSubjectAABBoxCorners(
+    m_pixelBBoxCorners = math::computeImagePixelAABBoxCorners( m_pixelDimensions );
+
+    m_subjectBBoxCorners = math::computeImageSubjectBoundingBoxCorners(
                 m_pixelDimensions, m_directions, m_spacing, m_origin );
 
-    m_boundingBoxCorners = math::computeAllBoxCorners( m_boundingBoxMinMaxCorners );
-    m_boundingBoxCenter = 0.5f * ( m_boundingBoxMinMaxCorners.first + m_boundingBoxMinMaxCorners.second );
-    m_boundingBoxSize = m_boundingBoxMinMaxCorners.second - m_boundingBoxMinMaxCorners.first;
+    m_subjectMinMaxAABBoxCorners = math::computeMinMaxCornersOfAABBox( m_subjectBBoxCorners );
+
+    m_subjectBBoxSize = glm::vec3{
+            m_spacing.x * m_pixelDimensions.x,
+            m_spacing.y * m_pixelDimensions.y,
+            m_spacing.z * m_pixelDimensions.z };
+
+    m_subjectBBoxCenter = glm::vec3{ 0.0f, 0.0f, 0.0f };
+    for ( const auto& p : m_subjectBBoxCorners )
+    {
+        m_subjectBBoxCenter += p;
+    }
+    m_subjectBBoxCenter /= m_subjectBBoxCorners.size();
 }
 
 
@@ -161,11 +173,11 @@ const glm::vec3& ImageHeader::origin() const { return m_origin; }
 const glm::vec3& ImageHeader::spacing() const { return m_spacing; }
 const glm::mat3& ImageHeader::directions() const { return m_directions; }
 
-const std::pair< glm::vec3, glm::vec3 >& ImageHeader::boundingBoxMinMaxCorners() const
-{ return m_boundingBoxMinMaxCorners; }
-const std::array< glm::vec3, 8 >& ImageHeader::boundingBoxCorners() const { return m_boundingBoxCorners; }
-const glm::vec3& ImageHeader::boundingBoxCenter() const { return m_boundingBoxCenter; }
-const glm::vec3& ImageHeader::boundingBoxSize() const { return m_boundingBoxSize; }
+const std::array< glm::vec3, 8 >& ImageHeader::pixelBBoxCorners() const { return m_pixelBBoxCorners; }
+const std::array< glm::vec3, 8 >& ImageHeader::subjectBBoxCorners() const { return m_subjectBBoxCorners; }
+const std::pair< glm::vec3, glm::vec3 >& ImageHeader::subjectAABboxMinMaxCorners() const { return m_subjectMinMaxAABBoxCorners; }
+const glm::vec3& ImageHeader::subjectBBoxCenter() const { return m_subjectBBoxCenter; }
+const glm::vec3& ImageHeader::subjectBBoxSize() const { return m_subjectBBoxSize; }
 
 const std::string& ImageHeader::spiralCode() const { return m_spiralCode; }
 bool ImageHeader::isOblique() const { return m_isOblique; }
@@ -193,12 +205,11 @@ std::ostream& operator<< ( std::ostream& os, const ImageHeader& header )
        << "\nSpacing (mm): "                   << glm::to_string( header.m_spacing )
        << "\nDirections: "                     << glm::to_string( header.m_directions )
 
-       << "\n\nBounding box corners (mm): "
-       << glm::to_string( header.m_boundingBoxMinMaxCorners.first ) << ", "
-       << glm::to_string( header.m_boundingBoxMinMaxCorners.second )
-
-       << "\nBounding box center (mm): "       << glm::to_string( header.m_boundingBoxCenter )
-       << "\nBounding box size (mm): "         << glm::to_string( header.m_boundingBoxSize )
+       << "\n\nBounding box (in Subject space):"
+       << "\n\tMin/max corners (mm): "         << glm::to_string( header.m_subjectMinMaxAABBoxCorners.first ) << ", "
+                                               << glm::to_string( header.m_subjectMinMaxAABBoxCorners.second )
+       << "\n\tBox center (mm): "              << glm::to_string( header.m_subjectBBoxCenter )
+       << "\n\tBox size (mm): "                << glm::to_string( header.m_subjectBBoxSize )
 
        << "\n\nSPIRAL code: "                  << header.m_spiralCode
        << "\nIs oblique: "                     << std::boolalpha << header.m_isOblique;

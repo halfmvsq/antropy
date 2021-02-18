@@ -6,7 +6,11 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/component_wise.hpp>
+#include <glm/gtx/string_cast.hpp>
 #include <glm/gtx/transform.hpp>
+
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
 
 #include <algorithm>
 #include <cmath>
@@ -101,47 +105,67 @@ glm::vec3 computeInvPixelDimensions( const glm::u64vec3& pixelDimensions )
 }
 
 
-std::pair< glm::dvec3, glm::dvec3 > computeImageSubjectAABBoxCorners(
-        const glm::u64vec3& pixelDims,
-        const glm::dmat3& directions,
-        const glm::dvec3& spacing,
-        const glm::dvec3& origin )
+std::array< glm::vec3, 8 > computeImagePixelAABBoxCorners(
+        const glm::u64vec3& pixelDims )
 {
     constexpr size_t N = 8; // Image has 8 corners
 
-    const glm::dmat4 subject_T_pixel = computeImagePixelToSubjectTransformation( directions, spacing, origin );
+    // To get the pixel edges/corners, offset integer coordinates by half of a pixel,
+    // because integer pixel coordinates are at the CENTER of the pixel
+    static const glm::vec3 sk_halfPixel{ 0.5f, 0.5f, 0.5f };
 
-    // Offset integer coordinates by half a pixel, because
-    // the integer pixel coordinates are at the CENTER of a pixel
-    static const glm::dvec3 sk_halfPixel{ 0.5, 0.5, 0.5 };
+    const glm::vec3 D = glm::vec3{ pixelDims } - sk_halfPixel;
 
-    const glm::dvec3 D = glm::dvec3{ pixelDims } - sk_halfPixel;
-
-    const std::array< glm::dvec3, N > pixelCorners =
+    const std::array< glm::vec3, N > pixelCorners =
     {
-        glm::dvec3{ -0.5, -0.5, -0.5 },
-        glm::dvec3{ D.x, -0.5, -0.5 },
-        glm::dvec3{ -0.5, D.y, -0.5 },
-        glm::dvec3{ D.x, D.y, -0.5 },
-        glm::dvec3{ -0.5, -0.5, D.z },
-        glm::dvec3{ D.x, -0.5, D.z },
-        glm::dvec3{ -0.5, D.y, D.z },
-        glm::dvec3{ D.x, D.y, D.z }
+        glm::vec3{ -0.5f, -0.5f, -0.5f },
+        glm::vec3{ D.x, -0.5f, -0.5f },
+        glm::vec3{ -0.5f, D.y, -0.5f },
+        glm::vec3{ D.x, D.y, -0.5f },
+        glm::vec3{ -0.5f, -0.5f, D.z },
+        glm::vec3{ D.x, -0.5f, D.z },
+        glm::vec3{ -0.5f, D.y, D.z },
+        glm::vec3{ D.x, D.y, D.z }
     };
 
-    std::array< glm::dvec3, N > subjectCorners;
+    return pixelCorners;
+}
+
+
+std::array< glm::vec3, 8 >
+computeImageSubjectBoundingBoxCorners(
+        const glm::u64vec3& pixelDims,
+        const glm::mat3& directions,
+        const glm::vec3& spacing,
+        const glm::vec3& origin )
+{
+    constexpr size_t N = 8; // Image has 8 corners
+
+    const glm::mat4 subject_T_pixel = computeImagePixelToSubjectTransformation( directions, spacing, origin );
+
+    const std::array< glm::vec3, N > pixelCorners = computeImagePixelAABBoxCorners( pixelDims );
+
+    std::array< glm::vec3, N > subjectCorners;
 
     std::transform( std::begin( pixelCorners ), std::end( pixelCorners ),
                     std::begin( subjectCorners ),
-                    [ &subject_T_pixel ]( const glm::dvec3& v )
+    [ &subject_T_pixel ]( const glm::dvec3& v )
     {
-        return glm::dvec3{ subject_T_pixel * glm::dvec4{ v, 1.0 } };
+        return glm::vec3{ subject_T_pixel * glm::vec4{ v, 1.0f } };
     } );
 
-    glm::dvec3 minSubjectCorner{ std::numeric_limits<double>::max() };
-    glm::dvec3 maxSubjectCorner{ std::numeric_limits<double>::lowest() };
+    return subjectCorners;
+}
 
-    for ( uint32_t c = 0; c < N; ++c )
+
+std::pair< glm::vec3, glm::vec3 >
+computeMinMaxCornersOfAABBox(
+        const std::array< glm::vec3, 8 >& subjectCorners )
+{
+    glm::vec3 minSubjectCorner{ std::numeric_limits<float>::max() };
+    glm::vec3 maxSubjectCorner{ std::numeric_limits<float>::lowest() };
+
+    for ( uint32_t c = 0; c < 8; ++c )
     {
         for ( int i = 0; i < 3; ++i )
         {
@@ -161,7 +185,8 @@ std::pair< glm::dvec3, glm::dvec3 > computeImageSubjectAABBoxCorners(
 }
 
 
-std::array< glm::vec3, 8 > computeAllBoxCorners(
+std::array< glm::vec3, 8 >
+computeAllAABBoxCornersFromMinMaxCorners(
         const std::pair< glm::vec3, glm::vec3 >& boxMinMaxCorners )
 {
     const glm::vec3 size = boxMinMaxCorners.second - boxMinMaxCorners.first;

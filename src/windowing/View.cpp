@@ -168,21 +168,20 @@ View::computeImageSliceIntersection(
     intersector.setPositioningMethod( SliceIntersector::PositioningMethod::FrameOrigin, std::nullopt );
     intersector.setAlignmentMethod( SliceIntersector::AlignmentMethod::CameraZ );
 
-    std::optional< SliceIntersector::IntersectionVertices > subjectIntersectionPositions;
-    glm::vec3 subjectPlaneNormal;
+    // Compute the intersections in Pixel space by transforming the camera and crosshairs frame
+    // from World to Pixel space. Pixel space is needed, because the corners form an AABB in that space.
+    const glm::mat4 world_T_pixel = image->transformations().worldDef_T_subject() *
+            image->transformations().subject_T_pixel();
 
-    // Compute the intersections in Subject space by transforming the camera and crosshairs
-    // from World to Subject space
-    const glm::mat4 world_T_subject = image->transformations().worldDef_T_subject();
-    const glm::mat4 subject_T_world = glm::inverse( world_T_subject );
+    const glm::mat4 pixel_T_world = glm::inverse( world_T_pixel );
 
-    std::tie( subjectIntersectionPositions, subjectPlaneNormal ) =
+    std::optional< SliceIntersector::IntersectionVertices > pixelIntersectionPositions =
             intersector.computePlaneIntersections(
-                subject_T_world * m_camera.world_T_camera(),
-                subject_T_world * crosshairs.world_T_frame(),
-                image->header().boundingBoxCorners() );
+                pixel_T_world * m_camera.world_T_camera(),
+                pixel_T_world * crosshairs.world_T_frame(),
+                image->header().pixelBBoxCorners() ).first;
 
-    if ( ! subjectIntersectionPositions )
+    if ( ! pixelIntersectionPositions )
     {
         // No slice intersection to render
         return std::nullopt;
@@ -193,7 +192,8 @@ View::computeImageSliceIntersection(
 
     for ( uint32_t i = 0; i < SliceIntersector::s_numVertices; ++i )
     {
-        worldIntersectionPositions[i] = world_T_subject * glm::vec4{ (*subjectIntersectionPositions)[i], 1.0f };
+        worldIntersectionPositions[i] = world_T_pixel *
+                glm::vec4{ (*pixelIntersectionPositions)[i], 1.0f };
     }
 
     return worldIntersectionPositions;

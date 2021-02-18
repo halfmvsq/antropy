@@ -380,7 +380,7 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
     case GLFW_KEY_E: handler.toggleImageEdges(); break;
     case GLFW_KEY_O: handler.cycleOverlayAndUiVisibility(); break;
 
-    case GLFW_KEY_C: handler.recenterViews( ImageSelection::AllLoadedImages, true, false ); break;
+    case GLFW_KEY_C: handler.recenterViews( app->appData().settings().recenteringMode(), true, false ); break;
 
     case GLFW_KEY_PAGE_DOWN:
     {
