@@ -1,6 +1,6 @@
 #include "AntropyApp.h"
 #include "common/InputParser.h"
-#include "logic/Logging.h"
+#include "logic/app/Logging.h"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>

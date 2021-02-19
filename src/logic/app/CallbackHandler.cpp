@@ -1,11 +1,11 @@
-#include "logic/CallbackHandler.h"
+#include "logic/app/CallbackHandler.h"
 
 #include "common/DataHelper.h"
 #include "common/MathFuncs.h"
 
 #include "image/SegUtil.tpp"
 
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
 
@@ -25,6 +25,15 @@
 
 #include <chrono>
 #include <memory>
+
+
+namespace
+{
+
+static const glm::vec2 sk_maxClip{ 1, 1 };
+
+}
+
 
 
 CallbackHandler::CallbackHandler(
@@ -267,11 +276,11 @@ void CallbackHandler::recenterViews(
             worldPos = glm::vec3{ roundedCenterWorldPos / roundedCenterWorldPos.w };
         }
 
-        m_appData.settings().setWorldCrosshairsPos( worldPos );
+        m_appData.state().setWorldCrosshairsPos( worldPos );
         */
 
         const glm::vec3 worldPos = math::computeAABBoxCenter( worldBox );
-        m_appData.settings().setWorldCrosshairsPos( worldPos );
+        m_appData.state().setWorldCrosshairsPos( worldPos );
     }
 
     // Scale images slightly down
@@ -286,7 +295,7 @@ void CallbackHandler::recenterViews(
         // Size the views based on the enclosing AABB;
         // Position the views based on the curent crosshairs:
         m_appData.windowData().recenterViews(
-                    m_appData.settings().worldCrosshairs().worldOrigin(),
+                    m_appData.state().worldCrosshairs().worldOrigin(),
                     math::computeAABBoxSize( worldBox ),
                     sk_scale, sk_doNotResetZoom );
     }
@@ -317,7 +326,7 @@ void CallbackHandler::recenterView(
 
     m_appData.windowData().recenterView(
                 viewUid,
-                m_appData.settings().worldCrosshairs().worldOrigin(),
+                m_appData.state().worldCrosshairs().worldOrigin(),
                 math::computeAABBoxSize( worldBox ) );
 }
 
@@ -326,8 +335,6 @@ void CallbackHandler::doCrosshairsMove(
         const glm::vec2& /*lastWindowPos*/,
         const glm::vec2& currWindowPos )
 {
-    static const glm::vec2 sk_maxClip{ 1, 1 };
-
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( currWindowPos );
     if ( ! viewUid ) return;
 
@@ -339,7 +346,7 @@ void CallbackHandler::doCrosshairsMove(
 
     const View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     // We need a reference image to move the crosshairs
     const Image* refImg = m_appData.refImage();
@@ -388,7 +395,7 @@ void CallbackHandler::doCrosshairsMove(
         worldPos /= worldPos.w;
     }
 
-    m_appData.settings().setWorldCrosshairsPos( glm::vec3{ worldPos } );
+    m_appData.state().setWorldCrosshairsPos( glm::vec3{ worldPos } );
 }
 
 
@@ -401,7 +408,7 @@ void CallbackHandler::doCrosshairsScroll(
 
     const View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const glm::vec3 worldFrontAxis = camera::worldDirection(
                 view->camera(), Directions::View::Front );
@@ -415,7 +422,7 @@ void CallbackHandler::doCrosshairsScroll(
     const float scrollDistance = data::sliceScrollDistance(
                 m_appData, worldFrontAxis, ImageSelection::VisibleImagesInView, view );
 
-    glm::vec4 worldPos{ m_appData.settings().worldCrosshairs().worldOrigin() +
+    glm::vec4 worldPos{ m_appData.state().worldCrosshairs().worldOrigin() +
                 scrollOffset.y * scrollDistance * worldFrontAxis, 1.0f };
 
     if ( m_appData.renderData().m_snapCrosshairsToReferenceVoxels )
@@ -433,7 +440,7 @@ void CallbackHandler::doCrosshairsScroll(
         }
     }
 
-    m_appData.settings().setWorldCrosshairsPos( glm::vec3{ worldPos } );
+    m_appData.state().setWorldCrosshairsPos( glm::vec3{ worldPos } );
 }
 
 
@@ -442,7 +449,6 @@ void CallbackHandler::doSegment(
         const glm::vec2& currWindowPos,
         bool leftButton )
 {
-    static const glm::vec2 sk_maxClip{ 1.0f, 1.0f };
     static const glm::ivec3 sk_voxelZero{ 0, 0, 0 };
 
     auto updateSegTexture = [this]
@@ -478,7 +484,7 @@ void CallbackHandler::doSegment(
 
     const View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
@@ -623,6 +629,41 @@ void CallbackHandler::doSegment(
 }
 
 
+void CallbackHandler::doAnnotate(
+        const glm::vec2& /*lastWindowPos*/,
+        const glm::vec2& currWindowPos )
+{
+    const auto viewUid = m_appData.windowData().currentViewUidAtCursor( currWindowPos );
+    if ( ! viewUid ) return;
+
+    const auto activeViewUid = m_appData.windowData().activeViewUid();
+
+    // Ignore if actively annotating + there is an active view and this is not it
+    if ( m_appData.state().annotating() && activeViewUid )
+    {
+        if ( activeViewUid != *viewUid ) return;
+    }
+
+    const View* view = m_appData.windowData().currentView( *viewUid );
+    if ( ! view ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
+
+//    const Image* refImg = m_appData.refImage();
+//    if ( ! refImg ) return;
+
+    const auto& windowVP = m_appData.windowData().viewport();
+    const glm::vec4 winClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
+                view->clipPlaneDepth(), 1 };
+
+    const glm::vec4 viewClipPos = view->viewClip_T_winClip() * winClipPos;
+
+    if ( glm::any( glm::greaterThan( glm::abs( glm::vec2{ viewClipPos } ), sk_maxClip ) ) ) return;
+
+    // The pointer is in the view bounds! Make this the active view
+    m_appData.windowData().setActiveViewUid( *viewUid );
+}
+
+
 void CallbackHandler::doWindowLevel(
         const glm::vec2& lastWindowPos,
         const glm::vec2& currWindowPos )
@@ -632,7 +673,7 @@ void CallbackHandler::doWindowLevel(
 
     const View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
@@ -691,7 +732,7 @@ void CallbackHandler::doOpacity(
 
     const View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
@@ -739,7 +780,7 @@ void CallbackHandler::doCameraTranslate2d(
 
     View* view = windowData.currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto& windowVP = windowData.viewport();
 
@@ -762,14 +803,14 @@ void CallbackHandler::doCameraTranslate2d(
             if ( View* v = windowData.currentView( uid ) )
             {
                 panRelativeToWorldPosition( v->camera(), lastViewNdcPos, currViewNdcPos,
-                                            m_appData.settings().worldCrosshairs().worldOrigin() );
+                                            m_appData.state().worldCrosshairs().worldOrigin() );
             }
         }
     }
     else
     {
         panRelativeToWorldPosition( view->camera(), lastViewNdcPos, currViewNdcPos,
-                                    m_appData.settings().worldCrosshairs().worldOrigin() );
+                                    m_appData.state().worldCrosshairs().worldOrigin() );
     }
 }
 
@@ -790,7 +831,7 @@ void CallbackHandler::doCameraZoomDrag(
     View* currView = m_appData.windowData().currentView( *currViewUid );
     if ( ! currView ) return;
 
-    if ( camera::ShaderType::Disabled == currView->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == currView->renderMode() ) return;
 
     const auto& windowVP = m_appData.windowData().viewport();
 
@@ -814,7 +855,7 @@ void CallbackHandler::doCameraZoomDrag(
         case ZoomBehavior::ToCrosshairs:
         {
             centerViewClipPos = camera::ndc_T_world(
-                        view->camera(), m_appData.settings().worldCrosshairs().worldOrigin() );
+                        view->camera(), m_appData.state().worldCrosshairs().worldOrigin() );
             break;
         }
         case ZoomBehavior::ToStartPosition:
@@ -884,7 +925,7 @@ void CallbackHandler::doCameraZoomScroll(
     View* currView = m_appData.windowData().currentView( *currViewUid );
     if ( ! currView ) return;
 
-    if ( camera::ShaderType::Disabled == currView->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == currView->renderMode() ) return;
 
     // The pointer is in the view bounds! Make this the active view
     m_appData.windowData().setActiveViewUid( *currViewUid );
@@ -907,7 +948,7 @@ void CallbackHandler::doCameraZoomScroll(
         case ZoomBehavior::ToCrosshairs:
         {
             centerViewClipPos = camera::ndc_T_world(
-                        view->camera(), m_appData.settings().worldCrosshairs().worldOrigin() );
+                        view->camera(), m_appData.state().worldCrosshairs().worldOrigin() );
             break;
         }
         case ZoomBehavior::ToStartPosition:
@@ -971,7 +1012,7 @@ void CallbackHandler::doImageTranslate(
 
     View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
@@ -1051,7 +1092,7 @@ void CallbackHandler::doImageRotate(
 
     View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
@@ -1083,10 +1124,10 @@ void CallbackHandler::doImageRotate(
     const glm::vec2 currViewNdcPos{ currViewClipPos / currViewClipPos.w };
 
     // Center of rotation is the crosshairs origin by default:
-    const auto p = m_appData.settings().worldRotationCenter();
+    const auto p = m_appData.state().worldRotationCenter();
 
     const glm::vec3 worldRotationCenter =
-            ( p ? *p : m_appData.settings().worldCrosshairs().worldOrigin() );
+            ( p ? *p : m_appData.state().worldCrosshairs().worldOrigin() );
 
     auto& imgTx = activeImage->transformations();
 
@@ -1144,7 +1185,7 @@ void CallbackHandler::doImageScale(
 
     View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
@@ -1454,7 +1495,7 @@ void CallbackHandler::scrollViewSlice( const glm::vec2& currWindowPos, int numSl
 
     const View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const glm::vec3 worldFrontAxis = camera::worldDirection( view->camera(), Directions::View::Front );
 
@@ -1467,9 +1508,9 @@ void CallbackHandler::scrollViewSlice( const glm::vec2& currWindowPos, int numSl
     const float scrollDistance = data::sliceScrollDistance(
                 m_appData, worldFrontAxis, ImageSelection::VisibleImagesInView, view );
 
-    const glm::vec3 worldCrosshairs = m_appData.settings().worldCrosshairs().worldOrigin();
+    const glm::vec3 worldCrosshairs = m_appData.state().worldCrosshairs().worldOrigin();
 
-    m_appData.settings().setWorldCrosshairsPos(
+    m_appData.state().setWorldCrosshairsPos(
                 worldCrosshairs + static_cast<float>( numSlices ) * scrollDistance * worldFrontAxis );
 }
 
@@ -1482,7 +1523,7 @@ void CallbackHandler::moveCrosshairsOnViewSlice( const glm::vec2& currWindowPos,
 
 void CallbackHandler::setMouseMode( MouseMode mode )
 {
-    m_appData.settings().setMouseMode( mode );
+    m_appData.state().setMouseMode( mode );
 //    return m_glfw.cursor( mode );
 }
 

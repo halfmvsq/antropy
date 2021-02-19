@@ -4,7 +4,7 @@
 #include "ui/Popups.h"
 #include "ui/Widgets.h"
 
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -528,7 +528,7 @@ void renderSegToolbar(
         const std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) >& createBlankSeg,
         const std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) >& executeGridCutsSeg )
 {
-    if ( MouseMode::Segment != appData.settings().mouseMode() )
+    if ( MouseMode::Segment != appData.state().mouseMode() )
     {
         return;
     }

@@ -42,7 +42,7 @@ public:
     View( Viewport winClipViewport,
           int32_t numOffsets,
           camera::CameraType cameraType,
-          camera::ShaderType shaderType,
+          camera::ViewRenderMode shaderType,
           UiControls uiControls,
           std::optional<uuids::uuid> translationSyncGroup = std::nullopt,
           std::optional<uuids::uuid> zoomSyncGroup = std::nullopt );
@@ -77,8 +77,8 @@ public:
     camera::CameraType cameraType() const;
     void setCameraType( const camera::CameraType& cameraType );
 
-    camera::ShaderType shaderType() const;
-    void setShaderType( const camera::ShaderType& shaderType );
+    camera::ViewRenderMode renderMode() const;
+    void setRenderMode( const camera::ViewRenderMode& shaderType );
 
     bool isImageRendered( const AppData& appData, size_t index );
     void setImageRendered( const AppData& appData, size_t index, bool visible );
@@ -135,7 +135,7 @@ private:
     std::set<size_t> m_preferredDefaultRenderdImages;
 
     // Camera data
-    camera::ShaderType m_shaderType;
+    camera::ViewRenderMode m_shaderType;
     camera::CameraType m_cameraType;
     camera::ProjectionType m_projectionType;
     camera::Camera m_camera;

@@ -13,10 +13,10 @@ namespace camera
  * @brief Types of view cameras. Each can have a different starting orientation, projection,
  * and alignment rules.
  */
-enum class CameraType : uint32_t
+enum class CameraType
 {
     /// Aligned with reference image subject axial plane
-    Axial = 0,
+    Axial,
 
     /// Aligned with reference image subject coronal plane
     Coronal,
@@ -24,6 +24,7 @@ enum class CameraType : uint32_t
     /// Aligned with reference image subject sagittal plane
     Sagittal,
 
+    /// 3D camera
     ThreeD,
 
     NumElements
@@ -54,13 +55,13 @@ enum class ProjectionType
 
 
 /**
- * @brief Type of fragment shader to use for view rendering
+ * @brief View rendering mode
  */
-enum class ShaderType : uint32_t
+enum class ViewRenderMode
 {
-    Image = 0, //!< Images rendered using color maps
-    Edge,
-    Overlay, //!< Highlight overlap between images
+    Image, //!< Image rendered using color maps
+    Edge, //!< Image rendered using color maps and edge overlay
+    Overlay, //!< Image pair rendered with overlap highlighted
     Checkerboard,
     Quadrants,
     Flashlight,
@@ -71,31 +72,31 @@ enum class ShaderType : uint32_t
     NumElements
 };
 
-/// Array of all shader types
-inline std::array<ShaderType, 8> const AllShaderTypes = {
-    ShaderType::Image,
-    ShaderType::Overlay,
-    ShaderType::Checkerboard,
-    ShaderType::Quadrants,
-    ShaderType::Flashlight,
-    ShaderType::Difference,
-//    ShaderType::CrossCorrelation,
-    ShaderType::JointHistogram,
-    ShaderType::Disabled
+
+/// Array of all rendering modes in use by the application
+inline std::array<ViewRenderMode, 8> const AllViewRenderModes = {
+    ViewRenderMode::Image,
+    ViewRenderMode::Overlay,
+    ViewRenderMode::Checkerboard,
+    ViewRenderMode::Quadrants,
+    ViewRenderMode::Flashlight,
+    ViewRenderMode::Difference,
+    ViewRenderMode::JointHistogram,
+    ViewRenderMode::Disabled
 };
 
 
-/// Array of all shader types that are valid for one image:
-inline std::array<ShaderType, 2> const AllNonMetricShaderTypes = {
-    ShaderType::Image,
-    ShaderType::Disabled
+/// Array of all view render modes that are valid for views with only one image
+inline std::array<ViewRenderMode, 2> const AllNonMetricRenderModes = {
+    ViewRenderMode::Image,
+    ViewRenderMode::Disabled
 };
 
 
 std::string typeString( const CameraType& cameraType );
 
-std::string typeString( const ShaderType& shaderType );
-std::string descriptionString( const ShaderType& shaderType );
+std::string typeString( const ViewRenderMode& shaderType );
+std::string descriptionString( const ViewRenderMode& shaderType );
 
 } // namespace camera
 

@@ -6,7 +6,7 @@
 
 #include "image/ImageColorMap.h"
 
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
 
@@ -498,7 +498,7 @@ createLabelColorTableTextures( const AppData& appData )
 
 void renderPlane(
         GLShaderProgram& program,
-        const camera::ShaderType& shaderType,
+        const camera::ViewRenderMode& shaderType,
         RenderData::Quad& quad,
         View& view,
         const glm::vec3& worldOrigin,
@@ -518,10 +518,10 @@ void renderPlane(
     program.setUniform( "world_T_clip", camera::world_T_clip( view.camera() ) );
     program.setUniform( "clipDepth", view.clipPlaneDepth() );
 
-    if ( camera::ShaderType::Image == shaderType ||
-         camera::ShaderType::Checkerboard == shaderType ||
-         camera::ShaderType::Quadrants == shaderType ||
-         camera::ShaderType::Flashlight == shaderType )
+    if ( camera::ViewRenderMode::Image == shaderType ||
+         camera::ViewRenderMode::Checkerboard == shaderType ||
+         camera::ViewRenderMode::Quadrants == shaderType ||
+         camera::ViewRenderMode::Flashlight == shaderType )
     {
         program.setUniform( "aspectRatio", view.camera().aspectRatio() );
         program.setUniform( "flashlightRadius", flashlightRadius );
@@ -559,7 +559,7 @@ void renderPlane(
             program.setUniform( "texSamplingDirY", texSamplingDirY );
         }
     }
-    else if ( camera::ShaderType::CrossCorrelation == shaderType )
+    else if ( camera::ViewRenderMode::CrossCorrelation == shaderType )
     {
         if ( 2 != I.size() )
         {
@@ -621,26 +621,25 @@ static const NVGcolor s_yellow( nvgRGBA( 255, 255, 0, 255 ) );
 
 void renderWindowOutline( NVGcontext* nvg, const Viewport& windowVP )
 {
-    const float pad = 1.0f;
+    constexpr float k_pad = 1.0f;
 
     // Outline around window
+    nvgStrokeWidth( nvg, 4.0f );
+    nvgStrokeColor( nvg, s_grey50 );
+
     nvgBeginPath( nvg );
-    {
-        nvgStrokeWidth( nvg, 4.0f );
-        nvgStrokeColor( nvg, s_grey50 );
-        nvgRect( nvg, pad, pad, windowVP.width() - pad, windowVP.height() - pad );
-        nvgStroke( nvg );
+    nvgRect( nvg, k_pad, k_pad, windowVP.width() - 2.0f * k_pad, windowVP.height() - 2.0f * k_pad );
+    nvgStroke( nvg );
 
-//        nvgStrokeWidth( nvg, 2.0f );
-//        nvgStrokeColor( nvg, s_grey50 );
-//        nvgRect( nvg, pad, pad, windowVP.width() - pad, windowVP.height() - pad );
-//        nvgStroke( nvg );
+    //        nvgStrokeWidth( nvg, 2.0f );
+    //        nvgStrokeColor( nvg, s_grey50 );
+    //        nvgRect( nvg, pad, pad, windowVP.width() - pad, windowVP.height() - pad );
+    //        nvgStroke( nvg );
 
-//        nvgStrokeWidth( nvg, 1.0f );
-//        nvgStrokeColor( nvg, s_grey60 );
-//        nvgRect( nvg, pad, pad, windowVP.width() - pad, windowVP.height() - pad );
-//        nvgStroke( nvg );
-    }
+    //        nvgStrokeWidth( nvg, 1.0f );
+    //        nvgStrokeColor( nvg, s_grey60 );
+    //        nvgRect( nvg, pad, pad, windowVP.width() - pad, windowVP.height() - pad );
+    //        nvgStroke( nvg );
 }
 
 /// @see https://community.vcvrack.com/t/advanced-nanovg-custom-label/6769/21
@@ -808,17 +807,15 @@ void drawCircle(
         const glm::vec4& strokeColor,
         float strokeWidth )
 {
+    nvgStrokeWidth( nvg, strokeWidth );
+    nvgStrokeColor( nvg, nvgRGBAf( strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a ) );
+    nvgFillColor( nvg, nvgRGBAf( fillColor.r, fillColor.g, fillColor.b, fillColor.a ) );
+
     nvgBeginPath( nvg );
-    {
-        nvgStrokeWidth( nvg, strokeWidth );
-        nvgStrokeColor( nvg, nvgRGBAf( strokeColor.r, strokeColor.g, strokeColor.b, strokeColor.a ) );
-        nvgFillColor( nvg, nvgRGBAf( fillColor.r, fillColor.g, fillColor.b, fillColor.a ) );
+    nvgCircle( nvg, mousePos.x, mousePos.y, radius );
 
-        nvgCircle( nvg, mousePos.x, mousePos.y, radius );
-
-        nvgStroke( nvg );
-        nvgFill( nvg );
-    }
+    nvgStroke( nvg );
+    nvgFill( nvg );
 }
 
 
@@ -1062,6 +1059,9 @@ void renderImageViewIntersections(
         const View& view,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
 {
+    // Line segment stipple length in pixels
+    constexpr float sk_stippleLen = 16.0f;
+
     auto mouse_T_world = [&view, &windowVP] ( const glm::vec4& worldPos ) -> glm::vec2
     {
         const glm::vec4 winClipPos = view.winClip_T_viewClip() * camera::clip_T_world( view.camera() ) * worldPos;
@@ -1093,35 +1093,68 @@ void renderImageViewIntersections(
         const Image* img = appData.image( imgUid );
         if ( ! img ) continue;
 
-        const auto worldIntersections = view.computeImageSliceIntersection(
-                    img, appData.settings().worldCrosshairs() );
+        auto worldIntersections = view.computeImageSliceIntersection(
+                    img, appData.state().worldCrosshairs() );
 
         if ( ! worldIntersections ) continue;
 
-//        const auto activeImageUid = appData.activeImageUid();
-//        if ( const bool isActive = ( activeImageUid && ( *activeImageUid == imgUid ) ) )
-//        {
-            /// @todo Enhance the border of the active image
-//        }
+        // The last point is the centroid of the intersection. Ignore the centroid and replace it with a
+        // duplicate of the first point. We need to double-up that point in order for line stippling to
+        // work correctly. Also, no need to close the path with nvgClosePath if the last point is duplicated.
+        worldIntersections->at( SliceIntersector::s_numVertices - 1 ) = worldIntersections->at( 0 );
 
         const glm::vec3 color = img->settings().borderColor();
         const float opacity = static_cast<float>( img->settings().visibility() ) * img->settings().opacity();
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
 
-        nvgBeginPath( nvg );
-        {
-            const glm::vec2 firstPos = mouse_T_world( worldIntersections->at( 0 ) );
-            nvgMoveTo( nvg, firstPos.x, firstPos.y );
+        const auto activeImageUid = appData.activeImageUid();
+        const bool isActive = ( activeImageUid && ( *activeImageUid == imgUid ) );
 
-            // Skip the last point, because it is the centroid of the intersection points
-            for ( size_t i = 1; i < worldIntersections->size() - 1; ++i )
+        glm::vec2 lastPos;
+
+        nvgBeginPath( nvg );
+
+        for ( size_t i = 0; i < worldIntersections->size(); ++i )
+        {
+            const glm::vec2 currPos = mouse_T_world( worldIntersections->at( i ) );
+
+            if ( 0 == i )
             {
-                const glm::vec2 mousePos = mouse_T_world( worldIntersections->at( i ) );
-                nvgLineTo( nvg, mousePos.x, mousePos.y );
+                // Move pen to the first point:
+                nvgMoveTo( nvg, currPos.x, currPos.y );
+                lastPos = currPos;
+                continue;
             }
+
+            if ( isActive )
+            {
+                const float dist = glm::distance( lastPos, currPos );
+                const uint32_t numLines = dist / sk_stippleLen;
+
+                for ( uint32_t j = 1; j <= numLines; ++j )
+                {
+                    const float t = static_cast<float>( j ) / static_cast<float>( numLines );
+                    const glm::vec2 pos = lastPos + t * ( currPos - lastPos );
+
+                    if ( j % 2 )
+                    {
+                        nvgLineTo( nvg, pos.x, pos.y );
+                    }
+                    else
+                    {
+                        nvgMoveTo( nvg, pos.x, pos.y );
+                    }
+                }
+            }
+            else
+            {
+                nvgLineTo( nvg, currPos.x, currPos.y );
+            }
+
+            lastPos = currPos;
         }
-        nvgClosePath( nvg );
+
         nvgStroke( nvg );
     }
 
@@ -1131,29 +1164,35 @@ void renderImageViewIntersections(
 }
 
 
-void renderViewOutline( NVGcontext* nvg, const View& view )
+void renderViewOutline( NVGcontext* nvg, const View& view, bool drawActiveOutline )
 {
-    const float pad = 0.0f;
+    constexpr float k_padOuter = 0.0f;
+//    constexpr float k_padInner = 2.0f;
+    constexpr float k_padActive = 3.0f;
 
     const auto& C = view.winMouseMinMaxCoords();
 
-    nvgBeginPath( nvg );
+    auto drawRectangle = [&nvg, &C] ( float pad, float width, const NVGcolor& color )
     {
-        nvgStrokeWidth( nvg, 4.0f );
-        nvgStrokeColor( nvg, s_grey50 );
-        nvgRect( nvg, C.first.x + pad, C.first.y + pad, C.second.x - C.first.x - pad, C.second.y - C.first.y - pad );
+        nvgStrokeWidth( nvg, width );
+        nvgStrokeColor( nvg, color );
+
+        nvgBeginPath( nvg );
+        nvgRect( nvg, C.first.x + pad, C.first.y + pad,
+                 C.second.x - C.first.x - 2.0f * pad,
+                 C.second.y - C.first.y - 2.0f * pad );
         nvgStroke( nvg );
+    };
 
-//        nvgStrokeWidth( nvg, 2.0f );
-//        nvgStrokeColor( nvg, s_grey50 );
-//        nvgRect( nvg, C.first.x + pad, C.first.y + pad, C.second.x - C.first.x - pad, C.second.y - C.first.y - pad );
-//        nvgStroke( nvg );
 
-//        nvgStrokeWidth( nvg, 1.0f );
-//        nvgStrokeColor( nvg, s_grey60 );
-//        nvgRect( nvg, C.first.x + pad, C.first.y + pad, C.second.x - C.first.x - pad, C.second.y - C.first.y - pad );
-//        nvgStroke( nvg );
+    if ( drawActiveOutline )
+    {
+        drawRectangle( k_padActive, 1.0f, s_yellow );
     }
+
+    // View outline:
+    drawRectangle( k_padOuter, 4.0f, s_grey50 );
+//    drawRectangle( k_padInner, 1.0f, s_grey60 );
 }
 
 
@@ -1200,22 +1239,18 @@ void renderCrosshairsOverlay(
     if ( viewBL.x < mouseXhairPos.x && mouseXhairPos.x < viewTR.x )
     {
         nvgBeginPath( nvg );
-        {
-            nvgMoveTo( nvg, mouseXhairPos.x, viewBL.y );
-            nvgLineTo( nvg, mouseXhairPos.x, viewTR.y );
-            nvgStroke( nvg );
-        }
+        nvgMoveTo( nvg, mouseXhairPos.x, viewBL.y );
+        nvgLineTo( nvg, mouseXhairPos.x, viewTR.y );
+        nvgStroke( nvg );
     }
 
     // Horizontal crosshair
     if ( viewBL.y < mouseXhairPos.y && mouseXhairPos.y < viewTR.y )
     {
         nvgBeginPath( nvg );
-        {
-            nvgMoveTo( nvg, viewBL.x, mouseXhairPos.y );
-            nvgLineTo( nvg, viewTR.x, mouseXhairPos.y );
-            nvgStroke( nvg );
-        }
+        nvgMoveTo( nvg, viewBL.x, mouseXhairPos.y );
+        nvgLineTo( nvg, viewTR.x, mouseXhairPos.y );
+        nvgStroke( nvg );
     }
 
     nvgResetScissor( nvg );
@@ -1243,23 +1278,18 @@ void renderLoadingOverlay( NVGcontext* nvg, const Viewport& windowVP )
     nvgFillColor( nvg, s_greyTextColor );
     nvgText( nvg, 0.5f * windowVP.width(), 0.5f * windowVP.height(), sk_loadingText.c_str(), nullptr );
 
+    const auto ms = std::chrono::duration_cast< std::chrono::milliseconds >(
+                std::chrono::system_clock::now().time_since_epoch() );
+
+    const float C = 2.0f * NVG_PI * static_cast<float>( ms.count() % 1000 ) / 1000.0f;
+    const float radius = windowVP.width() / 16.0f;
+
+    nvgStrokeWidth( nvg, 8.0f );
+    nvgStrokeColor( nvg, s_greyTextColor );
 
     nvgBeginPath( nvg );
-    {
-        const auto ms = std::chrono::duration_cast< std::chrono::milliseconds >(
-                    std::chrono::system_clock::now().time_since_epoch() );
-
-        const float C = 2.0f * NVG_PI * static_cast<float>( ms.count() % 1000 ) / 1000.0f;
-        const float radius = windowVP.width() / 16.0f;
-
-        nvgStrokeWidth( nvg, 8.0f );
-        nvgStrokeColor( nvg, s_greyTextColor );
-
-        nvgArc( nvg, 0.5f * windowVP.width(), 0.75f * windowVP.height(), radius,
-                sk_arcAngle + C, C, NVG_CCW );
-
-        nvgStroke( nvg );
-    }
+    nvgArc( nvg, 0.5f * windowVP.width(), 0.75f * windowVP.height(), radius, sk_arcAngle + C, C, NVG_CCW );
+    nvgStroke( nvg );
 }
 
 } // anonymous
@@ -1945,7 +1975,7 @@ void Rendering::unbindTextures( const std::list< std::reference_wrapper<GLTextur
 std::list< std::reference_wrapper<GLTexture> >
 Rendering::bindMetricImageTextures(
         const CurrentImages& I,
-        const camera::ShaderType& metricType )
+        const camera::ViewRenderMode& metricType )
 {
     std::list< std::reference_wrapper<GLTexture> > textures;
 
@@ -1954,30 +1984,30 @@ Rendering::bindMetricImageTextures(
 
     switch ( metricType )
     {
-    case camera::ShaderType::Difference:
+    case camera::ViewRenderMode::Difference:
     {
         usesMetricColormap = true;
         metricCmapIndex = m_appData.renderData().m_squaredDifferenceParams.m_colorMapIndex;
         break;
     }
-    case camera::ShaderType::CrossCorrelation:
+    case camera::ViewRenderMode::CrossCorrelation:
     {
         usesMetricColormap = true;
         metricCmapIndex = m_appData.renderData().m_crossCorrelationParams.m_colorMapIndex;
         break;
     }
-    case camera::ShaderType::JointHistogram:
+    case camera::ViewRenderMode::JointHistogram:
     {
         usesMetricColormap = true;
         metricCmapIndex = m_appData.renderData().m_jointHistogramParams.m_colorMapIndex;
         break;
     }
-    case camera::ShaderType::Overlay:
+    case camera::ViewRenderMode::Overlay:
     {
         usesMetricColormap = false;
         break;
     }
-    case camera::ShaderType::Disabled:
+    case camera::ViewRenderMode::Disabled:
     {
         return textures;
     }
@@ -2069,7 +2099,7 @@ Rendering::bindMetricImageTextures(
 
 
 void Rendering::doRenderingAllImagePlanes(
-        const camera::ShaderType& shaderType,
+        const camera::ViewRenderMode& shaderType,
         const std::list<uuids::uuid>& metricImages,
         const std::list<uuids::uuid>& renderedImages,
         const std::function< void ( GLShaderProgram&, const CurrentImages&, bool showEdges ) > renderFunc )
@@ -2081,31 +2111,34 @@ void Rendering::doRenderingAllImagePlanes(
 
     auto& renderData = m_appData.renderData();
 
-    if ( camera::ShaderType::Image == shaderType ||
-         camera::ShaderType::Checkerboard == shaderType ||
-         camera::ShaderType::Quadrants == shaderType ||
-         camera::ShaderType::Flashlight == shaderType )
+    const bool modSegOpacity = m_appData.renderData().m_modulateSegOpacityWithImageOpacity;
+
+
+    if ( camera::ViewRenderMode::Image == shaderType ||
+         camera::ViewRenderMode::Checkerboard == shaderType ||
+         camera::ViewRenderMode::Quadrants == shaderType ||
+         camera::ViewRenderMode::Flashlight == shaderType )
     {
         CurrentImages I;
 
         int renderMode = 0;
 
-        if ( camera::ShaderType::Image == shaderType )
+        if ( camera::ViewRenderMode::Image == shaderType )
         {
             renderMode = 0;
             I = getImageAndSegUidsForImageShaders( renderedImages );
         }
-        else if ( camera::ShaderType::Checkerboard == shaderType )
+        else if ( camera::ViewRenderMode::Checkerboard == shaderType )
         {
             renderMode = 1;
             I = getImageAndSegUidsForMetricShaders( metricImages ); // guaranteed size 2
         }
-        else if ( camera::ShaderType::Quadrants == shaderType )
+        else if ( camera::ViewRenderMode::Quadrants == shaderType )
         {
             renderMode = 2;
             I = getImageAndSegUidsForMetricShaders( metricImages );
         }
-        else if ( camera::ShaderType::Flashlight == shaderType )
+        else if ( camera::ViewRenderMode::Flashlight == shaderType )
         {
             renderMode = 3;
             I = getImageAndSegUidsForMetricShaders( metricImages );
@@ -2143,7 +2176,7 @@ void Rendering::doRenderingAllImagePlanes(
                 P.setUniform( "imgCmapSlopeIntercept", U.cmapSlopeIntercept );
                 P.setUniform( "imgThresholds", U.thresholds );
                 P.setUniform( "imgOpacity", U.imgOpacity );
-                P.setUniform( "segOpacity", U.segOpacity );
+                P.setUniform( "segOpacity", U.segOpacity * ( modSegOpacity ? U.imgOpacity : 1.0f ) );
                 P.setUniform( "masking", renderData.m_maskedImages );
                 P.setUniform( "quadrants", renderData.m_quadrants );
                 P.setUniform( "showFix", isFixedImage ); // ignored if not checkerboard or quadrants
@@ -2168,7 +2201,7 @@ void Rendering::doRenderingAllImagePlanes(
             isFixedImage = false;
         }
     }
-    else if ( camera::ShaderType::Disabled == shaderType )
+    else if ( camera::ViewRenderMode::Disabled == shaderType )
     {
         return;
     }
@@ -2182,7 +2215,7 @@ void Rendering::doRenderingAllImagePlanes(
 
         boundMetricTextures = bindMetricImageTextures( I, shaderType );
 
-        if ( camera::ShaderType::Difference == shaderType )
+        if ( camera::ViewRenderMode::Difference == shaderType )
         {
             const auto& metricParams = renderData.m_squaredDifferenceParams;
             GLShaderProgram& P = m_differenceProgram;
@@ -2209,7 +2242,7 @@ void Rendering::doRenderingAllImagePlanes(
             }
             P.stopUse();
         }
-        else if ( camera::ShaderType::CrossCorrelation == shaderType )
+        else if ( camera::ViewRenderMode::CrossCorrelation == shaderType )
         {
             const auto& metricParams = renderData.m_crossCorrelationParams;
             GLShaderProgram& P = m_crossCorrelationProgram;
@@ -2235,7 +2268,7 @@ void Rendering::doRenderingAllImagePlanes(
             }
             P.stopUse();
         }
-        else if ( camera::ShaderType::Overlay == shaderType )
+        else if ( camera::ViewRenderMode::Overlay == shaderType )
         {
             GLShaderProgram& P = m_overlayProgram;
 
@@ -2250,7 +2283,11 @@ void Rendering::doRenderingAllImagePlanes(
                 P.setUniform( "imgSlopeIntercept", std::vector<glm::vec2>{ U0.slopeIntercept, U1.slopeIntercept } );
                 P.setUniform( "imgThresholds", std::vector<glm::vec2>{ U0.thresholds, U1.thresholds } );
                 P.setUniform( "imgOpacity", std::vector<float>{ U0.imgOpacity, U1.imgOpacity } );
-                P.setUniform( "segOpacity", std::vector<float>{ U0.segOpacity, U1.segOpacity } );
+
+                P.setUniform( "segOpacity", std::vector<float>{
+                                  U0.segOpacity * ( modSegOpacity ? U0.imgOpacity : 1.0f ),
+                                  U1.segOpacity * ( modSegOpacity ? U1.imgOpacity : 1.0f ) } );
+
                 P.setUniform( "magentaCyan", renderData.m_overlayMagentaCyan );
 
                 renderFunc( P, I, false );
@@ -2264,25 +2301,25 @@ void Rendering::doRenderingAllImagePlanes(
 
 
 void Rendering::doRenderingImageLandmarks(
-        const camera::ShaderType& shaderType,
+        const camera::ViewRenderMode& shaderType,
         const std::list<uuids::uuid>& metricImages,
         const std::list<uuids::uuid>& renderedImages,
         const std::function< void ( const CurrentImages& ) > renderFunc )
 {
-    if ( camera::ShaderType::Image == shaderType ||
-         camera::ShaderType::Checkerboard == shaderType ||
-         camera::ShaderType::Quadrants == shaderType ||
-         camera::ShaderType::Flashlight == shaderType )
+    if ( camera::ViewRenderMode::Image == shaderType ||
+         camera::ViewRenderMode::Checkerboard == shaderType ||
+         camera::ViewRenderMode::Quadrants == shaderType ||
+         camera::ViewRenderMode::Flashlight == shaderType )
     {
         CurrentImages I;
 
-        if ( camera::ShaderType::Image == shaderType )
+        if ( camera::ViewRenderMode::Image == shaderType )
         {
             I = getImageAndSegUidsForImageShaders( renderedImages );
         }
-        else if ( camera::ShaderType::Checkerboard == shaderType ||
-                  camera::ShaderType::Quadrants == shaderType ||
-                  camera::ShaderType::Flashlight == shaderType )
+        else if ( camera::ViewRenderMode::Checkerboard == shaderType ||
+                  camera::ViewRenderMode::Quadrants == shaderType ||
+                  camera::ViewRenderMode::Flashlight == shaderType )
         {
             I = getImageAndSegUidsForMetricShaders( metricImages ); // guaranteed size 2
         }
@@ -2292,7 +2329,7 @@ void Rendering::doRenderingImageLandmarks(
             renderFunc( CurrentImages{ imgSegPair } );
         }
     }
-    else if ( camera::ShaderType::Disabled == shaderType )
+    else if ( camera::ViewRenderMode::Disabled == shaderType )
     {
         return;
     }
@@ -2306,7 +2343,7 @@ void Rendering::doRenderingImageLandmarks(
 
 
 void Rendering::doRenderingImageAnnotations(
-        const camera::ShaderType& /*shaderType*/,
+        const camera::ViewRenderMode& /*shaderType*/,
         const std::list<uuids::uuid>& /*metricImages*/,
         const std::list<uuids::uuid>& /*renderedImages*/,
         const std::function< void ( const CurrentImages& ) > /*renderFunc*/ )
@@ -2326,7 +2363,7 @@ void Rendering::renderImages()
         return ( imageUid ? m_appData.image( *imageUid ) : nullptr );
     };
 
-    const glm::vec3 worldCrosshairsOrigin = m_appData.settings().worldCrosshairs().worldOrigin();
+    const glm::vec3 worldCrosshairsOrigin = m_appData.state().worldCrosshairs().worldOrigin();
     const Layout& layout = m_appData.windowData().currentLayout();
 
     const bool renderLandmarksOnTop = m_appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
@@ -2336,7 +2373,8 @@ void Rendering::renderImages()
     if ( layout.isLightbox() )
     {
         auto renderImagesForAllCurrentViews =
-                [this, &layout, &worldCrosshairsOrigin, &renderLandmarksOnTop, &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
+                [this, &layout, &worldCrosshairsOrigin, &renderLandmarksOnTop, &renderAnnotationsOnTop,
+                /*&renderImageIntersections,*/ &getImage]
                 ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
         {
             for ( const auto& view : layout.views() )
@@ -2344,7 +2382,7 @@ void Rendering::renderImages()
                 if ( ! view.second ) continue;
                 if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
 
-                renderPlane( program, layout.shaderType(),
+                renderPlane( program, layout.renderMode(),
                              m_appData.renderData().m_quad, *view.second, worldCrosshairsOrigin,
                              m_appData.renderData().m_flashlightRadius,
                              I, getImage, showEdges );
@@ -2397,7 +2435,7 @@ void Rendering::renderImages()
         };
 
         doRenderingAllImagePlanes(
-                    layout.shaderType(),
+                    layout.renderMode(),
                     layout.metricImages(),
                     layout.renderedImages(),
                     renderImagesForAllCurrentViews );
@@ -2405,7 +2443,7 @@ void Rendering::renderImages()
         if ( renderLandmarksOnTop )
         {
             doRenderingImageLandmarks(
-                        layout.shaderType(),
+                        layout.renderMode(),
                         layout.metricImages(),
                         layout.renderedImages(),
                         renderLandmarksForAllCurrentViews );
@@ -2414,7 +2452,7 @@ void Rendering::renderImages()
         if ( renderAnnotationsOnTop )
         {
             doRenderingImageAnnotations(
-                        layout.shaderType(),
+                        layout.renderMode(),
                         layout.metricImages(),
                         layout.renderedImages(),
                         renderAnnotationsForAllCurrentViews );
@@ -2432,7 +2470,7 @@ void Rendering::renderImages()
             {
                 if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
 
-                renderPlane( program, view.second->shaderType(), m_appData.renderData().m_quad, *view.second,
+                renderPlane( program, view.second->renderMode(), m_appData.renderData().m_quad, *view.second,
                              worldCrosshairsOrigin, m_appData.renderData().m_flashlightRadius,
                              I, getImage, showEdges );
 
@@ -2474,7 +2512,7 @@ void Rendering::renderImages()
             };
 
             doRenderingAllImagePlanes(
-                        view.second->shaderType(),
+                        view.second->renderMode(),
                         view.second->metricImages(),
                         view.second->renderedImages(),
                         renderImagesForView );
@@ -2482,7 +2520,7 @@ void Rendering::renderImages()
             if ( renderLandmarksOnTop )
             {
                 doRenderingImageLandmarks(
-                            view.second->shaderType(),
+                            view.second->renderMode(),
                             view.second->metricImages(),
                             view.second->renderedImages(),
                             renderLandmarksForView );
@@ -2491,7 +2529,7 @@ void Rendering::renderImages()
             if ( renderAnnotationsOnTop )
             {
                 doRenderingImageAnnotations(
-                            view.second->shaderType(),
+                            view.second->renderMode(),
                             view.second->metricImages(),
                             view.second->renderedImages(),
                             renderAnnotationsForView );
@@ -2508,7 +2546,7 @@ void Rendering::renderOverlays()
     {
         for ( const auto& view : m_appData.m_windowData.currentViews() )
         {
-            switch ( view.shaderType() )
+            switch ( view.renderMode() )
             {
             case camera::ShaderType::Image:
             case camera::ShaderType::MetricMI:
@@ -2551,7 +2589,9 @@ void Rendering::renderVectorOverlays()
     {
         if ( m_isAppDoneLoadingImages )
         {
-            const glm::vec4 worldCrosshairs{ m_appData.settings().worldCrosshairs().worldOrigin(), 1.0f };
+            const glm::vec4 worldCrosshairs{ m_appData.state().worldCrosshairs().worldOrigin(), 1.0f };
+            const auto activeViewUid = m_appData.windowData().activeViewUid();
+            const bool annotating = ( MouseMode::Annotate == m_appData.state().mouseMode() );
 
             for ( const auto& viewUid : windowData.currentViewUids() )
             {
@@ -2559,7 +2599,7 @@ void Rendering::renderVectorOverlays()
                 if ( ! view ) continue;
 
                 if ( m_showOverlays &&
-                     camera::ShaderType::Disabled != view->shaderType() )
+                     camera::ViewRenderMode::Disabled != view->renderMode() )
                 {
                     renderCrosshairsOverlay( m_nvg, windowVP, *view, worldCrosshairs,
                                              m_appData.renderData().m_crosshairsColor );
@@ -2568,8 +2608,9 @@ void Rendering::renderVectorOverlays()
                                             m_appData.renderData().m_anatomicalLabelColor );
                 }
 
-                // This is the last thing to be rendered:
-                renderViewOutline( m_nvg, *view );
+                const bool drawActiveOutline = ( annotating && activeViewUid && ( *activeViewUid == viewUid ) );
+
+                renderViewOutline( m_nvg, *view, drawActiveOutline );
             }
 
             renderWindowOutline( m_nvg, windowVP );

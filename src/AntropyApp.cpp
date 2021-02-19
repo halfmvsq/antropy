@@ -123,13 +123,13 @@ AntropyApp::AntropyApp()
     m_imgui.setCallbacks(
             [this] ( const uuids::uuid& viewUid )
             {
-                m_callbackHandler.recenterView( m_data.settings().recenteringMode(), viewUid );
+                m_callbackHandler.recenterView( m_data.state().recenteringMode(), viewUid );
             },
 
             [this] ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition )
             {
                 m_callbackHandler.recenterViews(
-                            m_data.settings().recenteringMode(),
+                            m_data.state().recenteringMode(),
                             recenterCrosshairs,
                             recenterOnCurrentCrosshairsPosition );
             },
@@ -158,7 +158,7 @@ AntropyApp::AntropyApp()
 
             [this] ()
             {
-                return m_data.settings().worldCrosshairs().worldOrigin();
+                return m_data.state().worldCrosshairs().worldOrigin();
             },
 
             [this] ( size_t imageIndex ) -> std::optional<glm::vec3>
@@ -169,7 +169,7 @@ AntropyApp::AntropyApp()
 
                 const auto& tx = image->transformations();
                 const glm::vec4 subjectPos = tx.subject_T_worldDef() *
-                        glm::vec4{ m_data.settings().worldCrosshairs().worldOrigin(), 1 };
+                        glm::vec4{ m_data.state().worldCrosshairs().worldOrigin(), 1 };
                 return glm::vec3{ subjectPos / subjectPos.w };
             },
 
@@ -297,7 +297,7 @@ void AntropyApp::run()
 
         m_data.guiData().m_renderUiWindows = true;
         m_data.guiData().m_renderUiOverlays = true;
-        m_data.settings().setAnimating( false );
+        m_data.state().setAnimating( false );
         m_data.settings().setOverlays( true );
 
         m_data.windowData().addAxCorSagLayout( m_data.numImages() );
@@ -310,7 +310,7 @@ void AntropyApp::run()
         constexpr bool k_recenterCrosshairs = true;
         constexpr bool k_recenterOnCurrentCrosshairsPos = false;
 
-        m_callbackHandler.recenterViews( m_data.settings().recenteringMode(),
+        m_callbackHandler.recenterViews( m_data.state().recenteringMode(),
                                          k_recenterCrosshairs,
                                          k_recenterOnCurrentCrosshairsPos );
 
@@ -343,6 +343,9 @@ AppData& AntropyApp::appData() { return m_data; }
 
 const AppSettings& AntropyApp::appSettings() const { return m_data.settings(); }
 AppSettings& AntropyApp::appSettings() { return m_data.settings(); }
+
+const AppState& AntropyApp::appState() const { return m_data.state(); }
+AppState& AntropyApp::appState() { return m_data.state(); }
 
 const GuiData& AntropyApp::guiData() const { return m_data.guiData(); }
 GuiData& AntropyApp::guiData() { return m_data.guiData(); }
@@ -1114,7 +1117,7 @@ void AntropyApp::loadImagesFromParams( const InputParams& params )
 
         // Set event processing mode to poll, so that we can get continuous animations while loading
         m_glfw.setEventProcessingMode( EventProcessingMode::Poll );
-        m_data.settings().setAnimating( true );
+        m_data.state().setAnimating( true );
 
         spdlog::debug( "Begin loading images" );
 
@@ -1247,7 +1250,7 @@ void AntropyApp::loadImagesFromParams( const InputParams& params )
 
 //    // Convert World to reference Subject position:
 //    glm::vec4 refSubjectPos = refTx.subject_T_world() *
-//        glm::vec4{ m_data.worldCrosshairs().worldOrigin(), 1.0f };
+//        glm::vec4{ m_data.state().worldCrosshairs().worldOrigin(), 1.0f };
 
 //    refSubjectPos /= refSubjectPos.w;
 

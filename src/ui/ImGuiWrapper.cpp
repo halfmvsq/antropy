@@ -5,7 +5,7 @@
 #include "ui/Toolbars.h"
 #include "ui/Windows.h"
 
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -340,12 +340,12 @@ void ImGuiWrapper::render()
     /// @todo remove this
     auto getMouseMode = [this] ()
     {
-        return m_appData.settings().mouseMode();
+        return m_appData.state().mouseMode();
     };
 
     auto setMouseMode = [this] ( MouseMode mouseMode )
     {
-        m_appData.settings().setMouseMode( mouseMode );
+        m_appData.state().setMouseMode( mouseMode );
     };
 
     auto recenterViews = [this] ()
@@ -576,9 +576,9 @@ void ImGuiWrapper::render()
                     getImageIsVisibleSetting,
 
                     currentLayout.cameraType(),
-                    currentLayout.shaderType(),
+                    currentLayout.renderMode(),
                     [&currentLayout] ( const camera::CameraType& cameraType ) { return currentLayout.setCameraType( cameraType ); },
-                    [&currentLayout] ( const camera::ShaderType& shaderType ) { return currentLayout.setShaderType( shaderType ); },
+                    [&currentLayout] ( const camera::ViewRenderMode& shaderType ) { return currentLayout.setRenderMode( shaderType ); },
 
                     [this]() { m_recenterCurrentViews( s_recenterCrosshairs, s_recenterOnCurrentCrosshairsPosition ); },
                     nullptr );
@@ -597,9 +597,9 @@ void ImGuiWrapper::render()
                 if ( view ) view->setCameraType( cameraType );
             };
 
-            auto setShaderType = [view] ( const camera::ShaderType& shaderType )
+            auto setRenderMode = [view] ( const camera::ViewRenderMode& shaderType )
             {
-                if ( view ) view->setShaderType( shaderType );
+                if ( view ) view->setRenderMode( shaderType );
             };
 
             auto recenter = [this, &viewUid] ()
@@ -625,9 +625,9 @@ void ImGuiWrapper::render()
                         getImageIsVisibleSetting,
 
                         view->cameraType(),
-                        view->shaderType(),
+                        view->renderMode(),
                         setCameraType,
-                        setShaderType,
+                        setRenderMode,
 
                         recenter,
                         applyImageSelectionAndShaderToAllViews );

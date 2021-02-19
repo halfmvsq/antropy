@@ -7,7 +7,7 @@
 
 #include "common/MathFuncs.h"
 #include "image/Image.h"
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -65,10 +65,10 @@ void renderViewSettingsComboWindow(
         const std::function< bool( size_t imageIndex ) >& getImageVisibilitySetting,
 
         const camera::CameraType& cameraType,
-        const camera::ShaderType& shaderType,
+        const camera::ViewRenderMode& shaderType,
 
         const std::function< void ( const camera::CameraType& cameraType ) >& setCameraType,
-        const std::function< void ( const camera::ShaderType& shaderType ) >& setShaderType,
+        const std::function< void ( const camera::ViewRenderMode& shaderType ) >& setRenderMode,
         const std::function< void () >& recenter,
 
         const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews )
@@ -91,24 +91,24 @@ void renderViewSettingsComboWindow(
 
         switch ( shaderType )
         {
-        case camera::ShaderType::Image:
-        case camera::ShaderType::Edge:
+        case camera::ViewRenderMode::Image:
+        case camera::ViewRenderMode::Edge:
         {
             label = ICON_FK_EYE;
             break;
         }
-        case camera::ShaderType::Quadrants:
-        case camera::ShaderType::Checkerboard:
-        case camera::ShaderType::Flashlight:
-        case camera::ShaderType::Overlay:
-        case camera::ShaderType::Difference:
-        case camera::ShaderType::CrossCorrelation:
-        case camera::ShaderType::JointHistogram:
+        case camera::ViewRenderMode::Quadrants:
+        case camera::ViewRenderMode::Checkerboard:
+        case camera::ViewRenderMode::Flashlight:
+        case camera::ViewRenderMode::Overlay:
+        case camera::ViewRenderMode::Difference:
+        case camera::ViewRenderMode::CrossCorrelation:
+        case camera::ViewRenderMode::JointHistogram:
         {
             label = ICON_FK_EYE;
             break;
         }
-        case camera::ShaderType::Disabled:
+        case camera::ViewRenderMode::Disabled:
         default:
         {
             label = ICON_FK_EYE_SLASH;
@@ -144,7 +144,7 @@ void renderViewSettingsComboWindow(
             // Popup window with images to be rendered and their visibility:
             if ( uiControls.m_hasImageComboBox )
             {
-                if ( camera::ShaderType::Image == shaderType )
+                if ( camera::ViewRenderMode::Image == shaderType )
                 {
                     // Image visibility:
                     if ( ImGui::Button( label ) )
@@ -201,7 +201,7 @@ void renderViewSettingsComboWindow(
                         ImGui::EndPopup();
                     }
                 }
-                else if ( camera::ShaderType::Disabled == shaderType )
+                else if ( camera::ViewRenderMode::Disabled == shaderType )
                 {
                     ImGui::Button( label );
                 }
@@ -277,13 +277,13 @@ void renderViewSettingsComboWindow(
                     if ( getNumImages() > 1 )
                     {
                         // If there are two or more images, all shader types can be used:
-                        for ( const auto& st : camera::AllShaderTypes )
+                        for ( const auto& st : camera::AllViewRenderModes )
                         {
                             const bool isSelected = ( st == shaderType );
 
                             if ( ImGui::Selectable( camera::typeString( st ).c_str(), isSelected ) )
                             {
-                                setShaderType( st );
+                                setRenderMode( st );
                             }
 
                             if ( isSelected )
@@ -295,13 +295,13 @@ void renderViewSettingsComboWindow(
                     else if ( 1 == getNumImages() )
                     {
                         // If there is only one image, then only non-metric shader types can be used:
-                        for ( const auto& st : camera::AllNonMetricShaderTypes )
+                        for ( const auto& st : camera::AllNonMetricRenderModes )
                         {
                             const bool isSelected = ( st == shaderType );
 
                             if ( ImGui::Selectable( camera::typeString( st ).c_str(), isSelected ) )
                             {
-                                setShaderType( st );
+                                setRenderMode( st );
                             }
 
                             if ( isSelected )
@@ -379,7 +379,7 @@ void renderViewSettingsComboWindow(
 
                 bool first = true; // The first image gets no comma in front of it
 
-                if ( camera::ShaderType::Image == shaderType )
+                if ( camera::ViewRenderMode::Image == shaderType )
                 {
                     for ( size_t i = 0; i < getNumImages(); ++i )
                     {
@@ -391,7 +391,7 @@ void renderViewSettingsComboWindow(
                         }
                     }
                 }
-                else if ( camera::ShaderType::Disabled == shaderType )
+                else if ( camera::ViewRenderMode::Disabled == shaderType )
                 {
                     // render no text
                     imageNamesText = "";
@@ -639,7 +639,6 @@ void renderSettingsWindow(
         helpMarker( "Only compute the metric within masked regions" );
 
 
-
         // Metric colormap dialog:
         bool* showImageColormapWindow = &showColormapWindow;
         *showImageColormapWindow |= ImGui::Button( "Colormap" );
@@ -743,10 +742,13 @@ void renderSettingsWindow(
                 // Image masking
                 ImGui::Checkbox( "Mask images by segmentation", &( appData.renderData().m_maskedImages ) );
                 ImGui::SameLine(); helpMarker( "Render images only in regions masked by a segmentation label" );
+
+                // Modulate opacity of segmentation with opacity of image:
+                ImGui::Checkbox( "Modulate seg. with image opacity", &appData.renderData().m_modulateSegOpacityWithImageOpacity );
+                ImGui::SameLine(); helpMarker( "Modulate opacity of segmentation with opacity of image" );
+
                 ImGui::Spacing();
-
                 ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
-
 
 
                 // View centering:
@@ -759,57 +761,57 @@ void renderSettingsWindow(
 
                     if ( ImGui::RadioButton(
                              "Reference image",
-                             ImageSelection::ReferenceImage == appData.settings().recenteringMode() ) )
+                             ImageSelection::ReferenceImage == appData.state().recenteringMode() ) )
                     {
-                        appData.settings().setRecenteringMode( ImageSelection::ReferenceImage );
+                        appData.state().setRecenteringMode( ImageSelection::ReferenceImage );
                         recenterViews();
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference image" );
 
                     if ( ImGui::RadioButton(
                              "Active image",
-                             ImageSelection::ActiveImage == appData.settings().recenteringMode() ) )
+                             ImageSelection::ActiveImage == appData.state().recenteringMode() ) )
                     {
-                        appData.settings().setRecenteringMode( ImageSelection::ActiveImage );
+                        appData.state().setRecenteringMode( ImageSelection::ActiveImage );
                         recenterViews();
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the active image" );
 
                     if ( ImGui::RadioButton(
                              "Reference and active images",
-                             ImageSelection::ReferenceAndActiveImages == appData.settings().recenteringMode() ) )
+                             ImageSelection::ReferenceAndActiveImages == appData.state().recenteringMode() ) )
                     {
-                        appData.settings().setRecenteringMode( ImageSelection::ReferenceAndActiveImages );
+                        appData.state().setRecenteringMode( ImageSelection::ReferenceAndActiveImages );
                         recenterViews();
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference and active images" );
 
                     /// @todo These don't work yet
                     /*
-                    if ( ImGui::RadioButton( "All visible images", ImageSelection::VisibleImagesInView == appData.settings().recenteringMode() ) )
+                    if ( ImGui::RadioButton( "All visible images", ImageSelection::VisibleImagesInView == appData.state().recenteringMode() ) )
                     {
-                        appData.settings().setRecenteringMode( ImageSelection::VisibleImagesInView );
+                        appData.state().setRecenteringMode( ImageSelection::VisibleImagesInView );
                         recenterViews();
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the visible images in each view" );
 
-                    if ( ImGui::RadioButton( "Fixed image", ImageSelection::FixedImageInView == appData.settings().recenteringMode() ) )
+                    if ( ImGui::RadioButton( "Fixed image", ImageSelection::FixedImageInView == appData.state().recenteringMode() ) )
                     {
-                        appData.settings().setRecenteringMode( ImageSelection::FixedImageInView );
+                        appData.state().setRecenteringMode( ImageSelection::FixedImageInView );
                         recenterViews();
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views on the fixed image in each view" );
 
-                    if ( ImGui::RadioButton( "Moving image", ImageSelection::MovingImageInView == appData.settings().recenteringMode() ) )
+                    if ( ImGui::RadioButton( "Moving image", ImageSelection::MovingImageInView == appData.state().recenteringMode() ) )
                     {
-                        appData.settings().setRecenteringMode( ImageSelection::MovingImageInView );
+                        appData.state().setRecenteringMode( ImageSelection::MovingImageInView );
                         recenterViews();
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views on the moving image in each view" );
 
-                    if ( ImGui::RadioButton( "Fixed and moving images", ImageSelection::FixedAndMovingImagesInView == appData.settings().recenteringMode() ) )
+                    if ( ImGui::RadioButton( "Fixed and moving images", ImageSelection::FixedAndMovingImagesInView == appData.state().recenteringMode() ) )
                     {
-                        appData.settings().setRecenteringMode( ImageSelection::FixedAndMovingImagesInView );
+                        appData.state().setRecenteringMode( ImageSelection::FixedAndMovingImagesInView );
                         recenterViews();
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views on the fixed and moving images in each view" );
@@ -817,9 +819,9 @@ void renderSettingsWindow(
 
                     if ( ImGui::RadioButton(
                              "All loaded images",
-                             ImageSelection::AllLoadedImages == appData.settings().recenteringMode() ) )
+                             ImageSelection::AllLoadedImages == appData.state().recenteringMode() ) )
                     {
-                        appData.settings().setRecenteringMode( ImageSelection::AllLoadedImages );
+                        appData.state().setRecenteringMode( ImageSelection::AllLoadedImages );
                         recenterViews();
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on all loaded images" );

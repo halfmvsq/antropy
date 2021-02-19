@@ -109,19 +109,19 @@ private:
 
 
     void doRenderingAllImagePlanes(
-            const camera::ShaderType& shaderType,
+            const camera::ViewRenderMode& shaderType,
             const std::list<uuids::uuid>& metricImages,
             const std::list<uuids::uuid>& renderedImages,
             const std::function< void ( GLShaderProgram&, const CurrentImages& I, bool showEdges ) > renderFunc );
 
     void doRenderingImageLandmarks(
-            const camera::ShaderType& shaderType,
+            const camera::ViewRenderMode& shaderType,
             const std::list<uuids::uuid>& metricImages,
             const std::list<uuids::uuid>& renderedImages,
             const std::function< void ( const CurrentImages& I ) > renderFunc );
 
     void doRenderingImageAnnotations(
-            const camera::ShaderType& shaderType,
+            const camera::ViewRenderMode& shaderType,
             const std::list<uuids::uuid>& metricImages,
             const std::list<uuids::uuid>& renderedImages,
             const std::function< void ( const CurrentImages& I ) > renderFunc );
@@ -132,7 +132,7 @@ private:
 
     // Bind/unbind images, segmentations, color maps, and label tables
     std::list< std::reference_wrapper<GLTexture> >
-    bindMetricImageTextures( const CurrentImages& P, const camera::ShaderType& metricType );
+    bindMetricImageTextures( const CurrentImages& P, const camera::ViewRenderMode& metricType );
 
     // Get current image and segmentation UIDs to render in the metric shaders
     CurrentImages getImageAndSegUidsForMetricShaders( const std::list<uuids::uuid>& metricImageUids ) const;

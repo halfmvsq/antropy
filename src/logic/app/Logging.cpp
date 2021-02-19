@@ -1,4 +1,4 @@
-#include "logic/Logging.h"
+#include "logic/app/Logging.h"
 #include "common/Exception.hpp"
 
 #include <spdlog/sinks/daily_file_sink.h>

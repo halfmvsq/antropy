@@ -271,10 +271,11 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/image/ImageTransformations.cpp
     ${SRC_DIR}/image/ImageUtility.cpp
 
-    ${SRC_DIR}/logic/AppData.cpp
-    ${SRC_DIR}/logic/AppSettings.cpp
-    ${SRC_DIR}/logic/CallbackHandler.cpp
-    ${SRC_DIR}/logic/Logging.cpp
+    ${SRC_DIR}/logic/app/CallbackHandler.cpp
+    ${SRC_DIR}/logic/app/Data.cpp
+    ${SRC_DIR}/logic/app/Logging.cpp
+    ${SRC_DIR}/logic/app/Settings.cpp
+    ${SRC_DIR}/logic/app/State.cpp
 
     # ${SRC_DIR}/logic/annotation/AnnotationHelper.cpp
     ${SRC_DIR}/logic/annotation/Annotation.cpp

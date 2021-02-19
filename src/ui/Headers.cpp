@@ -14,7 +14,7 @@
 #include "image/ImageSettings.h"
 #include "image/ImageTransformations.h"
 
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -494,7 +494,7 @@ void renderImageHeader(
         ImGui::SameLine(); helpMarker( "Show/hide the image on all views (W)" );
 
 
-        if ( visible )
+//        if ( visible )
         {
             // Image opacity slider:
             double imageOpacity = imgSettings.opacity();
@@ -1628,13 +1628,13 @@ void renderLandmarkGroupHeader(
 
     auto setWorldCrosshairsPos = [&appData] ( const glm::vec3& worldCrosshairsPos )
     {
-        appData.settings().setWorldCrosshairsPos( worldCrosshairsPos );
+        appData.state().setWorldCrosshairsPos( worldCrosshairsPos );
     };
 
     renderLandmarkChildWindow(
                 image->transformations(),
                 activeLmGroup,
-                appData.settings().worldCrosshairs().worldOrigin(),
+                appData.state().worldCrosshairs().worldOrigin(),
                 setWorldCrosshairsPos,
                 recenterCurrentViews );
 

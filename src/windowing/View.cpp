@@ -5,7 +5,7 @@
 
 #include "image/Image.h"
 
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/CameraStartFrameType.h"
 #include "logic/camera/OrthogonalProjection.h"
@@ -72,7 +72,7 @@ smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap =
 View::View( Viewport winClipViewport,
             int32_t numOffsets,
             camera::CameraType cameraType,
-            camera::ShaderType shaderType,
+            camera::ViewRenderMode shaderType,
             UiControls uiControls,
             std::optional<uuids::uuid> translationSyncGroup,
             std::optional<uuids::uuid> zoomSyncGroup )
@@ -250,7 +250,7 @@ void View::setCameraType( const camera::CameraType& cameraType )
     m_camera.set_start_T_world( CoordinateFrame( sk_origin, anatomicalRotation ).frame_T_world() );
 }
 
-void View::setShaderType( const camera::ShaderType& shaderType )
+void View::setRenderMode( const camera::ViewRenderMode& shaderType )
 {
     m_shaderType = shaderType;
 }
@@ -401,11 +401,11 @@ const std::list<uuids::uuid>& View::visibleImages() const
 {
     static const std::list<uuids::uuid> sk_noImages;
 
-    if ( camera::ShaderType::Image == m_shaderType )
+    if ( camera::ViewRenderMode::Image == m_shaderType )
     {
         return renderedImages();
     }
-    else if ( camera::ShaderType::Disabled == m_shaderType )
+    else if ( camera::ViewRenderMode::Disabled == m_shaderType )
     {
         return sk_noImages;
     }
@@ -464,7 +464,7 @@ const camera::Camera& View::camera() const { return m_camera; }
 camera::Camera& View::camera() { return m_camera; }
 
 camera::CameraType View::cameraType() const { return m_cameraType; }
-camera::ShaderType View::shaderType() const { return m_shaderType; }
+camera::ViewRenderMode View::renderMode() const { return m_shaderType; }
 
 const Viewport& View::winClipViewport() const { return m_winClipViewport; }
 float View::clipPlaneDepth() const { return m_clipPlaneDepth; }

@@ -7,7 +7,7 @@
 #include "image/ImageColorMap.h"
 #include "image/ImageTransformations.h"
 
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 
 #include <imgui/imgui.h>
 #include <imgui/misc/cpp/imgui_stdlib.h>

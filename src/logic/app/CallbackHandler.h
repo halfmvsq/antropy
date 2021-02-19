@@ -45,6 +45,11 @@ public:
             const glm::vec2& currWindowPos,
             bool leftButton );
 
+    /// Annotate
+    void doAnnotate(
+            const glm::vec2& lastWindowPos,
+            const glm::vec2& currWindowPos );
+
     /// Adjust image window/level
     void doWindowLevel(
             const glm::vec2& lastWindowPos,

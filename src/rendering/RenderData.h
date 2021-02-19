@@ -104,6 +104,9 @@ struct RenderData
     // Should the images only be shown inside of masked regions?
     bool m_maskedImages;
 
+    // Should image segmentation opacity be modulated by the image opacity?
+    bool m_modulateSegOpacityWithImageOpacity;
+
     glm::vec3 m_backgroundColor; // View background (clear) color
     glm::vec4 m_crosshairsColor; // Crosshairs color (non-premultiplied by alpha)
     glm::vec4 m_anatomicalLabelColor; // Anatomical label text color (non-premultiplied by alpha)

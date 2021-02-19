@@ -17,7 +17,7 @@ Please download and install these libraries:
 * ITK 5.1.0
 * Boost 1.66 (header libraries only)
 
-More recent versions of ITK and Boost should also work with potentially minor modification to Antropy code.
+More recent versions of ITK and Boost should also work with potentially minor modification to Antropy code. Please note that from Boost, only the header-only libraries (none of the compiled libraries) are required.
 
 The following libraries and depdencies are brought in as Git submodules to the Antropy repository:
 

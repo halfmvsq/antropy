@@ -42,7 +42,7 @@ Layout createFourUpLayout()
         // top right
         auto view = std::make_shared<View>(
                     Viewport{ 0.0f, 0.0f, 1.0f, 1.0f }, numOffsets,
-                    CameraType::Coronal, ShaderType::Image,
+                    CameraType::Coronal, ViewRenderMode::Image,
                     uiControls,
                     noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -54,7 +54,7 @@ Layout createFourUpLayout()
         // top left
         auto view = std::make_shared<View>(
                     Viewport{ -1.0f, 0.0f, 1.0f, 1.0f }, numOffsets,
-                    CameraType::Sagittal, ShaderType::Image,
+                    CameraType::Sagittal, ViewRenderMode::Image,
                     uiControls,
                     noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -66,7 +66,7 @@ Layout createFourUpLayout()
         // bottom left
         auto view = std::make_shared<View>(
                     Viewport{ -1.0f, -1.0f, 1.0f, 1.0f }, numOffsets,
-                    CameraType::ThreeD, ShaderType::Disabled,
+                    CameraType::ThreeD, ViewRenderMode::Disabled,
                     uiControls,
                     noTranslationSyncGroup, noZoomSyncGroup );
 
@@ -78,7 +78,7 @@ Layout createFourUpLayout()
         // bottom right
         auto view = std::make_shared<View>(
                     Viewport{ 0.0f, -1.0f, 1.0f, 1.0f }, numOffsets,
-                    CameraType::Axial, ShaderType::Image,
+                    CameraType::Axial, ViewRenderMode::Image,
                     uiControls,
                     noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -110,7 +110,7 @@ Layout createTriLayout()
         // left
         auto view = std::make_shared<View>(
                     Viewport{ -1.0f, -1.0f, 1.5f, 2.0f }, numOffsets,
-                    CameraType::Axial, ShaderType::Image,
+                    CameraType::Axial, ViewRenderMode::Image,
                     uiControls,
                     noTranslationSyncGroup, noZoomSyncGroup );
 
@@ -121,7 +121,7 @@ Layout createTriLayout()
         // bottom right
         auto view = std::make_shared<View>(
                     Viewport{ 0.5f, -1.0f, 0.5f, 1.0f }, numOffsets,
-                    CameraType::Coronal, ShaderType::Image,
+                    CameraType::Coronal, ViewRenderMode::Image,
                     uiControls,
                     noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -133,7 +133,7 @@ Layout createTriLayout()
         // top right
         auto view = std::make_shared<View>(
                     Viewport{ 0.5f, 0.0f, 0.5f, 1.0f }, numOffsets,
-                    CameraType::Sagittal, ShaderType::Image,
+                    CameraType::Sagittal, ViewRenderMode::Image,
                     uiControls,
                     noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -181,7 +181,7 @@ Layout createTriTopBottomLayout( size_t numRows )
             // axial
             auto view = std::make_shared<View>(
                         Viewport{ -1.0f, bottom, 2.0f/3.0f, height }, numOffsets,
-                        CameraType::Axial, ShaderType::Image,
+                        CameraType::Axial, ViewRenderMode::Image,
                         uiControls,
                         axiTranslationSyncGroupUid, axiZoomSyncGroupUid );
 
@@ -198,7 +198,7 @@ Layout createTriTopBottomLayout( size_t numRows )
             // coronal
             auto view = std::make_shared<View>(
                         Viewport{ -1.0f/3.0f, bottom, 2.0f/3.0f, height }, numOffsets,
-                        CameraType::Coronal, ShaderType::Image,
+                        CameraType::Coronal, ViewRenderMode::Image,
                         uiControls,
                         corTranslationSyncGroupUid, corZoomSyncGroupUid );
 
@@ -214,7 +214,7 @@ Layout createTriTopBottomLayout( size_t numRows )
             // sagittal
             auto view = std::make_shared<View>(
                         Viewport{ 1.0f/3.0f, bottom, 2.0f/3.0f, height }, numOffsets,
-                        CameraType::Sagittal, ShaderType::Image,
+                        CameraType::Sagittal, ViewRenderMode::Image,
                         uiControls,
                         sagTranslationSyncGroupUid, sagZoomSyncGroupUid );
 
@@ -239,14 +239,14 @@ Layout createGridLayout(
         bool isLightbox,
         const camera::CameraType& cameraType )
 {
-    static const camera::ShaderType s_shaderType = camera::ShaderType::Image;
+    static const camera::ViewRenderMode s_shaderType = camera::ViewRenderMode::Image;
 
     Layout layout( isLightbox );
 
     if ( isLightbox )
     {
         layout.setCameraType( cameraType );
-        layout.setShaderType( s_shaderType );
+        layout.setRenderMode( s_shaderType );
 
         // Lightbox layouts prefer to render reference image only by default:
         layout.setPreferredDefaultRenderedImages( { 0 } );
@@ -663,7 +663,7 @@ void WindowData::applyViewShaderToAllCurrentViews( const uuids::uuid& referenceV
     const View* referenceView = currentView( referenceViewUid );
     if ( ! referenceView ) return;
 
-    const auto shaderType = referenceView->shaderType();
+    const auto shaderType = referenceView->renderMode();
 
     for ( auto& viewUid : currentViewUids() )
     {
@@ -676,7 +676,7 @@ void WindowData::applyViewShaderToAllCurrentViews( const uuids::uuid& referenceV
             continue;
         }
 
-        view->setShaderType( shaderType );
+        view->setRenderMode( shaderType );
     }
 }
 

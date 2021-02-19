@@ -89,6 +89,7 @@ RenderData::RenderData()
 
       m_snapCrosshairsToReferenceVoxels( false ),
       m_maskedImages( false ),
+      m_modulateSegOpacityWithImageOpacity( true ),
 
       m_backgroundColor( 0.1f, 0.1f, 0.1f ),
       m_crosshairsColor( 0.0f, 0.5f, 1.0f, 1.0f ),

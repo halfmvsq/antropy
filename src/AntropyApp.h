@@ -4,9 +4,10 @@
 #include "common/InputParams.h"
 #include "common/Types.h"
 
-#include "logic/AppData.h"
-#include "logic/AppSettings.h"
-#include "logic/CallbackHandler.h"
+#include "logic/app/CallbackHandler.h"
+#include "logic/app/Data.h"
+#include "logic/app/Settings.h"
+#include "logic/app/State.h"
 
 #include "rendering/Rendering.h"
 #include "ui/ImGuiWrapper.h"
@@ -85,6 +86,9 @@ public:
 
     const AppSettings& appSettings() const;
     AppSettings& appSettings();
+
+    const AppState& appState() const;
+    AppState& appState();
 
     const GuiData& guiData() const;
     GuiData& guiData();

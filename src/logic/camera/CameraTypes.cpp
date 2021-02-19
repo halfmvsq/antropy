@@ -2,10 +2,11 @@
 
 #include <unordered_map>
 
+
 namespace camera
 {
 
-std::string typeString( const CameraType& cameraType )
+std::string typeString( const CameraType& type )
 {
     static const std::unordered_map< CameraType, std::string > s_typeToStringMap
     {
@@ -15,45 +16,45 @@ std::string typeString( const CameraType& cameraType )
         { CameraType::ThreeD, "3D" }
     };
 
-    return s_typeToStringMap.at( cameraType );
+    return s_typeToStringMap.at( type );
 }
 
-std::string typeString( const ShaderType& shaderType )
+std::string typeString( const ViewRenderMode& mode )
 {
-    static const std::unordered_map< ShaderType, std::string > s_typeToStringMap
+    static const std::unordered_map< ViewRenderMode, std::string > s_modeToStringMap
     {
-        { ShaderType::Image, "Layers" },
-        { ShaderType::Edge, "Edges" },
-        { ShaderType::Overlay, "Overlap" },
-        { ShaderType::Checkerboard, "Checkerboard" },
-        { ShaderType::Quadrants, "Quadrants" },
-        { ShaderType::Flashlight, "Flashlight" },
-        { ShaderType::Difference, "Difference" },
-        { ShaderType::CrossCorrelation, "Correlation" },
-        { ShaderType::JointHistogram, "Joint Histogram" },
-        { ShaderType::Disabled, "Disabled" }
+        { ViewRenderMode::Image, "Layers" },
+        { ViewRenderMode::Edge, "Edges" },
+        { ViewRenderMode::Overlay, "Overlap" },
+        { ViewRenderMode::Checkerboard, "Checkerboard" },
+        { ViewRenderMode::Quadrants, "Quadrants" },
+        { ViewRenderMode::Flashlight, "Flashlight" },
+        { ViewRenderMode::Difference, "Difference" },
+        { ViewRenderMode::CrossCorrelation, "Correlation" },
+        { ViewRenderMode::JointHistogram, "Joint Histogram" },
+        { ViewRenderMode::Disabled, "Disabled" }
     };
 
-    return s_typeToStringMap.at( shaderType );
+    return s_modeToStringMap.at( mode );
 }
 
-std::string descriptionString( const ShaderType& shaderType )
+std::string descriptionString( const ViewRenderMode& mode )
 {
-    static const std::unordered_map< ShaderType, std::string > s_typeToStringMap
+    static const std::unordered_map< ViewRenderMode, std::string > s_modeToStringMap
     {
-        { ShaderType::Image, "Overlay of image layers" },
-        { ShaderType::Edge, "Overlay of image edges" },
-        { ShaderType::Overlay, "Overlap comparison" },
-        { ShaderType::Checkerboard, "Checkerboard comparison" },
-        { ShaderType::Quadrants, "Quadrants comparison" },
-        { ShaderType::Flashlight, "Flashlight comparison" },
-        { ShaderType::Difference, "Difference metric" },
-        { ShaderType::CrossCorrelation, "Correlation metric" },
-        { ShaderType::JointHistogram, "Joint histogram metric" },
-        { ShaderType::Disabled, "Disabled" }
+        { ViewRenderMode::Image, "Overlay of image layers" },
+        { ViewRenderMode::Edge, "Overlay of image edges" },
+        { ViewRenderMode::Overlay, "Overlap comparison" },
+        { ViewRenderMode::Checkerboard, "Checkerboard comparison" },
+        { ViewRenderMode::Quadrants, "Quadrants comparison" },
+        { ViewRenderMode::Flashlight, "Flashlight comparison" },
+        { ViewRenderMode::Difference, "Difference metric" },
+        { ViewRenderMode::CrossCorrelation, "Correlation metric" },
+        { ViewRenderMode::JointHistogram, "Joint histogram metric" },
+        { ViewRenderMode::Disabled, "Disabled" }
     };
 
-    return s_typeToStringMap.at( shaderType );
+    return s_modeToStringMap.at( mode );
 }
 
 } // namespace camera

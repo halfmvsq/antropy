@@ -1,6 +1,6 @@
 #include "windowing/Layout.h"
 #include "common/UuidUtility.h"
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 
 Layout::Layout( bool isLightbox )
     :
@@ -15,7 +15,7 @@ Layout::Layout( bool isLightbox )
       // Render the first image by default:
       m_preferredDefaultRenderdImages( { 0 } ),
 
-      m_shaderType( camera::ShaderType::Image ),
+      m_shaderType( camera::ViewRenderMode::Image ),
       m_cameraType( camera::CameraType::Axial ),
       m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } )
 {
@@ -199,11 +199,11 @@ const std::list<uuids::uuid>& Layout::visibleImages() const
 {
     static const std::list<uuids::uuid> sk_noImages;
 
-    if ( camera::ShaderType::Image == m_shaderType )
+    if ( camera::ViewRenderMode::Image == m_shaderType )
     {
         return renderedImages();
     }
-    else if ( camera::ShaderType::Disabled == m_shaderType )
+    else if ( camera::ViewRenderMode::Disabled == m_shaderType )
     {
         return sk_noImages;
     }
@@ -273,7 +273,7 @@ void Layout::setCameraType( const camera::CameraType& cameraType )
     updateViews();
 }
 
-void Layout::setShaderType( const camera::ShaderType& shaderType )
+void Layout::setRenderMode( const camera::ViewRenderMode& shaderType )
 {
     m_shaderType = shaderType;
     updateViews();
@@ -287,12 +287,12 @@ void Layout::updateViews()
         view.second->setRenderedImages( m_renderedImageUids, false );
         view.second->setMetricImages( m_metricImageUids );
         view.second->setCameraType( m_cameraType );
-        view.second->setShaderType( m_shaderType );
+        view.second->setRenderMode( m_shaderType );
     }
 }
 
 camera::CameraType Layout::cameraType() const { return m_cameraType; }
-camera::ShaderType Layout::shaderType() const { return m_shaderType; }
+camera::ViewRenderMode Layout::renderMode() const { return m_shaderType; }
 
 std::unordered_map< uuids::uuid, std::shared_ptr<View> >&
 Layout::views() { return m_views; }

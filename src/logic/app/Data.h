@@ -8,7 +8,8 @@
 #include "image/Image.h"
 #include "image/ImageColorMap.h"
 
-#include "logic/AppSettings.h"
+#include "logic/app/Settings.h"
+#include "logic/app/State.h"
 #include "logic/annotation/Annotation.h"
 #include "logic/annotation/LandmarkGroup.h"
 #include "logic/serialization/ProjectSerialization.h"
@@ -43,6 +44,9 @@ public:
     const AppSettings& settings() const;
     AppSettings& settings();
 
+    const AppState& state() const;
+    AppState& state();
+
     const GuiData& guiData() const;
     GuiData& guiData();
 
@@ -53,6 +57,7 @@ public:
     WindowData& windowData();
 
 
+    /// @todo Put into AppState
     void setProject( serialize::AntropyProject project );
     const serialize::AntropyProject& project() const;
     serialize::AntropyProject& project();
@@ -245,7 +250,10 @@ private:
 
     void loadImageColorMaps();
 
+    /// @todo Put into AntropyApp
     AppSettings m_settings; //!< Application settings
+    AppState m_state; //!< Application state
+
     GuiData m_guiData; //!< Data for the UI
     RenderData m_renderData; //!< Data for rendering
     WindowData m_windowData; //!< Data for windowing

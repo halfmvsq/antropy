@@ -91,7 +91,7 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
         app->glfw().setEventProcessingMode( EventProcessingMode::Poll );
         return; // ImGui has captured event
     }
-    else if ( ! app->appData().settings().animating() )
+    else if ( ! app->appData().state().animating() )
     {
         // Mouse is not captured by the UI, and the app is not animating,
         // so wait for events to save processing
@@ -113,7 +113,7 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
 
     CallbackHandler& handler = app->callbackHandler();
 
-    switch ( app->appData().settings().mouseMode() )
+    switch ( app->appData().state().mouseMode() )
     {
     case MouseMode::Pointer:
     {
@@ -158,6 +158,7 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
     }
     case MouseMode::Annotate:
     {
+        handler.doAnnotate( *s_lastWinPos, currWinPos );
         break;
     }
     case MouseMode::WindowLevel:
@@ -270,7 +271,7 @@ void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
     }
     case GLFW_RELEASE:
     {
-        // app->appData().setMouseMode( MouseMode::Nothing );
+        // app->state().setMouseMode( MouseMode::Nothing );
         app->appData().windowData().setActiveViewUid( std::nullopt );
         break;
     }
@@ -299,11 +300,10 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
 
     const glm::vec2 winPos = camera::view_T_mouse( app->windowData().viewport(), { mousePosX, mousePosY } );
 
-    switch ( app->appData().settings().mouseMode() )
+    switch ( app->appData().state().mouseMode() )
     {
     case MouseMode::Pointer:
     case MouseMode::Segment:
-    case MouseMode::Annotate:
     case MouseMode::CameraTranslate2D:
     case MouseMode::ImageRotate:
     case MouseMode::ImageTranslate:
@@ -319,6 +319,20 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
 
         handler.doCameraZoomScroll( { scrollOffsetX, scrollOffsetY }, winPos,
                                     ZoomBehavior::ToCrosshairs, syncZoomsForAllViews );
+        break;
+    }
+    case MouseMode::Annotate:
+    {
+        // Disable scrolling while annotating
+        if ( app->appState().annotating() )
+        {
+            break;
+        }
+        else
+        {
+            handler.doCrosshairsScroll( winPos, { scrollOffsetX, scrollOffsetY } );
+        }
+
         break;
     }
     }
@@ -380,7 +394,7 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
     case GLFW_KEY_E: handler.toggleImageEdges(); break;
     case GLFW_KEY_O: handler.cycleOverlayAndUiVisibility(); break;
 
-    case GLFW_KEY_C: handler.recenterViews( app->appData().settings().recenteringMode(), true, false ); break;
+    case GLFW_KEY_C: handler.recenterViews( app->appData().state().recenteringMode(), true, false ); break;
 
     case GLFW_KEY_PAGE_DOWN:
     {
@@ -499,27 +513,27 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
         /*
         case GLFW_KEY_ENTER:
         {
-            const auto mouseMode = app->appData().settings().mouseMode();
+            const auto mouseMode = app->appData().state().mouseMode();
 
             if ( MouseMode::Pointer == mouseMode ||
                  MouseMode::ImageRotate == mouseMode ||
                  MouseMode::ImageScale == mouseMode )
             {
-                app->appData().settings().setWorldRotationCenter(
-                            app->appData().settings().worldCrosshairs().worldOrigin() );
+                app->appData().state().setWorldRotationCenter(
+                            app->appData().state().worldCrosshairs().worldOrigin() );
             }
             break;
         }
 
         case GLFW_KEY_SPACE:
         {
-            const auto mouseMode = app->appData().settings().mouseMode();
+            const auto mouseMode = app->appData().state().mouseMode();
 
             if ( MouseMode::Pointer == mouseMode ||
                  MouseMode::ImageRotate == mouseMode ||
                  MouseMode::ImageScale == mouseMode )
             {
-                app->appData().settings().setWorldRotationCenter( std::nullopt );
+                app->appData().state().setWorldRotationCenter( std::nullopt );
             }
             break;
         }

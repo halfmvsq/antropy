@@ -1,4 +1,4 @@
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 
 #include "common/Exception.hpp"
 #include "common/UuidUtility.h"
@@ -33,6 +33,7 @@ static const std::vector<uuids::uuid> sk_emptyUidVector{};
 AppData::AppData()
     :
       m_settings(),
+      m_state(),
 
       m_guiData(),
       m_renderData(),
@@ -1044,6 +1045,9 @@ std::string AppData::getAllImageDisplayNames() const
 
 const AppSettings& AppData::settings() const { return m_settings; }
 AppSettings& AppData::settings() { return m_settings; }
+
+const AppState& AppData::state() const { return m_state; }
+AppState& AppData::state() { return m_state; }
 
 const GuiData& AppData::guiData() const { return m_guiData; }
 GuiData& AppData::guiData() { return m_guiData; }

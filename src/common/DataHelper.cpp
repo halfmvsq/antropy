@@ -3,7 +3,7 @@
 #include "image/Image.h"
 #include "image/ImageUtility.h"
 
-#include "logic/AppData.h"
+#include "logic/app/Data.h"
 #include "logic/camera/Camera.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
@@ -332,7 +332,7 @@ getImageVoxelCoordsAtCrosshairs(
     if ( ! image ) return std::nullopt;
 
     const glm::vec4 pixelPos = image->transformations().pixel_T_worldDef() *
-            glm::vec4{ appData.settings().worldCrosshairs().worldOrigin(), 1 };
+            glm::vec4{ appData.state().worldCrosshairs().worldOrigin(), 1 };
 
     const glm::ivec3 roundedPixelPos = glm::ivec3{ glm::round( pixelPos / pixelPos.w ) };
 
@@ -356,7 +356,7 @@ void moveCrosshairsOnViewSlice(
 
     const View* view = appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ShaderType::Disabled == view->shaderType() ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const glm::vec3 worldRightAxis = camera::worldDirection( view->camera(), Directions::View::Right );
     const glm::vec3 worldUpAxis = camera::worldDirection( view->camera(), Directions::View::Up );
@@ -364,9 +364,9 @@ void moveCrosshairsOnViewSlice(
     const glm::vec2 moveDistances = data::sliceMoveDistance(
                 appData, worldRightAxis, worldUpAxis, ImageSelection::VisibleImagesInView, view );
 
-    const glm::vec3 worldCrosshairs = appData.settings().worldCrosshairs().worldOrigin();
+    const glm::vec3 worldCrosshairs = appData.state().worldCrosshairs().worldOrigin();
 
-    appData.settings().setWorldCrosshairsPos(
+    appData.state().setWorldCrosshairsPos(
                 worldCrosshairs +
                 static_cast<float>( stepX ) * moveDistances.x * worldRightAxis +
                 static_cast<float>( stepY ) * moveDistances.y * worldUpAxis );

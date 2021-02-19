@@ -30,10 +30,10 @@ public:
     const UiControls& uiControls() const;
 
     void setCameraType( const camera::CameraType& cameraType );
-    void setShaderType( const camera::ShaderType& shaderType );
+    void setRenderMode( const camera::ViewRenderMode& shaderType );
 
     camera::CameraType cameraType() const;
-    camera::ShaderType shaderType() const;
+    camera::ViewRenderMode renderMode() const;
 
 
     // Returns true iff the image at index is rendered in the view
@@ -110,7 +110,7 @@ private:
     // What images does this view prefer to render by default?
     std::set<size_t> m_preferredDefaultRenderdImages;
 
-    camera::ShaderType m_shaderType;
+    camera::ViewRenderMode m_shaderType;
     camera::CameraType m_cameraType;
 
     /**** START COMMON FUNCTIONALITY WITH VIEW ****/

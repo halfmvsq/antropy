@@ -1,12 +1,8 @@
 #ifndef APP_SETTINGS_H
 #define APP_SETTINGS_H
 
-#include "common/CoordinateFrame.h"
 #include "common/ParcellationLabelTable.h"
 #include "common/Types.h"
-
-#include "logic/interaction/events/ButtonState.h"
-//#include "logic/ipc/IPCHandler.h"
 
 #include <glm/vec3.hpp>
 
@@ -26,25 +22,8 @@ public:
     AppSettings();
     ~AppSettings() = default;
 
-    void setWorldRotationCenter( const std::optional< glm::vec3 >& worldRotationCenter );
-    const std::optional< glm::vec3 >& worldRotationCenter() const;
-
-    void setWorldCrosshairsPos( const glm::vec3& worldCrosshairs );
-    const CoordinateFrame& worldCrosshairs() const;
-
-    MouseMode mouseMode() const;
-    void setMouseMode( MouseMode mode );
-
-    ButtonState& buttonState();
-
-    ImageSelection recenteringMode() const;
-    void setRecenteringMode( ImageSelection );
-
     bool synchronizeZooms() const;
     void setSynchronizeZooms( bool );
-
-    bool animating() const;
-    void setAnimating( bool );
 
     bool overlays() const;
     void setOverlays( bool );
@@ -85,17 +64,8 @@ public:
 
 private:
 
-    // void broadcastCrosshairsPosition();
-    // IPCHandler m_ipcHandler;
-
-    MouseMode m_mouseMode; //!< Current mouse interaction mode
-    ButtonState m_buttonState; //!< Global button state
-    ImageSelection m_recenteringMode; //!< Image selection to use when recentering views
-
     bool m_synchronizeZoom; //!< Synchronize zoom between views
-    bool m_animating; //!< Is the app currently animating?
     bool m_overlays; //!< Render UI and vector overlays
-
 
     /* Begin segmentation drawing variables */
     size_t m_foregroundLabel; //!< Foreground segmentation label
@@ -110,10 +80,6 @@ private:
     uint32_t m_brushSizeInVoxels; //!< Brush size (diameter) in voxels
     float m_brushSizeInMm; //!< Brush size (diameter) in millimeters
     /* End segmentation drawing variables */
-
-
-    CoordinateFrame m_worldCrosshairs; //!< Crosshairs in World space
-    std::optional< glm::vec3 > m_worldRotationCenter; //!< Rotation center in World space
 };
 
 #endif // APP_SETTINGS_H
