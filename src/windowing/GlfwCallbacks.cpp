@@ -157,8 +157,16 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
         break;
     }
     case MouseMode::Annotate:
-    {
-        handler.doAnnotate( *s_lastWinPos, currWinPos );
+    {       
+        if ( s_mouseButtonState.left )
+        {
+            if ( app->appData().settings().crosshairsMoveWithAnnotationPointCreation() )
+            {
+                handler.doCrosshairsMove( *s_lastWinPos, currWinPos );
+            }
+
+            handler.doAnnotate( *s_lastWinPos, currWinPos );
+        }
         break;
     }
     case MouseMode::WindowLevel:

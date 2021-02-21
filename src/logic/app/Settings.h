@@ -61,6 +61,9 @@ public:
     float brushSizeInMm() const;
     void setBrushSizeInMm( float size );
 
+    bool crosshairsMoveWithAnnotationPointCreation() const;
+    void setCrosshairsMoveWithAnnotationPointCreation( bool set );
+
 
 private:
 
@@ -76,10 +79,13 @@ private:
     bool m_useIsotropicBrush; //!< Paint with an isotropic brush
     bool m_useVoxelBrushSize; //!< Measure brush size in voxel units
     bool m_useRoundBrush; //!< Brush is round (true) or rectangular (false)
-    bool m_crosshairsMoveWithBrush; //!< Crosshairs move witht the brush
+    bool m_crosshairsMoveWithBrush; //!< Crosshairs move with the brush
     uint32_t m_brushSizeInVoxels; //!< Brush size (diameter) in voxels
     float m_brushSizeInMm; //!< Brush size (diameter) in millimeters
     /* End segmentation drawing variables */
+
+    /// Crosshairs move to the position of every new point added to an annotation
+    bool m_crosshairsMoveWithAnnotationPointCreation;
 };
 
 #endif // APP_SETTINGS_H

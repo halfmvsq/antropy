@@ -22,21 +22,35 @@
 namespace math
 {
 
-/**
-Building an Orthonormal Basis, Revisited
-Tom Duff, James Burgess, Per Christensen, Christophe Hery, Andrew Kensler, Max Liani, and Ryusuke Villemin
-
-Journal of Computer Graphics Techniques Vol. 6, No. 1, 2017
- */
-/// Use this to create a camera basis with a lookat direction without any priority axes
-void buildONB( const glm::vec3& n, glm::vec3& b1, glm::vec3& b2 )
+std::pair<glm::vec3, glm::vec3> buildOrthonormalBasis_branchless( const glm::vec3& n )
 {
     float sign = std::copysign( 1.0f, n.z );
     const float a = -1.0f / ( sign + n.z );
     const float b = n.x * n.y * a;
 
-    b1 = glm::vec3{ 1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x };
-    b2 = glm::vec3{ b, sign + n.y * n.y * a, -n.y };
+    return { { 1.0f + sign * n.x * n.x * a, sign * b, -sign * n.x },
+             { b, sign + n.y * n.y * a, -n.y } };
+}
+
+
+std::pair<glm::vec3, glm::vec3> buildOrthonormalBasis( const glm::vec3& n )
+{
+    if ( n.z < 0.0f )
+    {
+        const float a = 1.0f / (1.0f - n.z);
+        const float b = n.x * n.y * a;
+
+        return { { 1.0f - n.x * n.x * a, -b, n.x },
+                 { b, n.y * n.y*a - 1.0f, -n.y } };
+    }
+    else
+    {
+        const float a = 1.0f / (1.0f + n.z);
+        const float b = -n.x * n.y * a;
+
+        return { { 1.0f - n.x * n.x * a, b, -n.x },
+                 { b, 1.0f - n.y * n.y * a, -n.y } };
+    }
 }
 
 
@@ -112,6 +126,41 @@ std::vector< glm::vec2 > project3dPointsToPlane( const std::vector< glm::vec3 >&
     }
 
     return B;
+}
+
+
+glm::vec3 projectPointToPlane(
+        const glm::vec3& point,
+        const glm::vec4& planeEquation )
+{
+    // Plane normal is (A, B, C):
+    const glm::vec3 planeNormal{ planeEquation };
+
+    // Signed distance of point to plane (positive if on same side of plane as normal vector):
+    const float distancePointToPlane =
+            glm::dot( planeEquation, glm::vec4{ point, 1.0f }) /
+            glm::length( planeNormal );
+
+    // Point projected to plane:
+    return ( point - distancePointToPlane * planeNormal );
+}
+
+
+glm::vec2 projectPointToPlaneLocal2dCoords(
+        const glm::vec3& point,
+        const glm::vec4& planeEquation,
+        const glm::vec3& planeOrigin,
+        const std::pair<glm::vec3, glm::vec3>& planeAxes )
+{
+    // Point projected to plane:
+    const glm::vec3 pointProjectedToPlane = projectPointToPlane( point, planeEquation );
+
+    // Project point to local 2D plane coordinates:
+    const glm::vec2 pointProjection2d{
+        glm::dot( pointProjectedToPlane - planeOrigin, glm::normalize( planeAxes.first ) ),
+        glm::dot( pointProjectedToPlane - planeOrigin, glm::normalize( planeAxes.second ) ) };
+
+    return pointProjection2d;
 }
 
 

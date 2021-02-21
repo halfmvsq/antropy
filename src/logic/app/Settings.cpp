@@ -17,7 +17,8 @@ AppSettings::AppSettings()
       m_useRoundBrush( true ),
       m_crosshairsMoveWithBrush( false ),
       m_brushSizeInVoxels( 1 ),
-      m_brushSizeInMm( 1.0f )
+      m_brushSizeInMm( 1.0f ),
+      m_crosshairsMoveWithAnnotationPointCreation( true )
 {
 }
 
@@ -80,3 +81,6 @@ void AppSettings::setBrushSizeInVoxels( uint32_t size ) { m_brushSizeInVoxels = 
 
 float AppSettings::brushSizeInMm() const { return m_brushSizeInMm; }
 void AppSettings::setBrushSizeInMm( float size ) { m_brushSizeInMm = size; }
+
+bool AppSettings::crosshairsMoveWithAnnotationPointCreation() const { return m_crosshairsMoveWithAnnotationPointCreation; }
+void AppSettings::setCrosshairsMoveWithAnnotationPointCreation( bool set ) { m_crosshairsMoveWithAnnotationPointCreation = set; }

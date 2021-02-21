@@ -58,7 +58,16 @@ template< class U >
 using range = boost::any_range< U, boost::forward_traversal_tag, U&, std::ptrdiff_t >;
 
 
-void buildONB( const glm::vec3& n, glm::vec3& b1, glm::vec3& b2 );
+/**
+ * @brief Build an orthonormal basis from a single vector. Use this to create a camera basis with a
+ * lookat direction without any priority axes
+ *
+ * @see "Building an Orthonormal Basis, Revisited" by Tom Duff, James Burgess, Per Christensen,
+ * Christophe Hery, Andrew Kensler, Max Liani, and Ryusuke Villemin.
+ * Journal of Computer Graphics Techniques Vol. 6, No. 1, 2017
+ */
+std::pair<glm::vec3, glm::vec3> buildOrthonormalBasis_branchless( const glm::vec3& n );
+std::pair<glm::vec3, glm::vec3> buildOrthonormalBasis( const glm::vec3& n );
 
 glm::vec3 convertVecToRGB( const glm::vec3& v );
 
@@ -67,6 +76,17 @@ glm::u8vec3 convertVecToRGB_uint8( const glm::vec3& v );
 std::vector<uint32_t> sortCounterclockwise( const std::vector<glm::vec2>& points );
 
 std::vector< glm::vec2 > project3dPointsToPlane( const std::vector< glm::vec3 >& A );
+
+
+glm::vec3 projectPointToPlane(
+        const glm::vec3& point,
+        const glm::vec4& planeEquation );
+
+glm::vec2 projectPointToPlaneLocal2dCoords(
+        const glm::vec3& point,
+        const glm::vec4& planeEquation,
+        const glm::vec3& planeOrigin,
+        const std::pair<glm::vec3, glm::vec3>& planeAxes );
 
 
 /**

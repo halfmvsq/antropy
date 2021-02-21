@@ -6,6 +6,7 @@
 #include "image/SegUtil.tpp"
 
 #include "logic/app/Data.h"
+#include "logic/annotation/Polygon.tpp"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
 
@@ -232,14 +233,13 @@ bool CallbackHandler::executeGridCutSegmentation(
 /// 1) recenter view on image center
 /// 2) recenter the crosshairs, too
 /// 3) recenter the view on the current crosshairs
-///
 /// @todo Add option to resize or not
 void CallbackHandler::recenterViews(
         const ImageSelection& imageSelection,
         bool recenterCrosshairs,
         bool recenterOnCurrentCrosshairsPos )
 {
-    static const glm::vec3 sk_defaultCrosshairsWorldPos{ 0, 0, 0 };
+//    static const glm::vec3 sk_defaultCrosshairsWorldPos{ 0, 0, 0 };
 
     if ( 0 == m_appData.numImages() )
     {
@@ -638,7 +638,7 @@ void CallbackHandler::doAnnotate(
 
     const auto activeViewUid = m_appData.windowData().activeViewUid();
 
-    // Ignore if actively annotating + there is an active view and this is not it
+    // Ignore if actively annotating and there is an active view not equal to this view:
     if ( m_appData.state().annotating() && activeViewUid )
     {
         if ( activeViewUid != *viewUid ) return;
@@ -648,19 +648,80 @@ void CallbackHandler::doAnnotate(
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
-//    const Image* refImg = m_appData.refImage();
-//    if ( ! refImg ) return;
+    // We need a reference image to move the crosshairs
+    const Image* refImg = m_appData.refImage();
+    if ( ! refImg ) return;
+
+    // Annotate on the active image
+    const auto activeImageUid = m_appData.activeImageUid();
+    const Image* activeImage = ( activeImageUid ? m_appData.image( *activeImageUid ) : nullptr );
+    if ( ! activeImage ) return;
 
     const auto& windowVP = m_appData.windowData().viewport();
-    const glm::vec4 winClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                view->clipPlaneDepth(), 1 };
-
+    const glm::vec4 winClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
     const glm::vec4 viewClipPos = view->viewClip_T_winClip() * winClipPos;
-
     if ( glm::any( glm::greaterThan( glm::abs( glm::vec2{ viewClipPos } ), sk_maxClip ) ) ) return;
 
     // The pointer is in the view bounds! Make this the active view
     m_appData.windowData().setActiveViewUid( *viewUid );
+
+
+    // World position for annotation point:
+    glm::vec4 worldPos = camera::world_T_clip( view->camera() ) * viewClipPos;
+    worldPos = worldPos / worldPos.w;
+
+    const glm::vec3 worldCameraFront = camera::worldDirection(
+                view->camera(), Directions::View::Front );
+
+    // Apply this view's offset from the crosshairs position in order to calculate the view plane position.
+    // The offset is calculated based on the slice scroll distance of the reference image.
+
+    const float offsetDist = static_cast<float>( view->numOffsets() ) *
+            data::sliceScrollDistance( worldCameraFront, *refImg );
+
+    worldPos -= glm::vec4{ offsetDist * worldCameraFront, 0 };
+
+
+    const auto& annotUids = m_appData.annotationsForImage( *activeImageUid );
+
+    /// @todo Search for the annotation among all of them
+
+    if ( annotUids.empty() )
+    {
+        const glm::mat4& subject_T_world = activeImage->transformations().subject_T_worldDef();
+        const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
+
+        const glm::vec4 worldPlaneNormal{ camera::worldDirection( view->camera(), Directions::View::Back ), 0.0f };
+        const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
+
+        const glm::vec3 worldPlanePoint = worldPos;
+        const glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldPlanePoint, 1.0f };
+
+        const glm::vec4 planeEquation = math::makePlane(
+                    subjectPlaneNormal,
+                    glm::vec3{ subjectPlanePoint / subjectPlanePoint.w } );
+
+        Annotation annotation( planeEquation, std::make_shared< Polygon<float, 2> >() );
+
+        const auto newAnnotUid = m_appData.addAnnotation( *activeImageUid, std::move( annotation ) );
+
+        spdlog::debug( "NEW annotation {}, plane = {}", *newAnnotUid, glm::to_string( planeEquation ) );
+    }
+
+    const auto& newAnnotUids = m_appData.annotationsForImage( *activeImageUid );
+    if ( annotUids.empty() ) return;
+
+    Annotation* annot = m_appData.annotation( newAnnotUids[0] );
+    if ( ! annot ) return;
+
+    spdlog::debug( "got annotation uid = {}" , newAnnotUids[0] );
+
+    annot->addPointToBoundary( worldPos );
+
+    const auto& V = annot->polygon().lock()->getBoundaryVertices( 0 );
+    const auto point2d = V[V.size() - 1];
+
+    spdlog::debug( "projected worldPos {} to planePos {}", glm::to_string( worldPos ), glm::to_string( point2d ) );
 }
 
 

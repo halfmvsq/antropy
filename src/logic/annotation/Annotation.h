@@ -1,6 +1,7 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
+#include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
@@ -8,6 +9,7 @@
 
 #include <memory>
 #include <string>
+#include <utility>
 
 
 class AppData;
@@ -20,7 +22,7 @@ class Polygon;
 
 /**
  * @brief An image annotation, which (for now) is a closed, planar polygon with vertices
- * defined with 2D coordinates [0.0, 1.0]^2.
+ * defined with 2D coordinates
  *
  * @todo Layering
  * @todo Text and regular shape annotations
@@ -36,7 +38,9 @@ class Annotation
 
 public:
 
-    explicit Annotation( std::shared_ptr< Polygon<float, 2> > polygon );
+    explicit Annotation(
+            const glm::vec4& planeEquation,
+            std::shared_ptr< Polygon<float, 2> > polygon );
 
     ~Annotation() = default;
 
@@ -45,8 +49,11 @@ public:
     void setName( std::string name );
     const std::string& getName() const;
 
-    /// Gget the annotation's polygon
+    /// Get the annotation's polygon
     std::weak_ptr< Polygon<float, 2> > polygon();
+
+    /// Add a 3D point to the annotation polygon's outer boundary
+    void addPointToBoundary( const glm::vec3& point );
 
 
     /// Get the annotation layer, with 0 being the backmost layer and layers increasing in value
@@ -69,12 +76,20 @@ public:
     void setColor( glm::vec3 color );
     const glm::vec3& getColor() const;
 
-    /// Set/get the annotation plane
-    void setPlane( glm::vec4 plane );
-    const glm::vec4& getPlane() const;
+    /// Get the annotation plane
+    const glm::vec4& getPlaneEquation() const;
+
+    /// Get the annotation plane origin
+    const glm::vec3& getPlaneOrigin() const;
+
+    /// Get the annotation plane coordinate axes
+    const std::pair<glm::vec3, glm::vec3>& getPlaneAxes() const;
 
 
 private:
+
+    /// Set the axes of the plane
+    bool setPlane( const glm::vec4& planeEquation );
 
     /// Set the annotation layer, with 0 being the backmost layer.
     /// @note Use the function \c changeSlideAnnotationLayering to change annotation layer
@@ -108,7 +123,13 @@ private:
 
     /// Equation of the 3D plane containing this annotation.
     /// The plane is defined by (A, B, C, D), where Ax + By + Cz + D = 0
-    glm::vec4 m_plane;
+    glm::vec4 m_planeEquation;
+
+    /// Origin of the plane in 3D
+    glm::vec3 m_planeOrigin;
+
+    /// Coordinate axes of the plane in 3D
+    std::pair<glm::vec3, glm::vec3> m_planeAxes;
 };
 
 #endif // ANNOTATION_H

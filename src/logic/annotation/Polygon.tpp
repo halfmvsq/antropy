@@ -91,6 +91,29 @@ public:
     }
 
 
+    /// Add a vertex to a given boundary, where 0 refers to the outer boundary; boundaries >= 1
+    /// are for holds
+    bool addVertexToBoundary( size_t boundary, PointType vertex )
+    {
+        if ( boundary >= m_vertices.size() )
+        {
+            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            return false;
+        }
+
+        m_vertices.emplace_back( std::move( vertex ) );
+        m_triangulation.clear();
+        m_currentUid = generateRandomUuid();
+
+        if ( 0 == boundary )
+        {
+            computeAABBox();
+        }
+
+        return true;
+    }
+
+
     /// Set the vertices of the outer boundary only.
     void setOuterBoundary( std::vector<PointType> vertices )
     {
@@ -101,6 +124,25 @@ public:
         else
         {
             m_vertices.emplace_back( std::move( vertices ) );
+        }
+
+        m_triangulation.clear();
+        m_currentUid = generateRandomUuid();
+
+        computeAABBox();
+    }
+
+
+    /// Add a vertex to the outer boundary
+    void addVertexToOuterBoundary( PointType vertex )
+    {
+        if ( m_vertices.size() >= 1 )
+        {
+            m_vertices[0].emplace_back( std::move( vertex ) );
+        }
+        else
+        {
+            m_vertices.emplace_back( std::vector<PointType>{ vertex } );
         }
 
         m_triangulation.clear();
