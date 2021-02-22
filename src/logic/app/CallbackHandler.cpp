@@ -682,46 +682,74 @@ void CallbackHandler::doAnnotate(
     worldPos -= glm::vec4{ offsetDist * worldCameraFront, 0 };
 
 
-    const auto& annotUids = m_appData.annotationsForImage( *activeImageUid );
+    // Compute the equation of the view plane in the space of the active image Subject:
+    const glm::mat4& subject_T_world = activeImage->transformations().subject_T_worldDef();
+    const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
 
-    /// @todo Search for the annotation among all of them
+    const glm::vec3 worldCameraBackDir = camera::worldDirection( view->camera(), Directions::View::Back );
+    const glm::vec4 worldPlaneNormal{ worldCameraBackDir, 0.0f };
+    const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
 
-    if ( annotUids.empty() )
+    const glm::vec3 worldPlanePoint = worldPos;
+    const glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldPlanePoint, 1.0f };
+
+    const glm::vec4 subjectPlaneEquation = math::makePlane(
+                subjectPlaneNormal, glm::vec3{ subjectPlanePoint / subjectPlanePoint.w } );
+
+    // Use the slice scroll distance as the threshold for plane distances:
+    const float planeDistanceThresh = data::sliceScrollDistance( -worldCameraBackDir, *activeImage );
+
+    std::optional<uuids::uuid> annotUid = data::findAnnotationForImage(
+                m_appData, *activeImageUid, subjectPlaneEquation, planeDistanceThresh );
+
+    if ( ! annotUid )
     {
-        const glm::mat4& subject_T_world = activeImage->transformations().subject_T_worldDef();
-        const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
+        // Create new annotation for this image:
+        try
+        {
+            Annotation annotation( subjectPlaneEquation, std::make_shared< Polygon<float, 2> >() );
+            annotUid = m_appData.addAnnotation( *activeImageUid, std::move( annotation ) );
 
-        const glm::vec4 worldPlaneNormal{ camera::worldDirection( view->camera(), Directions::View::Back ), 0.0f };
-        const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
-
-        const glm::vec3 worldPlanePoint = worldPos;
-        const glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldPlanePoint, 1.0f };
-
-        const glm::vec4 planeEquation = math::makePlane(
-                    subjectPlaneNormal,
-                    glm::vec3{ subjectPlanePoint / subjectPlanePoint.w } );
-
-        Annotation annotation( planeEquation, std::make_shared< Polygon<float, 2> >() );
-
-        const auto newAnnotUid = m_appData.addAnnotation( *activeImageUid, std::move( annotation ) );
-
-        spdlog::debug( "NEW annotation {}, plane = {}", *newAnnotUid, glm::to_string( planeEquation ) );
+            if ( annotUid )
+            {
+                spdlog::debug( "Added new annotation {} (subject plane = {}) for image {}",
+                               *annotUid, glm::to_string( subjectPlaneEquation ), *activeImageUid );
+            }
+            else
+            {
+                spdlog::error( "Unable to add new annotation (subject plane = {}) for image {}",
+                               glm::to_string( subjectPlaneEquation ), *activeImageUid );
+                return;
+            }
+        }
+        catch ( const std::exception& e )
+        {
+            spdlog::error( "Unable to create new annotation (subject plane = {}) for image {}: {}",
+                           glm::to_string( subjectPlaneEquation ), *activeImageUid, e.what() );
+            return;
+        }
     }
 
-    const auto& newAnnotUids = m_appData.annotationsForImage( *activeImageUid );
-    if ( annotUids.empty() ) return;
-
-    Annotation* annot = m_appData.annotation( newAnnotUids[0] );
+    Annotation* annot = m_appData.annotation( *annotUid );
     if ( ! annot ) return;
 
-    spdlog::debug( "got annotation uid = {}" , newAnnotUids[0] );
+    spdlog::trace( "Got annotation uid = {}" , *annotUid );
 
-    annot->addPointToBoundary( worldPos );
+    // Add points to the outer boundary (0) for now:
+    constexpr uint32_t k_outerBoundary = 0;
 
-    const auto& V = annot->polygon().lock()->getBoundaryVertices( 0 );
-    const auto point2d = V[V.size() - 1];
+    const auto projectedPoint = annot->addPointToBoundary( k_outerBoundary, worldPos );
 
-    spdlog::debug( "projected worldPos {} to planePos {}", glm::to_string( worldPos ), glm::to_string( point2d ) );
+    if ( ! projectedPoint )
+    {
+        spdlog::error( "Unable to add point {} to boundary {}",
+                       glm::to_string( worldPos ), k_outerBoundary );
+    }
+    else
+    {
+        spdlog::trace( "Projected worldPos {} to planePos {}",
+                       glm::to_string( worldPos ), glm::to_string( *projectedPoint ) );
+    }
 }
 
 

@@ -66,15 +66,19 @@ std::weak_ptr< Polygon<float, 2> > Annotation::polygon()
     return m_polygon;
 }
 
-void Annotation::addPointToBoundary( const glm::vec3& point )
+std::optional<glm::vec2>
+Annotation::addPointToBoundary( size_t boundary, const glm::vec3& point )
 {
     if ( ! m_polygon )
     {
-        return;
+        return std::nullopt;
     }
 
-    m_polygon->addVertexToOuterBoundary(
-                math::projectPointToPlaneLocal2dCoords( point, m_planeEquation, m_planeOrigin, m_planeAxes ) );
+    const glm::vec2 projectedPoint = math::projectPointToPlaneLocal2dCoords(
+                point, m_planeEquation, m_planeOrigin, m_planeAxes );
+
+    m_polygon->addVertexToBoundary( boundary, projectedPoint );
+    return projectedPoint;
 }
 
 void Annotation::setLayer( uint32_t layer )

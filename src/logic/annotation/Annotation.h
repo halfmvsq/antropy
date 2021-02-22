@@ -52,8 +52,10 @@ public:
     /// Get the annotation's polygon
     std::weak_ptr< Polygon<float, 2> > polygon();
 
-    /// Add a 3D point to the annotation polygon's outer boundary
-    void addPointToBoundary( const glm::vec3& point );
+    /// Add a 3D point to the annotation polygon's boundary.
+    /// @return Projected point in 2D plane coordinates
+    std::optional<glm::vec2> addPointToBoundary(
+            size_t boundary, const glm::vec3& point );
 
 
     /// Get the annotation layer, with 0 being the backmost layer and layers increasing in value

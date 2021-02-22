@@ -82,6 +82,12 @@ void moveCrosshairsOnViewSlice(
         const glm::vec2& currWindowPos,
         int stepX, int stepY );
 
+std::optional< uuids::uuid > findAnnotationForImage(
+        const AppData& appData,
+        const uuids::uuid& imageUid,
+        const glm::vec4& planeEquation,
+        float planeDistanceThresh );
+
 } // namespace data
 
 #endif // DATA_HELPER_H

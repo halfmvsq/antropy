@@ -8,6 +8,9 @@
 
 #include <glm/glm.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 #include <uuid.h>
 
 #include <limits>
@@ -91,17 +94,30 @@ public:
     }
 
 
-    /// Add a vertex to a given boundary, where 0 refers to the outer boundary; boundaries >= 1
-    /// are for holds
+    /// Add a vertex to a given boundary, where 0 refers to the outer boundary;
+    /// boundaries >= 1 are for holds
     bool addVertexToBoundary( size_t boundary, PointType vertex )
     {
         if ( boundary >= m_vertices.size() )
         {
-            spdlog::error( "Invalid polygon boundary index {}", boundary );
-            return false;
+            if ( 0 == boundary )
+            {
+                // Allow adding the outer boundary:
+                m_vertices.emplace_back( std::vector<PointType>{ vertex } );
+                spdlog::info( "Added new polygon boundary with index {}", boundary );
+            }
+            else
+            {
+                spdlog::error( "Unable to add vertex {} to invalid boundary {}",
+                               glm::to_string( vertex ), boundary );
+                return false;
+            }
+        }
+        else
+        {
+            m_vertices[boundary].emplace_back( std::move( vertex ) );
         }
 
-        m_vertices.emplace_back( std::move( vertex ) );
         m_triangulation.clear();
         m_currentUid = generateRandomUuid();
 

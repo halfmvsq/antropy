@@ -13,6 +13,9 @@
 
 #include <glm/glm.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/vector_angle.hpp>
+
 #include <limits>
 
 
@@ -370,6 +373,39 @@ void moveCrosshairsOnViewSlice(
                 worldCrosshairs +
                 static_cast<float>( stepX ) * moveDistances.x * worldRightAxis +
                 static_cast<float>( stepY ) * moveDistances.y * worldUpAxis );
+}
+
+
+std::optional< uuids::uuid > findAnnotationForImage(
+        const AppData& appData,
+        const uuids::uuid& imageUid,
+        const glm::vec4& planeEquation,
+        float planeDistanceThresh )
+{
+    constexpr float k_normalAngleThresh = 1.0e-4f;
+
+    for ( const auto& annotUid : appData.annotationsForImage( imageUid ) )
+    {
+        const Annotation* annot = appData.annotation( annotUid );
+        if ( ! annot ) continue;
+
+        const glm::vec4 P = annot->getPlaneEquation();
+
+        // Compare angle between normal vectors and distances between plane offsets:
+        const glm::vec3 n1 = glm::normalize( glm::vec3{ P } );
+        const glm::vec3 n2 = glm::normalize( glm::vec3{ planeEquation } );
+
+        const float d1 = P[3];
+        const float d2 = planeEquation[3];
+
+        if ( ( std::abs( glm::angle( n1, n2 ) ) < k_normalAngleThresh ) &&
+             std::abs( d1 - d2 ) < planeDistanceThresh )
+        {
+            return annotUid;
+        }
+    }
+
+    return std::nullopt;
 }
 
 } // namespace data
