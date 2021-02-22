@@ -58,12 +58,38 @@ bool Annotation::setPlane( const glm::vec4& planeEquation )
     m_planeEquation = glm::vec4{ glm::normalize( planeNormal ), planeEquation[3] };
     m_planeOrigin = math::projectPointToPlane( k_origin, planeEquation );
     m_planeAxes = math::buildOrthonormalBasis_branchless( planeNormal );
+
+    // Make double sure that the axes are normalized:
+    m_planeAxes.first = glm::normalize( m_planeAxes.first );
+    m_planeAxes.second = glm::normalize( m_planeAxes.second );
+
     return true;
 }
 
 std::weak_ptr< Polygon<float, 2> > Annotation::polygon()
 {
     return m_polygon;
+}
+
+Polygon<float, 2>* Annotation::polygon() const
+{
+    return ( m_polygon ? m_polygon.get() : nullptr );
+}
+
+const std::vector< std::vector< glm::vec2 > >&
+Annotation::getAllVertices() const
+{
+    static const std::vector< std::vector< glm::vec2 > > sk_empty{};
+    if ( ! m_polygon ) return sk_empty;
+    return m_polygon->getAllVertices();
+}
+
+const std::vector<glm::vec2>&
+Annotation::getBoundaryVertices( size_t boundary ) const
+{
+    static const std::vector< glm::vec2 > sk_empty{};
+    if ( ! m_polygon ) return sk_empty;
+    return m_polygon->getBoundaryVertices( boundary );
 }
 
 std::optional<glm::vec2>
@@ -141,3 +167,16 @@ const glm::vec4& Annotation::getPlaneEquation() const { return m_planeEquation; 
 const glm::vec3& Annotation::getPlaneOrigin() const { return m_planeOrigin; }
 const std::pair<glm::vec3, glm::vec3>& Annotation::getPlaneAxes() const { return m_planeAxes; }
 
+
+glm::vec2 Annotation::projectPoint( const glm::vec3& point3d ) const
+{
+    return math::projectPointToPlaneLocal2dCoords(
+                point3d, m_planeEquation, m_planeOrigin, m_planeAxes );
+}
+
+glm::vec3 Annotation::unprojectPoint( const glm::vec2& planePoint2d ) const
+{
+    return m_planeOrigin +
+            planePoint2d[0] * m_planeAxes.first +
+            planePoint2d[1] * m_planeAxes.second;
+}

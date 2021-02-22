@@ -1043,12 +1043,142 @@ void renderLandmarks(
 
 
 void renderAnnotations(
-        NVGcontext* /*nvg*/,
-        const Viewport& /*windowVP*/,
-        AppData& /*appData*/,
-        const View& /*view*/,
-        const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& /*I*/ )
+        NVGcontext* nvg,
+        const Viewport& windowVP,
+        const glm::vec3& worldCrosshairs,
+        AppData& appData,
+        const View& view,
+        const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
 {
+    // Convert a 3D position from World space to the view's Mouse space
+    auto convertWorldToMousePos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
+    {
+        const glm::vec4 winClipPos =
+                view.winClip_T_viewClip() *
+                camera::clip_T_world( view.camera() ) *
+                glm::vec4{ worldPos, 1.0f };
+
+        const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
+        const glm::vec2 mousePos = camera::mouse_T_view( windowVP, pixelPos );
+        return mousePos;
+    };
+
+
+    nvgLineCap( nvg, NVG_BUTT );
+    nvgLineJoin( nvg, NVG_MITER );
+
+    startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
+
+    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
+    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+
+    const float viewWidth = viewTR.x - viewBL.x;
+    const float viewHeight = viewTR.y - viewBL.y;
+
+    // Clip against the view bounds
+    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
+
+    const glm::vec3 worldViewNormal = camera::worldDirection( view.camera(), Directions::View::Back );
+
+    // Render annotations for each image
+    for ( const auto& imgSegPair : I )
+    {
+        if ( ! imgSegPair.first )
+        {
+            // Non-existent image
+            continue;
+        }
+
+        const auto imgUid = *( imgSegPair.first );
+        const Image* img = appData.image( imgUid );
+
+        if ( ! img )
+        {
+            spdlog::error( "Null image {} when rendering annotations", imgUid );
+            continue;
+        }
+
+        // Don't render landmarks for invisible image:
+        /// @todo Need to properly manage global visibility vs. visibility for just one component
+        if ( ! img->settings().globalVisibility() ||
+             ( 1 == img->header().numComponentsPerPixel() && ! img->settings().visibility() ) )
+        {
+            continue;
+        }
+
+        spdlog::trace( "Rendering annotations for image {}", imgUid );
+
+        // Compute plane equation in image Subject space:
+        /// @todo Pull this out into a MathHelper function
+        const glm::mat4& subject_T_world = img->transformations().subject_T_worldDef();
+        const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
+
+        const glm::vec4 worldPlaneNormal{ worldViewNormal, 0.0f };
+        const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
+
+        const glm::vec3 worldPlanePoint = worldCrosshairs;
+        const glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldPlanePoint, 1.0f };
+
+        const glm::vec4 subjectPlaneEquation = math::makePlane(
+                    subjectPlaneNormal, glm::vec3{ subjectPlanePoint / subjectPlanePoint.w } );
+
+
+        // Slice spacing of the image along the view normal is the plane distance threshold for annotation searching:
+        const float sliceSpacing = data::sliceScrollDistance( -worldViewNormal, *img );
+
+        spdlog::trace( "Finding annotations for plane {} with distance threshold {}", glm::to_string( subjectPlaneEquation ), sliceSpacing );
+
+        const auto annotUid = data::findAnnotationForImage( appData, imgUid, subjectPlaneEquation, sliceSpacing );
+        if ( ! annotUid ) continue;
+
+        const Annotation* annot = appData.annotation( *annotUid );
+        if ( ! annot ) continue;
+
+        spdlog::trace( "Found annotation {}", *annotUid );
+
+        // Annotation vertices in Subject space:
+        const auto& subjectPlaneVertices = annot->getBoundaryVertices( 0 );
+
+        if ( subjectPlaneVertices.empty() ) continue;
+
+        nvgStrokeWidth( nvg, appData.renderData().m_globalAnnotationParams.strokeWidth );
+
+        const glm::vec3 color = img->settings().borderColor();
+        const float opacity = static_cast<float>( img->settings().visibility() ) * img->settings().opacity();
+        nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
+
+
+        const glm::mat4 world_T_subject = glm::inverse( subject_T_world );
+
+        nvgBeginPath( nvg );
+
+        for ( size_t i = 0; i < subjectPlaneVertices.size(); ++i )
+        {
+            const glm::vec2 subjectPlanePos = subjectPlaneVertices[i];
+            const glm::vec3 subjectPos = annot->unprojectPoint( subjectPlanePos );
+            const glm::vec4 worldPos = world_T_subject * glm::vec4{ subjectPos, 1.0f };
+            const glm::vec2 mousePos = convertWorldToMousePos( glm::vec3{ worldPos / worldPos.w } );
+
+            if ( 0 == i )
+            {
+                // Move pen to the first point:
+                nvgMoveTo( nvg, mousePos.x, mousePos.y );
+                continue;
+            }
+            else
+            {
+                nvgLineTo( nvg, mousePos.x, mousePos.y );
+            }
+
+            spdlog::trace( "Point i = {}: {}", i, glm::to_string( mousePos ) );
+        }
+
+        nvgStroke( nvg );
+    }
+
+    nvgResetScissor( nvg );
+
+    endNvgFrame( nvg ); /*** END FRAME ***/
 }
 
 
@@ -2395,7 +2525,7 @@ void Rendering::renderImages()
 
                 if ( ! renderAnnotationsOnTop )
                 {
-                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
+                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                     setupOpenGlState();
                 }
 
@@ -2429,7 +2559,7 @@ void Rendering::renderImages()
                 if ( ! view.second ) continue;
                 if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
 
-                renderAnnotations( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
+                renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                 setupOpenGlState();
             }
         };
@@ -2465,7 +2595,8 @@ void Rendering::renderImages()
         {
             if ( ! view.second ) continue;
 
-            auto renderImagesForView = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop, &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
+            auto renderImagesForView = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
+                    &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
                     ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
             {
                 if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
@@ -2482,7 +2613,7 @@ void Rendering::renderImages()
 
                 if ( ! renderAnnotationsOnTop )
                 {
-                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
+                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                     setupOpenGlState();
                 }
 
@@ -2507,7 +2638,7 @@ void Rendering::renderImages()
             {
                 if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
 
-                renderAnnotations( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
+                renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                 setupOpenGlState();
             };
 

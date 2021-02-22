@@ -683,6 +683,7 @@ void CallbackHandler::doAnnotate(
 
 
     // Compute the equation of the view plane in the space of the active image Subject:
+    /// @todo Pull this out into a MathHelper function
     const glm::mat4& subject_T_world = activeImage->transformations().subject_T_worldDef();
     const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
 

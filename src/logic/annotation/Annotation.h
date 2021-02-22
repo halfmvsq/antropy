@@ -52,6 +52,13 @@ public:
     /// Get the annotation's polygon
     std::weak_ptr< Polygon<float, 2> > polygon();
 
+    /// Get the annotation's polygon
+    Polygon<float, 2>* polygon() const ;
+
+    const std::vector< std::vector<glm::vec2> >& getAllVertices() const;
+
+    const std::vector<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
+
     /// Add a 3D point to the annotation polygon's boundary.
     /// @return Projected point in 2D plane coordinates
     std::optional<glm::vec2> addPointToBoundary(
@@ -86,6 +93,13 @@ public:
 
     /// Get the annotation plane coordinate axes
     const std::pair<glm::vec3, glm::vec3>& getPlaneAxes() const;
+
+
+    /// Compute the projection of a 3D point into 2D annotation plane coordinates
+    glm::vec2 projectPoint( const glm::vec3& point3d ) const;
+
+    /// Compute the un-projected 3D coordinates of a 2D point defined in annotation plane coordinates
+    glm::vec3 unprojectPoint( const glm::vec2& planePoint2d ) const;
 
 
 private:
