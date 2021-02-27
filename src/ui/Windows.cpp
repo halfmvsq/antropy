@@ -92,7 +92,6 @@ void renderViewSettingsComboWindow(
         switch ( shaderType )
         {
         case camera::ViewRenderMode::Image:
-        case camera::ViewRenderMode::Edge:
         {
             label = ICON_FK_EYE;
             break;

@@ -31,11 +31,20 @@ public:
     void updateImageOrdering( uuid_range_t orderedImageUids );
 
     /// Initialize the view to the given center and FOV, defined in World space
-    void recenterViews( const glm::vec3& worldCenter, const glm::vec3& worldFov, float scale, bool resetZoom );
+    void recenterViews(
+            const glm::vec3& worldCenter,
+            const glm::vec3& worldFov,
+            float scale,
+            bool resetZoom,
+            bool resetObliqueOrientation );
 
     /// Recenter a view to the given center position, without changing its FOV.
     /// (FOV is passed in only to adjust camera pullback distance.)
-    void recenterView( const uuids::uuid& viewUid, const glm::vec3& worldCenter, const glm::vec3& worldFov );
+    void recenterView(
+            const uuids::uuid& viewUid,
+            const glm::vec3& worldCenter,
+            const glm::vec3& worldFov,
+            bool resetObliqueOrientation );
 
     /// Get all current view UIDs
     uuid_range_t currentViewUids() const;

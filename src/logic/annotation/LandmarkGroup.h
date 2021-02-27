@@ -54,6 +54,7 @@ public:
     size_t maxIndex() const;
 
     /// Set/get whether the landmarks are in Voxel space (true) or Subject space (false)
+    /// @todo Create enum: LandmarkSpace{ ImageVoxels, ImagePhysicalSubject }
     void setInVoxelSpace( bool );
     bool getInVoxelSpace() const;
 

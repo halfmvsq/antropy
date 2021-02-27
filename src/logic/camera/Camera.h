@@ -16,33 +16,38 @@ namespace camera
 {
 
 /**
- * @brief Camera mapping World space to OpenGL Clip space via a sequence of transformations:
- * clip_T_world = clip_T_camera * camera_T_world, where camera_T_world is further decomposed as
- * camera_T_world = camera_T_anatomy * anatomy_T_start * start_T_world.
+ * @brief Camera class that manages the mapping World space to OpenGL Clip space via a sequence of
+ * transformation matrices:
  *
- * Clip: Standard OpenGL clip space
- * Camera: Space of the camera
- * Anatomy: Anatomical frame of reference
- * Start: Starting frame of reference
- * World: World space, common to all objects of the scene
+ * clip_T_world = clip_T_camera * camera_T_world,
+ *
+ * where camera_T_world is further decomposed as
+ * camera_T_world = camera_T_anatomy * anatomy_T_start * start_T_world.
  *
  * 1) camera_T_world is a rigid-body matrix, sometimes referred to as the View transformation that
  * maps World to Camera space. Its parts are
  *
- *    a) camera_T_anatomy: User manipulations applied to the camera AFTER the anatomical transformation
- *    b) anatomy_T_start: Anatomical starting frame of reference that is linked to an external callback
- *    c) start_T_world: User manipulations applied to the camera BEFORE the anatomical transformation
+ *    i) start_T_world: User manipulations applied to the camera BEFORE the anatomical transformation
+ *    ii) anatomy_T_start: Anatomical starting frame of reference that is linked to an external callback
+ *    iii) camera_T_anatomy: User manipulations applied to the camera AFTER the anatomical transformation
  *
- * 2) clip_T_camera is a projection: either orthogonal or perpspective.
+ * 2) clip_T_camera is a projection transformation, either orthogonal or perpspective.
+ *
+ * Definitions of coordinate spaces:
+ * Clip -- Standard OpenGL Clip space (normalized to [-1, 1]^3)
+ * Camera -- Space of the view camera's intrinsic reference frame (in physical coordinates)
+ * Anatomy -- Anatomical frame of reference of a subject (in physical coordinates)
+ * Start -- Starting frame of reference (in physical coordinates)
+ * World -- World space, common to all objects of the scene (in physical coordinates)
  */
 class Camera
 {
 public:
 
-    /// Construct a camera with a projection (either orthographic or perspective) and
-    /// a functional that returns the camera's anatomical coordinate frame. If no functional is
-    /// supplied, then the anatomical coordinate frame is equal to the Start space
-    /// (i.e. anatomy_T_start is identity)
+    /// Construct a camera with a projection (either orthographic or perspective) and a functional that
+    /// returns the transformation from the camera's start coordinate frame to the camera's anatomical
+    /// coordinate frame. If no functional is supplied, then the anatomical coordinate frame is equal
+    /// to the Start space. (i.e. anatomy_T_start is identity)
     Camera( std::shared_ptr<Projection> projection,
             GetterType<CoordinateFrame> anatomy_T_start_provider = nullptr );
 

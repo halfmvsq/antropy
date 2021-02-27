@@ -211,6 +211,18 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
         }
         break;
     }
+    case MouseMode::CameraRotate:
+    {
+        if ( s_mouseButtonState.left )
+        {
+            handler.doCameraRotate2d( *s_lastWinPos, currWinPos, *s_startWinPos );
+        }
+        else if ( s_mouseButtonState.right )
+        {
+            handler.doCameraRotate3d( *s_lastWinPos, currWinPos, *s_startWinPos );
+        }
+        break;
+    }
     case MouseMode::ImageTranslate:
     {
         if ( s_mouseButtonState.left )
@@ -313,6 +325,7 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     case MouseMode::Pointer:
     case MouseMode::Segment:
     case MouseMode::CameraTranslate2D:
+    case MouseMode::CameraRotate:
     case MouseMode::ImageRotate:
     case MouseMode::ImageTranslate:
     case MouseMode::ImageScale:

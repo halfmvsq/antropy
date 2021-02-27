@@ -36,25 +36,30 @@ namespace
 
 static const glm::vec3 sk_origin{ 0.0f };
 
+// Map from view camera type to projection type
 static const std::unordered_map< camera::CameraType, camera::ProjectionType >
 smk_cameraTypeToProjectionTypeMap =
 {
     { camera::CameraType::Axial, camera::ProjectionType::Orthographic },
     { camera::CameraType::Coronal, camera::ProjectionType::Orthographic },
     { camera::CameraType::Sagittal, camera::ProjectionType::Orthographic },
-    //{ camera::CameraType::ThreeD, camera::ProjectionType::Perspective }
-    { camera::CameraType::ThreeD, camera::ProjectionType::Orthographic }
+    { camera::CameraType::ThreeD, camera::ProjectionType::Orthographic },
+    { camera::CameraType::Oblique, camera::ProjectionType::Orthographic }
 };
 
+// Map from view camera type to start frame type
 static const std::unordered_map< camera::CameraType, CameraStartFrameType >
 smk_cameraTypeToDefaultStartFrameTypeMap =
 {
     { camera::CameraType::Axial, CameraStartFrameType::Crosshairs_Axial_LAI },
     { camera::CameraType::Coronal, CameraStartFrameType::Crosshairs_Coronal_LSA },
     { camera::CameraType::Sagittal, CameraStartFrameType::Crosshairs_Sagittal_PSL },
-    { camera::CameraType::ThreeD, CameraStartFrameType::Crosshairs_Coronal_LSA }
+    { camera::CameraType::ThreeD, CameraStartFrameType::Crosshairs_Coronal_LSA },
+    { camera::CameraType::Oblique, CameraStartFrameType::Crosshairs_Axial_LAI }
 };
 
+// Map from start frame type to rotation matrix.
+// This rotation matrix maps camera Start frame to World space.
 static const std::unordered_map< CameraStartFrameType, glm::quat >
 smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap =
 {
@@ -87,7 +92,7 @@ View::View( Viewport winClipViewport,
       m_metricImageUids(),
 
       // Render the first two images by default:
-      m_preferredDefaultRenderdImages( { 0, 1 } ),
+      m_preferredDefaultRenderedImages( { 0, 1 } ),
 
       m_shaderType( shaderType ),
       m_cameraType( cameraType ),
@@ -105,10 +110,12 @@ View::View( Viewport winClipViewport,
       m_sliceIntersector()
 {
     const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
-    const glm::quat& anatomicalRotation = smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType );
 
-    /// @todo we use should use the camera's anatomy_T_start transformation instead of start_T_world
-    m_camera.set_start_T_world( CoordinateFrame( sk_origin, anatomicalRotation ).frame_T_world() );
+    m_camera.set_anatomy_T_start_provider(
+        [&startFrameType] ()
+        {
+            return CoordinateFrame( sk_origin, smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType ) );
+        } );
 
     // Configure the slice intersector:
     m_sliceIntersector.setPositioningMethod( SliceIntersector::PositioningMethod::FrameOrigin, std::nullopt );
@@ -242,12 +249,17 @@ void View::setCameraType( const camera::CameraType& cameraType )
         m_camera.setProjection( std::move( projection ) );
     }
 
-    const auto startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
-    const glm::quat& anatomicalRotation = smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType );
+    const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
 
-    /// @todo should use anatomy_T_start.
-    /// This is one is reserved for rotating the crosshairs
-    m_camera.set_start_T_world( CoordinateFrame( sk_origin, anatomicalRotation ).frame_T_world() );
+    /// @todo Save special camera for oblique?
+
+    /// @todo When transitioning from orthogonal to oblique, preserve the orthogonal view's direction as intialization?
+
+    m_camera.set_anatomy_T_start_provider(
+        [&startFrameType] ()
+        {
+            return CoordinateFrame( sk_origin, smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType ) );
+        } );
 }
 
 void View::setRenderMode( const camera::ViewRenderMode& shaderType )
@@ -317,7 +329,7 @@ void View::setRenderedImages( const std::list<uuids::uuid>& imageUids, bool filt
 
         for ( const auto& imageUid : imageUids )
         {
-            if ( m_preferredDefaultRenderdImages.count( index ) > 0 )
+            if ( m_preferredDefaultRenderedImages.count( index ) > 0 )
             {
                 m_renderedImageUids.push_back( imageUid );
             }
@@ -417,12 +429,12 @@ const std::list<uuids::uuid>& View::visibleImages() const
 
 void View::setPreferredDefaultRenderedImages( std::set<size_t> imageIndices )
 {
-    m_preferredDefaultRenderdImages = std::move( imageIndices );
+    m_preferredDefaultRenderedImages = std::move( imageIndices );
 }
 
 const std::set<size_t>& View::preferredDefaultRenderedImages() const
 {
-    return m_preferredDefaultRenderdImages;
+    return m_preferredDefaultRenderedImages;
 }
 
 void View::updateImageOrdering( uuid_range_t orderedImageUids )

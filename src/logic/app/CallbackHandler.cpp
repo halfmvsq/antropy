@@ -284,11 +284,13 @@ void CallbackHandler::recenterViews(
     }
 
     // Scale images slightly down
-    static constexpr float sk_scale = 1.03f;
+    constexpr float k_scale = 1.03f;
 
     // Option to reset zoom or not:
-    static constexpr bool sk_doNotResetZoom = false;
-    static constexpr bool sk_resetZoom = true;
+    constexpr bool k_doNotResetZoom = false;
+    constexpr bool k_resetZoom = true;
+
+    constexpr bool k_resetObliqueOrientation = true;
 
     if ( recenterOnCurrentCrosshairsPos )
     {
@@ -297,7 +299,9 @@ void CallbackHandler::recenterViews(
         m_appData.windowData().recenterViews(
                     m_appData.state().worldCrosshairs().worldOrigin(),
                     math::computeAABBoxSize( worldBox ),
-                    sk_scale, sk_doNotResetZoom );
+                    k_scale,
+                    k_doNotResetZoom,
+                    k_resetObliqueOrientation );
     }
     else
     {
@@ -305,7 +309,9 @@ void CallbackHandler::recenterViews(
         m_appData.windowData().recenterViews(
                     math::computeAABBoxCenter( worldBox ),
                     math::computeAABBoxSize( worldBox ),
-                    sk_scale, sk_resetZoom );
+                    k_scale,
+                    k_resetZoom,
+                    k_resetObliqueOrientation );
     }
 }
 
@@ -318,16 +324,19 @@ void CallbackHandler::recenterView(
 {
     if ( 0 == m_appData.numImages() )
     {
-        spdlog::warn( "No images loaded: preparing views using default bounds" );
+        spdlog::warn( "No images loaded: recentering view {} using default bounds", viewUid );
     }
 
     // Size and position the views based on the enclosing AABB
     const auto worldBox = data::enclosingWorldBox( m_appData, imageSelection );
 
+    constexpr bool k_resetObliqueOrientation = true;
+
     m_appData.windowData().recenterView(
                 viewUid,
                 m_appData.state().worldCrosshairs().worldOrigin(),
-                math::computeAABBoxSize( worldBox ) );
+                math::computeAABBoxSize( worldBox ),
+                k_resetObliqueOrientation );
 }
 
 
@@ -639,6 +648,7 @@ void CallbackHandler::doAnnotate(
     const auto activeViewUid = m_appData.windowData().activeViewUid();
 
     // Ignore if actively annotating and there is an active view not equal to this view:
+    /// @todo Create AnnotatingState: { Nothing, PickingPoint, MovingPoint, SelectingPoint }
     if ( m_appData.state().annotating() && activeViewUid )
     {
         if ( activeViewUid != *viewUid ) return;
@@ -646,9 +656,10 @@ void CallbackHandler::doAnnotate(
 
     const View* view = m_appData.windowData().currentView( *viewUid );
     if ( ! view ) return;
+
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
-    // We need a reference image to move the crosshairs
+    // We need a reference image to compute the offset distance
     const Image* refImg = m_appData.refImage();
     if ( ! refImg ) return;
 
@@ -662,19 +673,19 @@ void CallbackHandler::doAnnotate(
     const glm::vec4 viewClipPos = view->viewClip_T_winClip() * winClipPos;
     if ( glm::any( glm::greaterThan( glm::abs( glm::vec2{ viewClipPos } ), sk_maxClip ) ) ) return;
 
-    // The pointer is in the view bounds! Make this the active view
+    // The pointer is in the view bounds! Make this the active view:
     m_appData.windowData().setActiveViewUid( *viewUid );
-
 
     // World position for annotation point:
     glm::vec4 worldPos = camera::world_T_clip( view->camera() ) * viewClipPos;
     worldPos = worldPos / worldPos.w;
 
-    const glm::vec3 worldCameraFront = camera::worldDirection(
-                view->camera(), Directions::View::Front );
-
     // Apply this view's offset from the crosshairs position in order to calculate the view plane position.
     // The offset is calculated based on the slice scroll distance of the reference image.
+
+    /// @todo Put this into a helper function:
+    const glm::vec3 worldCameraFront = camera::worldDirection(
+                view->camera(), Directions::View::Front );
 
     const float offsetDist = static_cast<float>( view->numOffsets() ) *
             data::sliceScrollDistance( worldCameraFront, *refImg );
@@ -687,7 +698,7 @@ void CallbackHandler::doAnnotate(
     const glm::mat4& subject_T_world = activeImage->transformations().subject_T_worldDef();
     const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
 
-    const glm::vec3 worldCameraBackDir = camera::worldDirection( view->camera(), Directions::View::Back );
+    const glm::vec3 worldCameraBackDir = -worldCameraFront;
     const glm::vec4 worldPlaneNormal{ worldCameraBackDir, 0.0f };
     const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
 
@@ -698,8 +709,10 @@ void CallbackHandler::doAnnotate(
                 subjectPlaneNormal, glm::vec3{ subjectPlanePoint / subjectPlanePoint.w } );
 
     // Use the slice scroll distance as the threshold for plane distances:
-    const float planeDistanceThresh = data::sliceScrollDistance( -worldCameraBackDir, *activeImage );
+    const float planeDistanceThresh = data::sliceScrollDistance( worldCameraFront, *activeImage );
 
+    /// @todo Create AnnotationGroup, which consists of all annotations for an image that fall
+    /// on one of the slices.
     std::optional<uuids::uuid> annotUid = data::findAnnotationForImage(
                 m_appData, *activeImageUid, subjectPlaneEquation, planeDistanceThresh );
 
@@ -711,17 +724,15 @@ void CallbackHandler::doAnnotate(
             Annotation annotation( subjectPlaneEquation, std::make_shared< Polygon<float, 2> >() );
             annotUid = m_appData.addAnnotation( *activeImageUid, std::move( annotation ) );
 
-            if ( annotUid )
-            {
-                spdlog::debug( "Added new annotation {} (subject plane = {}) for image {}",
-                               *annotUid, glm::to_string( subjectPlaneEquation ), *activeImageUid );
-            }
-            else
+            if ( ! annotUid )
             {
                 spdlog::error( "Unable to add new annotation (subject plane = {}) for image {}",
                                glm::to_string( subjectPlaneEquation ), *activeImageUid );
                 return;
             }
+
+            spdlog::debug( "Added new annotation {} (subject plane = {}) for image {}",
+                           *annotUid, glm::to_string( subjectPlaneEquation ), *activeImageUid );
         }
         catch ( const std::exception& e )
         {
@@ -737,6 +748,7 @@ void CallbackHandler::doAnnotate(
     spdlog::trace( "Got annotation uid = {}" , *annotUid );
 
     // Add points to the outer boundary (0) for now:
+    /// @todo Ability to select boundary
     constexpr uint32_t k_outerBoundary = 0;
 
     const auto projectedPoint = annot->addPointToBoundary( k_outerBoundary, worldPos );
@@ -748,7 +760,7 @@ void CallbackHandler::doAnnotate(
     }
     else
     {
-        spdlog::trace( "Projected worldPos {} to planePos {}",
+        spdlog::trace( "Projected annotation point {} to plane {}",
                        glm::to_string( worldPos ), glm::to_string( *projectedPoint ) );
     }
 }
@@ -902,6 +914,87 @@ void CallbackHandler::doCameraTranslate2d(
         panRelativeToWorldPosition( view->camera(), lastViewNdcPos, currViewNdcPos,
                                     m_appData.state().worldCrosshairs().worldOrigin() );
     }
+}
+
+
+void CallbackHandler::doCameraRotate2d(
+        const glm::vec2& lastWindowPos,
+        const glm::vec2& currWindowPos,
+        const glm::vec2& startWindowPos )
+{
+    auto& windowData = m_appData.windowData();
+
+    // Get view based on start position
+    const auto viewUid = windowData.currentViewUidAtCursor( startWindowPos );
+    if ( ! viewUid ) return;
+
+    View* view = windowData.currentView( *viewUid );
+    if ( ! view ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
+
+    // Only allow rotation of oblique views (and later 3D views, too)
+    if ( camera::CameraType::Oblique != view->cameraType() ) return;
+
+    const auto& windowVP = windowData.viewport();
+
+    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ),
+                view->clipPlaneDepth(), 1 };
+
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
+                view->clipPlaneDepth(), 1 };
+
+    glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
+    glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
+
+    glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
+    glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
+
+    /// @todo Different behavior for rotation 3D view types!
+
+    const glm::vec4 clipRotationCenterPos = camera::clip_T_world( view->camera() ) *
+            glm::vec4{ m_appData.state().worldCrosshairs().worldOrigin(), 1.0f };
+
+    camera::rotateInPlane( view->camera(), lastViewNdcPos, currViewNdcPos,
+                           glm::vec2{ clipRotationCenterPos / clipRotationCenterPos.w } );
+}
+
+
+void CallbackHandler::doCameraRotate3d(
+        const glm::vec2& lastWindowPos,
+        const glm::vec2& currWindowPos,
+        const glm::vec2& startWindowPos )
+{
+    auto& windowData = m_appData.windowData();
+
+    // Get view based on start position
+    const auto viewUid = windowData.currentViewUidAtCursor( startWindowPos );
+    if ( ! viewUid ) return;
+
+    View* view = windowData.currentView( *viewUid );
+    if ( ! view ) return;
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
+
+    // Only allow rotation of oblique views (and later 3D views, too)
+    if ( camera::CameraType::Oblique != view->cameraType() ) return;
+
+    const auto& windowVP = windowData.viewport();
+
+    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ),
+                view->clipPlaneDepth(), 1 };
+
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
+                view->clipPlaneDepth(), 1 };
+
+    glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
+    glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
+
+    glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
+    glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
+
+    /// @todo Different behavior for rotation 3D view types!
+
+    camera::rotateAboutWorldPoint( view->camera(), lastViewNdcPos, currViewNdcPos,
+                                   m_appData.state().worldCrosshairs().worldOrigin() );
 }
 
 

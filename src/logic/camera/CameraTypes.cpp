@@ -13,7 +13,8 @@ std::string typeString( const CameraType& type )
         { CameraType::Axial, "Axial" },
         { CameraType::Coronal, "Coronal" },
         { CameraType::Sagittal, "Sagittal" },
-        { CameraType::ThreeD, "3D" }
+        { CameraType::ThreeD, "3D" },
+        { CameraType::Oblique, "Oblique" }
     };
 
     return s_typeToStringMap.at( type );
@@ -24,7 +25,6 @@ std::string typeString( const ViewRenderMode& mode )
     static const std::unordered_map< ViewRenderMode, std::string > s_modeToStringMap
     {
         { ViewRenderMode::Image, "Layers" },
-        { ViewRenderMode::Edge, "Edges" },
         { ViewRenderMode::Overlay, "Overlap" },
         { ViewRenderMode::Checkerboard, "Checkerboard" },
         { ViewRenderMode::Quadrants, "Quadrants" },
@@ -43,7 +43,6 @@ std::string descriptionString( const ViewRenderMode& mode )
     static const std::unordered_map< ViewRenderMode, std::string > s_modeToStringMap
     {
         { ViewRenderMode::Image, "Overlay of image layers" },
-        { ViewRenderMode::Edge, "Overlay of image edges" },
         { ViewRenderMode::Overlay, "Overlap comparison" },
         { ViewRenderMode::Checkerboard, "Checkerboard comparison" },
         { ViewRenderMode::Quadrants, "Quadrants comparison" },

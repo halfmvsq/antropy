@@ -67,16 +67,6 @@ Camera::Camera( ProjectionType projType,
     }
 }
 
-
-//Camera::Camera(const Camera&)
-//{
-//}
-//
-//Camera& Camera::operator=(const Camera&)
-//{
-//}
-
-
 void Camera::setProjection( std::shared_ptr<Projection> projection )
 {
     if ( projection )
@@ -115,7 +105,7 @@ bool Camera::isLinkedToStartFrame() const
 
 void Camera::set_camera_T_anatomy( glm::mat4 camera_T_frameB )
 {
-    /// @todo Check that this is rigid-body
+    /// @todo Check that this is rigid-body by checking determinant == 1 and bottom row to be 0, 0, 0, 1
     m_camera_T_anatomy = std::move( camera_T_frameB );
 }
 

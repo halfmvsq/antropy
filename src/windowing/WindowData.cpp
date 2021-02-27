@@ -460,7 +460,9 @@ void WindowData::updateImageOrdering( uuid_range_t orderedImageUids )
 void WindowData::recenterViews(
         const glm::vec3& worldCenter,
         const glm::vec3& worldFov,
-        float scale, bool resetZoom )
+        float scale,
+        bool resetZoom,
+        bool resetObliqueOrientation )
 {
     for ( auto& layout : m_layouts )
     {
@@ -473,6 +475,13 @@ void WindowData::recenterViews(
                 camera::resetZoom( view.second->camera() );
             }
 
+            if ( resetObliqueOrientation &&
+                 ( camera::CameraType::Oblique == view.second->cameraType() ) )
+            {
+                // Reset the view orientation for oblique views
+                camera::resetViewTransformation( view.second->camera() );
+            }
+
             camera::positionCameraForWorldTargetAndFov(
                         view.second->camera(), worldFov, worldCenter, scale );
         }
@@ -481,13 +490,24 @@ void WindowData::recenterViews(
     updateViews();
 }
 
+
+/// @todo Bring this function into CallbackHandler?
+/// would need to make updateViews public.
 void WindowData::recenterView(
         const uuids::uuid& viewUid,
         const glm::vec3& worldCenter,
-        const glm::vec3& worldFov )
+        const glm::vec3& worldFov,
+        bool resetObliqueOrientation )
 {
     View* view = currentView( viewUid );
     if ( ! view ) return;
+
+    if ( resetObliqueOrientation &&
+         ( camera::CameraType::Oblique == view->cameraType() ) )
+    {
+        // Reset the view orientation for oblique views
+        camera::resetViewTransformation( view->camera() );
+    }
 
     // This function doesn't mess with the view's FOV
     camera::positionCameraForWorldTarget( view->camera(), worldFov, worldCenter );

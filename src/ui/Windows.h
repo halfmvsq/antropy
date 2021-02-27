@@ -40,9 +40,9 @@ void renderViewSettingsComboWindow(
         const camera::CameraType& cameraType,
         const camera::ViewRenderMode& shaderType,
 
-        const std::function<void( const camera::CameraType& cameraType )>& setCameraType,
-        const std::function<void( const camera::ViewRenderMode& shaderType )>& setRenderMode,
-        const std::function<void()>& recenter,
+        const std::function< void ( const camera::CameraType& cameraType ) >& setCameraType,
+        const std::function< void ( const camera::ViewRenderMode& shaderType ) >& setRenderMode,
+        const std::function< void () >& recenter,
 
         const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews );
 

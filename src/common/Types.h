@@ -12,7 +12,8 @@
  */
 enum class ComponentType
 {
-    // These types are supported in Antropy
+    // These types are supported in Antropy. If an input image does not have
+    // one of these types, then a cast is made.
     Int8,
     UInt8,
     Int16,
@@ -22,7 +23,7 @@ enum class ComponentType
     Float32,
 
     // These types are NOT supported in Antropy, because they are not supported
-    // as OpenGL texture formats
+    // as OpenGL texture formats:
     Float64,
     ULong,
     Long,
@@ -89,24 +90,26 @@ enum class InterpolationMode
 
 
 /// @brief The current mouse mode
-enum class MouseMode : uint32_t
+enum class MouseMode
 {
-    Pointer,
-    WindowLevel,
-    Segment,
-    Annotate,
-    CameraTranslate2D,
-    CameraZoom,
-    ImageTranslate,
-    ImageRotate,
-    ImageScale
+    Pointer, //!< Move the crosshairs
+    WindowLevel, //!< Adjust window and level of the active image
+    Segment, //!< Segment the active image
+    Annotate, //!< Annotate the active image
+    CameraTranslate2D, //!< Translate the view camera in plane
+    CameraRotate, //!< Rotate the view camera in plane and out of plane
+    CameraZoom, //!< Zoom the view camera
+    ImageTranslate, //!< Translate the active image in 2D and 3D
+    ImageRotate, //!< Rotate the active image in 2D and 3D
+    ImageScale //!< Scale the active image in 2D
 };
 
 /// Array of all available mouse modes
-inline std::array<MouseMode, 8> const AllMouseModes = {
+inline std::array<MouseMode, 9> const AllMouseModes = {
     MouseMode::Pointer,
     MouseMode::WindowLevel,
     MouseMode::CameraTranslate2D,
+    MouseMode::CameraRotate,
     MouseMode::CameraZoom,
     MouseMode::Segment,
     MouseMode::Annotate,
@@ -114,10 +117,11 @@ inline std::array<MouseMode, 8> const AllMouseModes = {
     MouseMode::ImageRotate
 };
 
-// Mouse mode as a string
+
+/// Get the mouse mode as a string
 std::string typeString( const MouseMode& mouseMode );
 
-// Toolbar button corresponding to each mouse mode
+/// Get the toolbar button corresponding to a mouse mode
 const char* toolbarButtonIcon( const MouseMode& mouseMode );
 
 

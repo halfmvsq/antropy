@@ -132,7 +132,7 @@ private:
     std::list<uuids::uuid> m_metricImageUids;
 
     // What images does this view prefer to render by default?
-    std::set<size_t> m_preferredDefaultRenderdImages;
+    std::set<size_t> m_preferredDefaultRenderedImages;
 
     // Camera data
     camera::ViewRenderMode m_shaderType;

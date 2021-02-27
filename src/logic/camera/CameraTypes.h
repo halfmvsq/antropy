@@ -10,31 +10,25 @@ namespace camera
 {
 
 /**
- * @brief Types of view cameras. Each can have a different starting orientation, projection,
- * and alignment rules.
+ * @brief Types of view cameras. Each view camera type is assigned a starting orientation transformation,
+ * a projection transformation, and orientation alignment rules.
  */
 enum class CameraType
 {
-    /// Aligned with reference image subject axial plane
-    Axial,
-
-    /// Aligned with reference image subject coronal plane
-    Coronal,
-
-    /// Aligned with reference image subject sagittal plane
-    Sagittal,
-
-    /// 3D camera
-    ThreeD,
-
+    Axial, //!< Orthogonal slice view aligned with reference image subject axial plane
+    Coronal, //!< Orthogonal slice view with reference image subject coronal plane
+    Sagittal, //!< Orthogonal slice view with reference image subject sagittal plane
+    ThreeD, //!< 3D view that is nominally aligned with reference image subject coronal plane
+    Oblique, //!< Oblique slice view
     NumElements
 };
 
-/// Array of all camera types
-inline std::array<CameraType, 4> const AllCameraTypes = {
+/// Array of all camera types accessible to the application
+inline std::array<CameraType, 5> const AllCameraTypes = {
     CameraType::Axial,
     CameraType::Coronal,
     CameraType::Sagittal,
+    CameraType::Oblique,
     CameraType::ThreeD
 };
 
@@ -60,7 +54,6 @@ enum class ProjectionType
 enum class ViewRenderMode
 {
     Image, //!< Image rendered using color maps
-    Edge, //!< Image rendered using color maps and edge overlay
     Overlay, //!< Image pair rendered with overlap highlighted
     Checkerboard,
     Quadrants,
@@ -93,10 +86,21 @@ inline std::array<ViewRenderMode, 2> const AllNonMetricRenderModes = {
 };
 
 
+/**
+ * @brief Get the string of a camera type
+ * @param cameraType
+ * @return
+ */
 std::string typeString( const CameraType& cameraType );
 
-std::string typeString( const ViewRenderMode& shaderType );
-std::string descriptionString( const ViewRenderMode& shaderType );
+/**
+ * @brief Get the string of a view rendering mode
+ * @param shaderType
+ * @return
+ */
+std::string typeString( const ViewRenderMode& renderMode );
+
+std::string descriptionString( const ViewRenderMode& renderMode );
 
 } // namespace camera
 
