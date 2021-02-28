@@ -583,6 +583,16 @@ glm::vec2 view_T_ndc( const Viewport& viewport, const glm::vec2& ndcPos )
                       ( ndcPos.y + 1 ) * ( viewport.height() - 1 ) / 2.0f + viewport.bottom() );
 }
 
+glm::mat4 view_T_ndc( const Viewport& viewport )
+{
+    return glm::mat4{
+        glm::vec4{ viewport.width() / 2.0f, 0.0f, 0.0f, 0.0f },
+        glm::vec4{ 0.0f, viewport.height() / 2.0f, 0.0f, 0.0f },
+        glm::vec4{ 0.0f, 0.0f, 1.0f, 0.0f },
+        glm::vec4{ viewport.left() + viewport.width() / 2.0f,
+                   viewport.bottom() + viewport.height() / 2.0f, 1.0f, 1.0f }
+    };
+}
 
 glm::vec2 view_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )
 {
@@ -594,6 +604,16 @@ glm::vec2 mouse_T_view( const Viewport& viewport, const glm::vec2& viewPos )
 {
     return glm::vec2( viewPos.x - viewport.left(),
                       viewport.bottom() + ( viewport.height() - 1 ) - viewPos.y );
+}
+
+glm::mat4 mouse_T_view( const Viewport& viewport )
+{
+    return glm::mat4{
+        glm::vec4{ 1.0f, 0.0f, 0.0f, 0.0f },
+        glm::vec4{ 0.0f, -1.0f, 0.0f, 0.0f },
+        glm::vec4{ 0.0f, 0.0f, 1.0f, 0.0f },
+        glm::vec4{ -viewport.left(), viewport.bottom() + viewport.height(), 0.0f, 1.0f }
+    };
 }
 
 glm::vec4 ndc_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )

@@ -502,8 +502,7 @@ void WindowData::recenterView(
     View* view = currentView( viewUid );
     if ( ! view ) return;
 
-    if ( resetObliqueOrientation &&
-         ( camera::CameraType::Oblique == view->cameraType() ) )
+    if ( resetObliqueOrientation && ( camera::CameraType::Oblique == view->cameraType() ) )
     {
         // Reset the view orientation for oblique views
         camera::resetViewTransformation( view->camera() );

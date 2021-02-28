@@ -217,16 +217,14 @@ const std::pair< glm::vec2, glm::vec2 >& View::winMouseMinMaxCoords() const
     return m_winMouseViewMinMaxCorners;
 }
 
-void View::setCameraType( const camera::CameraType& cameraType )
+void View::setCameraType( const camera::CameraType& newCameraType )
 {
-    if ( cameraType == m_cameraType )
+    if ( newCameraType == m_cameraType )
     {
         return;
     }
 
-    m_cameraType = cameraType;
-
-    const auto newProjType = smk_cameraTypeToProjectionTypeMap.at( m_cameraType );
+    const auto newProjType = smk_cameraTypeToProjectionTypeMap.at( newCameraType );
 
     if ( m_projectionType != newProjType )
     {
@@ -249,17 +247,32 @@ void View::setCameraType( const camera::CameraType& cameraType )
         m_camera.setProjection( std::move( projection ) );
     }
 
-    const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
+    CoordinateFrame anatomy_T_start;
 
-    /// @todo Save special camera for oblique?
+    if ( camera::CameraType::Oblique == newCameraType )
+    {
+        // Transitioning to an Oblique view type from an Orthogonal view type:
+        // The new anatomy_T_start frame is set to the (old) Orthogonal view type's anatomy_T_start frame.
+        const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
+        anatomy_T_start = CoordinateFrame( sk_origin, smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType ) );
+    }
+    else
+    {
+        // Transitioning to an Orthogonal view type:
+        const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( newCameraType );
+        anatomy_T_start = CoordinateFrame( sk_origin, smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType ) );
 
-    /// @todo When transitioning from orthogonal to oblique, preserve the orthogonal view's direction as intialization?
-
-    m_camera.set_anatomy_T_start_provider(
-        [&startFrameType] ()
+        if ( camera::CameraType::Oblique == m_cameraType )
         {
-            return CoordinateFrame( sk_origin, smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType ) );
-        } );
+            // Transitioning to an Orthogonal view type from an Oblique view type.
+            // Reset the manually applied view transformations, because view might have rotations applied.
+            camera::resetViewTransformation( m_camera );
+        }
+    }
+
+    m_camera.set_anatomy_T_start_provider( [anatomy_T_start] () { return anatomy_T_start; } );
+
+    m_cameraType = newCameraType;
 }
 
 void View::setRenderMode( const camera::ViewRenderMode& shaderType )

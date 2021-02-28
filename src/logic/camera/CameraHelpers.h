@@ -217,8 +217,10 @@ glm::vec2 ndc2d_T_view( const Viewport&, const glm::vec2& viewPos );
 
 glm::vec2 viewDevice_T_ndc( const Viewport&, const glm::vec2& ndcPos );
 glm::vec2 view_T_ndc( const Viewport&, const glm::vec2& ndcPos );
+glm::mat4 view_T_ndc( const Viewport& );
 glm::vec2 view_T_mouse( const Viewport&, const glm::vec2& mousePos );
 glm::vec2 mouse_T_view( const Viewport&, const glm::vec2& viewPos );
+glm::mat4 mouse_T_view( const Viewport& );
 
 glm::vec4 ndc_T_mouse( const Viewport&, const glm::vec2& mousePos );
 glm::vec2 ndc2d_T_mouse( const Viewport&, const glm::vec2& mousePos );
