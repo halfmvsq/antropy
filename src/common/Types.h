@@ -104,7 +104,7 @@ enum class MouseMode
     ImageScale //!< Scale the active image in 2D
 };
 
-/// Array of all available mouse modes
+/// Array of all available mouse modes in the Toolbar
 inline std::array<MouseMode, 9> const AllMouseModes = {
     MouseMode::Pointer,
     MouseMode::WindowLevel,

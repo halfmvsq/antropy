@@ -2,6 +2,7 @@
 
 #include "common/DataHelper.h"
 #include "common/Exception.hpp"
+#include "common/MathFuncs.h"
 #include "common/Types.h"
 
 #include "image/ImageColorMap.h"
@@ -1189,10 +1190,9 @@ void renderAnnotations(
         // Compute plane equation in image Subject space:
         /// @todo Pull this out into a MathHelper function
         const glm::mat4& subject_T_world = img->transformations().subject_T_worldDef();
-        const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
+        const glm::mat3 subject_T_world_IT = glm::inverseTranspose( glm::mat3{ subject_T_world } );
 
-        const glm::vec4 worldPlaneNormal{ worldViewNormal, 0.0f };
-        const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
+        const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldViewNormal };
 
         const glm::vec3 worldPlanePoint = worldCrosshairs;
         const glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldPlanePoint, 1.0f };
@@ -1421,22 +1421,28 @@ void renderCrosshairsOverlay(
         const glm::vec4& worldCrosshairs,
         const glm::vec4& color )
 {
-    auto compute_mouse_T_viewClip = [&windowVP, &view] ( const glm::vec4& viewClipPos ) -> glm::vec2
-    {
-        const glm::vec4 winClipPos = view.winClip_T_viewClip() * viewClipPos;
-        const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos } );
-        const glm::vec2 mousePos = camera::mouse_T_view( windowVP, pixelPos );
-        return mousePos;
-    };
+    // Line segment stipple length in pixels
+    constexpr float sk_stippleLen = 8.0f;
 
-//    const glm::mat4 mouse_T_viewClip =
-//            camera::mouse_T_view( windowVP ) *
-//            camera::view_T_ndc( windowVP ) *
-//            view.winClip_T_viewClip();
+//    auto compute_mouse_T_viewClip = [&windowVP, &view] ( const glm::vec4& viewClipPos ) -> glm::vec2
+//    {
+//        const glm::vec4 winClipPos = view.winClip_T_viewClip() * viewClipPos;
+//        const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos } );
+//        const glm::vec2 mousePos = camera::mouse_T_view( windowVP, pixelPos );
+//        return mousePos;
+//    };
 
-//    const glm::mat4 mouse_T_viewClip_IT = glm::inverseTranspose( mouse_T_viewClip );
+    const glm::mat4 mouse_T_viewClip =
+            camera::mouse_T_view( windowVP ) *
+            camera::view_T_ndc( windowVP ) *
+            view.winClip_T_viewClip();
+
+    const glm::mat3 mouse_T_viewClip_IT = glm::inverseTranspose( glm::mat3{ mouse_T_viewClip } );
 
     const auto viewClipLabelPositions = computeAnatomicalLabelPositions( windowVP, view, world_T_refSubject );
+
+    nvgLineCap( nvg, NVG_BUTT );
+    nvgLineJoin( nvg, NVG_MITER );
 
     if ( 0 == view.numOffsets() )
     {
@@ -1461,29 +1467,73 @@ void renderCrosshairsOverlay(
     glm::vec4 viewClipXhairPos = camera::clip_T_world( view.camera() ) * worldCrosshairs;
     viewClipXhairPos /= viewClipXhairPos.w;
 
+    // Scaling to account for aspect ratio
+    const float aspectRatio = viewWidth / viewHeight;
+
+    const glm::vec2 aspectRatioScale = ( aspectRatio < 1.0f )
+            ? glm::vec2{ aspectRatio, 1.0f }
+            : glm::vec2{ 1.0f, 1.0f / aspectRatio };
+
     for ( const auto& pos : viewClipLabelPositions )
     {
         if ( ! pos.visible ) continue;
 
-        const glm::vec4 viewClipXhairDir{ pos.viewClipDir.x, pos.viewClipDir.y, 0.0f , 0.0f };
-//        const glm::vec4 mouseXhairDir = mouse_T_viewClip_IT * viewClipXhairDir;
+        const glm::vec3 viewClipXhairDir{ pos.viewClipDir.x, pos.viewClipDir.y, 0.0f };
 
-//        glm::vec4 mouseXhairPos = mouse_T_viewClip * viewClipXhairPos;
-//        mouseXhairPos /= mouseXhairPos.w;
+        glm::vec3 mouseXhairDir = glm::normalize( mouse_T_viewClip_IT * viewClipXhairDir );
+        mouseXhairDir.x *= aspectRatioScale.x;
+        mouseXhairDir.y *= aspectRatioScale.y;
 
-        const glm::vec4 viewClipXhairPos0 = viewClipXhairPos + 2.0f * viewClipXhairDir;
-        const glm::vec4 viewClipXhairPos1 = viewClipXhairPos - 2.0f * viewClipXhairDir;
+        glm::vec4 mouseXhairPos = mouse_T_viewClip * viewClipXhairPos;
+        mouseXhairPos /= mouseXhairPos.w;
 
-        const glm::vec2 mouseXhairPos0 = compute_mouse_T_viewClip( viewClipXhairPos0 );
-        const glm::vec2 mouseXhairPos1 = compute_mouse_T_viewClip( viewClipXhairPos1 );
+//        auto t1 = math::computeRayAABBoxIntersection( glm::vec3{ mouseXhairPos },
+//                             mouseXhairDir,
+//                             glm::vec3{ viewBL.x, viewBL.y, 0.0f },
+//                             glm::vec3{ viewBL.x + viewWidth, viewBL.y + viewHeight, 0.0f } );
 
-//        const glm::vec2 mouseXhairPos0 = glm::vec2{ mouseXhairPos + 200000.0f * mouseXhairDir };
-//        const glm::vec2 mouseXhairPos1 = glm::vec2{ mouseXhairPos - 200000.0f * mouseXhairDir };
+//        const glm::vec3 mouseXhairPos0 = glm::vec3{ mouseXhairPos } + t1 * mouseXhairDir;
 
-        nvgBeginPath( nvg );
-        nvgMoveTo( nvg, mouseXhairPos0.x, mouseXhairPos0.y );
-        nvgLineTo( nvg, mouseXhairPos1.x, mouseXhairPos1.y );
-        nvgStroke( nvg );
+        const float maxlen = viewWidth + viewHeight;
+        const glm::vec2 c{ mouseXhairPos };
+        const glm::vec2 d{ mouseXhairDir };
+        const glm::vec2 a = c + maxlen * d;
+        const glm::vec2 b = c - maxlen * d;
+
+        if ( camera::CameraType::Oblique != view.cameraType() )
+        {
+            // Orthogonal views get solid crosshairs:
+            nvgBeginPath( nvg );
+            nvgMoveTo( nvg, a.x, a.y );
+            nvgLineTo( nvg, b.x, b.y );
+            nvgStroke( nvg );
+        }
+        else
+        {
+            // Oblique views get stippled crosshairs:
+
+            // Line from center to first edge:
+            const uint32_t numLinesAC = glm::distance( a, c ) / sk_stippleLen;
+            nvgBeginPath( nvg );
+            for ( uint32_t i = 0; i <= numLinesAC; ++i )
+            {
+                const glm::vec2 p = c + static_cast<float>( i ) / static_cast<float>( numLinesAC ) * ( a - c );
+                if ( i % 2 ) nvgMoveTo( nvg, p.x, p.y );
+                else nvgLineTo( nvg, p.x, p.y );
+            }
+            nvgStroke( nvg );
+
+            // Line from center to second edge:
+            const uint32_t numLinesBC = glm::distance( b, c ) / sk_stippleLen;
+            nvgBeginPath( nvg );
+            for ( uint32_t i = 0; i <= numLinesBC; ++i )
+            {
+                const glm::vec2 p = c + static_cast<float>( i ) / static_cast<float>( numLinesBC ) * ( b - c );
+                if ( i % 2 ) nvgMoveTo( nvg, p.x, p.y );
+                else nvgLineTo( nvg, p.x, p.y );
+            }
+            nvgStroke( nvg );
+        }
     }
 
     nvgResetScissor( nvg );

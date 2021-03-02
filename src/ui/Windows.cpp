@@ -371,6 +371,14 @@ void renderViewSettingsComboWindow(
                 ImGui::PopItemWidth();
             }
 
+
+            // View rotation button for Oblique view types:
+//            if ( camera::CameraType::Oblique == cameraType )
+//            {
+
+//            }
+
+
             // Text label of visible images:
             /// @todo Replace this with NanoVG text?
             {

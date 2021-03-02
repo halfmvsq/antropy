@@ -10,6 +10,7 @@
 #include <cmath>
 #include <optional>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -143,6 +144,20 @@ void rotateFrameAboutWorldPos(
         CoordinateFrame& frame,
         const glm::quat& rotation,
         const glm::vec3& worldCenter );
+
+
+/**
+ * @brief Finds the entering intersection between a ray e1+d and the volume's bounding box.
+ */
+float computeRayAABBoxIntersection(
+        const glm::vec3& start,
+        const glm::vec3& dir,
+        const glm::vec3& minCorner,
+        const glm::vec3& maxCorner );
+
+std::pair<float,float> hits( glm::vec3 e1, glm::vec3 d, glm::vec3 uMinCorner, glm::vec3 uMaxCorner );
+
+std::tuple<bool, float, float> slabs(glm::vec3 rayPos, glm::vec3 rayDir, glm::vec3 boxMin, glm::vec3 boxMax);
 
 } // namespace math
 

@@ -280,4 +280,59 @@ void rotateFrameAboutWorldPos(
     frame.setWorldOrigin( rotation * ( oldOrigin - worldCenter ) + worldCenter );
 }
 
+
+float computeRayAABBoxIntersection(
+        const glm::vec3& start,
+        const glm::vec3& dir,
+        const glm::vec3& minCorner,
+        const glm::vec3& maxCorner )
+{
+    const float t = glm::distance( minCorner, maxCorner );
+
+    const glm::vec3 a = ( minCorner - start ) / dir;
+    const glm::vec3 b = ( maxCorner - start ) / dir;
+    const glm::vec3 u = glm::min( a, b );
+
+    return std::max( std::max( -t, u.x ), std::max( u.y, u.z ) );
+}
+
+std::pair<float,float> hits(
+        glm::vec3 e1, glm::vec3 d, glm::vec3 uMinCorner, glm::vec3 uMaxCorner )
+{
+    float t = glm::distance(uMinCorner, uMaxCorner);
+
+    glm::vec3 a = (uMinCorner - e1) / d;
+    glm::vec3 b = (uMaxCorner - e1) / d;
+    glm::vec3 u = glm::min(a, b);
+    glm::vec3 v = glm::max(a, b);
+
+//    std::cout << "a = " << glm::to_string(a) << std::endl;
+//    std::cout << "b = " << glm::to_string(b) << std::endl;
+//    std::cout << "u = " << glm::to_string(u) << std::endl;
+//    std::cout << "v = " << glm::to_string(v) << std::endl;
+
+    float i = std::max( std::max(-t, u.x), std::max(u.y, u.z) );
+    float j = std::min( std::min(t, v.x), std::min(v.y, v.z) );
+
+//    std::cout << "i = " << i << std::endl;
+//    std::cout << "j = " << j << std::endl;
+
+    return std::make_pair( i, j );
+}
+
+
+std::tuple<bool, float, float> slabs(glm::vec3 rayPos, glm::vec3 rayDir, glm::vec3 boxMin, glm::vec3 boxMax)
+{
+    glm::vec3 t0 = ( boxMin - rayPos ) / rayDir;
+    glm::vec3 t1 = ( boxMax - rayPos ) / rayDir;
+
+    glm::vec3 tmin = min( t0, t1 );
+    glm::vec3 tmax = max( t0, t1 );
+
+    float a = glm::compMax( tmin );
+    float b = glm::compMin( tmax );
+
+    return std::make_tuple( a <= b, a, b );
+}
+
 } // namespace math
