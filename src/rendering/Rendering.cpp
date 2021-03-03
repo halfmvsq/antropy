@@ -36,9 +36,11 @@
 #include <nanovg_gl.h>
 
 #include <chrono>
+#include <list>
 #include <memory>
 #include <sstream>
 #include <unordered_map>
+#include <vector>
 
 CMRC_DECLARE(fonts);
 CMRC_DECLARE(shaders);
@@ -659,30 +661,45 @@ void renderWindowOutline( NVGcontext* nvg, const Viewport& windowVP )
 //}
 
 
-struct LabelPos
+/**
+ * @brief Information needed for positioning a single anatomical label and the crosshair
+ * that corresponds to this label.
+ */
+struct AnatomicalLabelPosInfo
 {
-    bool visible = false;
-    glm::vec3 viewClipDir{ 0.0f, 0.0f, 0.0f };
-    glm::vec2 viewClipPos{ 0.0f, 0.0f };
+    AnatomicalLabelPosInfo( int l ) : labelIndex( l ) {}
+
+    /// The anatomical label index (0: L, 1: P, 2: S)
+    int labelIndex;
+
+    /// Mouse crosshairs center position (in Mouse space)
+    glm::vec2 mouseXhairCenterPos{ 0.0f, 0.0f };
+
+    /// Normalized direction vector of the label (in View Clip space)
+    glm::vec2 viewClipDir{ 0.0f, 0.0f };
+
+    /// Position of the label and the opposite label of its pair (in Mouse space)
+    std::array<glm::vec2, 2> mouseLabelPositions;
+
+    /// Positions of the crosshair-view intersections (in Mouse space).
+    /// Equal to std::nullopt if there is no intersection of the crosshair with the
+    /// view AABB for this label.
+    std::optional< std::array<glm::vec2, 2> > mouseXhairPositions = std::nullopt;
 };
 
 
-std::array<LabelPos, 3>
-computeAnatomicalLabelPositions(
-        const Viewport& /*windowVP*/,
+std::list<AnatomicalLabelPosInfo>
+computeAnatomicalLabelsForView(
         const View& view,
         const glm::mat4& world_T_refSubject )
 {
-    static const glm::vec2 sk_ndcMin{ -1.0f, -1.0f };
-    static const glm::vec2 sk_ndcMax{  1.0f,  1.0f };
-
     // Shortcuts for the three orthogonal anatomical directions
     static constexpr int L = 0;
     static constexpr int P = 1;
     static constexpr int S = 2;
 
     // Visibility and directions of the labels L, P, S in View Clip/NDC space:
-    static std::array<LabelPos, 3> labels;
+    std::list<AnatomicalLabelPosInfo> labels;
 
     // The reference subject's left, posterior, and superior directions in Camera space.
     // Columns 0, 1, and 2 of the matrix correspond to left, posterior, and superior, respectively.
@@ -696,44 +713,129 @@ computeAnatomicalLabelPositions(
     // Render the two sets of labels that are closest to the view plane:
     if ( axesAbs[L].z > axesAbs[P].z && axesAbs[L].z > axesAbs[S].z )
     {
-        labels[L].visible = false;
-        labels[P].visible = true;
-        labels[S].visible = true;
+        labels.emplace_back( AnatomicalLabelPosInfo{ P } );
+        labels.emplace_back( AnatomicalLabelPosInfo{ S } );
     }
     else if ( axesAbs[P].z > axesAbs[L].z && axesAbs[P].z > axesAbs[S].z )
     {
-        labels[L].visible = true;
-        labels[P].visible = false;
-        labels[S].visible = true;
+        labels.emplace_back( AnatomicalLabelPosInfo{ L } );
+        labels.emplace_back( AnatomicalLabelPosInfo{ S } );
     }
     else if ( axesAbs[S].z > axesAbs[L].z && axesAbs[S].z > axesAbs[P].z )
     {
-        labels[L].visible = true;
-        labels[P].visible = true;
-        labels[S].visible = false;
+        labels.emplace_back( AnatomicalLabelPosInfo{ L } );
+        labels.emplace_back( AnatomicalLabelPosInfo{ P } );
     }
 
-//    const auto& minMaxCoords = view.winMouseMinMaxCoords();
-//    const float viewWidth = minMaxCoords.second.x - minMaxCoords.first.x;
-//    const float viewHeight = minMaxCoords.second.y - minMaxCoords.first.y;
-
-
     // Render the translation vectors for the L (0), P (1), and S (2) labels:
-    for ( int i = 0; i < 3; ++i )
+    for ( auto& label : labels )
     {
-        const uint32_t ii = static_cast<uint32_t>( i );
+        const int i = label.labelIndex;
 
-        if ( ! labels[ii].visible ) continue;
-
-        const glm::vec2 t = ( axesAbs[i].x > 0.0f && axesAbs[i].y / axesAbs[i].x <= 1.0f )
+        label.viewClipDir = ( axesAbs[i].x > 0.0f && axesAbs[i].y / axesAbs[i].x <= 1.0f )
                 ? glm::vec2{ axesSgn[i].x, axesSgn[i].y * axesAbs[i].y / axesAbs[i].x }
                 : glm::vec2{ axesSgn[i].x * axesAbs[i].x / axesAbs[i].y, axesSgn[i].y };
-
-        labels[ii].viewClipPos = glm::clamp( t, sk_ndcMin, sk_ndcMax );
-        labels[ii].viewClipDir = glm::vec3{ t, 0.0f };//glm::normalize( axes[i] );
     }
 
     return labels;
+}
+
+
+
+std::list<AnatomicalLabelPosInfo>
+computeAnatomicalLabelPosInfo(
+        const Viewport& windowVP,
+        const View& view,
+        const glm::mat4& world_T_refSubject,
+        const glm::vec4& worldCrosshairs )
+{
+    // Compute intersections of the anatomical label ray with the view box:
+    static constexpr bool sk_doBothLabelDirs = false;
+
+    // Compute intersections of the crosshair ray with the view box:
+    static constexpr bool sk_doBothXhairDirs = true;
+
+    const glm::mat4 mouse_T_viewClip =
+            camera::mouse_T_view( windowVP ) *
+            camera::view_T_ndc( windowVP ) *
+            view.winClip_T_viewClip();
+
+    const glm::mat3 mouse_T_viewClip_IT = glm::inverseTranspose( glm::mat3{ mouse_T_viewClip } );
+
+    auto labelPosInfo = computeAnatomicalLabelsForView( view, world_T_refSubject );
+
+    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
+    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+
+    const float viewWidth = viewTR.x - viewBL.x;
+    const float viewHeight = viewTR.y - viewBL.y;
+
+    // Scaling to account for aspect ratio
+    const float aspectRatio = viewWidth / viewHeight;
+
+    const glm::vec2 aspectRatioScale = ( aspectRatio < 1.0f )
+            ? glm::vec2{ aspectRatio, 1.0f }
+            : glm::vec2{ 1.0f, 1.0f / aspectRatio };
+
+    const glm::vec2 mouseViewCenterPos = 0.5f * ( viewBL + viewTR );
+
+    glm::vec4 viewClipXhairPos = camera::clip_T_world( view.camera() ) * worldCrosshairs;
+    viewClipXhairPos /= viewClipXhairPos.w;
+
+    glm::vec4 mouseXhairPos = mouse_T_viewClip * viewClipXhairPos;
+    mouseXhairPos /= mouseXhairPos.w;
+
+    for ( auto& label : labelPosInfo )
+    {
+        const glm::vec3 viewClipXhairDir{ label.viewClipDir.x, label.viewClipDir.y, 0.0f };
+
+        label.mouseXhairCenterPos = glm::vec2{ mouseXhairPos };
+
+        glm::vec2 mouseXhairDir{ mouse_T_viewClip_IT * viewClipXhairDir };
+        mouseXhairDir.x *= aspectRatioScale.x;
+        mouseXhairDir.y *= aspectRatioScale.y;
+        mouseXhairDir = glm::normalize( mouseXhairDir );
+
+        // Intersections for the positive label (L, P, or S):
+        const auto posLabelHits = math::computeRayAABoxIntersections(
+                    mouseViewCenterPos, mouseXhairDir,
+                    viewBL, viewTR - viewBL,
+                    sk_doBothLabelDirs );
+
+        // Intersections for the negative label (R, A, or I):
+        const auto negLabelHits = math::computeRayAABoxIntersections(
+                    mouseViewCenterPos, -mouseXhairDir,
+                    viewBL, viewTR - viewBL,
+                    sk_doBothLabelDirs );
+
+        if ( 1 != posLabelHits.size() || 1 != negLabelHits.size() )
+        {
+            spdlog::warn( "Exepcted two intersections when computing anatomical label positions for view. "
+                          "Got {} and {} intersections in the positive and negative directions, respectively.",
+                          posLabelHits.size(), negLabelHits.size() );
+            continue;
+        }
+
+        label.mouseLabelPositions = std::array<glm::vec2, 2>{ posLabelHits[0], negLabelHits[0] };
+
+
+        const auto crosshairHits = math::computeRayAABoxIntersections(
+                    label.mouseXhairCenterPos, mouseXhairDir,
+                    viewBL, viewTR - viewBL,
+                    sk_doBothXhairDirs );
+
+        if ( 2 != crosshairHits.size() )
+        {
+            // Only render crosshairs when there are two intersections with the view box:
+            label.mouseXhairPositions = std::nullopt;
+        }
+        else
+        {
+            label.mouseXhairPositions = std::array<glm::vec2, 2>{ crosshairHits[0], crosshairHits[1] };
+        }
+    }
+
+    return labelPosInfo;
 }
 
 
@@ -747,133 +849,57 @@ computeAnatomicalLabelPositions(
  */
 void renderAnatomicalLabels(
         NVGcontext* nvg,
-        const Viewport& windowVP,
         const View& view,
-        const glm::mat4& world_T_refSubject,
-        const glm::vec4& color )
+        const glm::vec4& color,
+        const std::list<AnatomicalLabelPosInfo>& labelPosInfo )
 {
     static constexpr float sk_fontMult = 0.03f;
 
-    static const glm::vec3 sk_ndcMin{ -1.0f, -1.0f, 0.0f };
-    static const glm::vec3 sk_ndcMax{  1.0f,  1.0f, 0.0f };
+    // Anatomical direction labels
+    static std::array< std::string, 6 > labels{ "L", "P", "S", "R", "A", "I" };
 
-    // Shortcuts for the six anatomical directions
-    static constexpr int L = 0;
-    static constexpr int P = 1;
-    static constexpr int S = 2;
-    static constexpr int R = 3;
-    static constexpr int A = 4;
-    static constexpr int I = 5;
+    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
+    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
 
-    // Visibility of the letters
-    static std::array< std::pair<bool, std::string>, 6 > labels
-    {
-        std::make_pair( false, "L" ),
-        std::make_pair( false, "P" ),
-        std::make_pair( false, "S" ),
-        std::make_pair( false, "R" ),
-        std::make_pair( false, "A" ),
-        std::make_pair( false, "I" )
-    };
+    const float viewWidth = viewTR.x - viewBL.x;
+    const float viewHeight = viewTR.y - viewBL.y;
 
-    // The reference subject's left, posterior, and superior directions in Camera space.
-    // Columns 0, 1, and 2 of the matrix correspond to left, posterior, and superior, respectively.
-    const glm::mat3 axes = math::computeSubjectAxesInCamera(
-                glm::mat3{ view.camera().camera_T_world() },
-                glm::mat3{ world_T_refSubject } );
-
-    const glm::mat3 axesAbs{ glm::abs( axes[0] ), glm::abs( axes[1] ), glm::abs( axes[2] ) };
-    const glm::mat3 axesSgn{ glm::sign( axes[0] ), glm::sign( axes[1] ), glm::sign( axes[2] ) };
-
-    // Render the two sets of labels that are closest to the view plane:
-    if ( axesAbs[0].z > axesAbs[1].z && axesAbs[0].z > axesAbs[2].z )
-    {
-        labels[L].first = false;
-        labels[R].first = false;
-        labels[P].first = true;
-        labels[A].first = true;
-        labels[S].first = true;
-        labels[I].first = true;
-    }
-    else if ( axesAbs[1].z > axesAbs[0].z && axesAbs[1].z > axesAbs[2].z )
-    {
-        labels[L].first = true;
-        labels[R].first = true;
-        labels[P].first = false;
-        labels[A].first = false;
-        labels[S].first = true;
-        labels[I].first = true;
-    }
-    else if ( axesAbs[2].z > axesAbs[0].z && axesAbs[2].z > axesAbs[1].z )
-    {
-        labels[L].first = true;
-        labels[R].first = true;
-        labels[P].first = true;
-        labels[A].first = true;
-        labels[S].first = false;
-        labels[I].first = false;
-    }
-
-    const auto& minMaxCoords = view.winMouseMinMaxCoords();
-
-    const float viewWidth = minMaxCoords.second.x - minMaxCoords.first.x;
-    const float viewHeight = minMaxCoords.second.y - minMaxCoords.first.y;
     const float fontSizePixels = sk_fontMult * std::min( viewWidth, viewHeight );
 
+    // For inward shift of the labels:
+    const glm::vec2 inwardFontShift{ 0.8f * fontSizePixels, 0.8f * fontSizePixels };
+
+    // For downward shift of the labels:
+    const glm::vec2 vertFontShift{ 0.0f, 0.35f * fontSizePixels };
 
     nvgFontSize( nvg, fontSizePixels );
     nvgFontFace( nvg, ROBOTO_LIGHT.c_str() );
     nvgTextAlign( nvg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE );
 
-    // To do fixed shift downwards:
-    static const glm::vec2 sk_vertShift{ 0, 1 };
+    // Clip against the view bounds, even though not strictly necessary with how lines are defined
+    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
 
     // Render the translation vectors for the L (0), P (1), and S (2) labels:
-    for ( int i = 0; i < 3; ++i )
+    for ( const auto& label : labelPosInfo )
     {
-        const uint32_t ii = static_cast<uint32_t>( i );
+        const glm::vec2 posWinMousePos = glm::clamp( label.mouseLabelPositions[0],
+                viewBL + inwardFontShift, viewTR - inwardFontShift ) + vertFontShift;
 
-        if ( ! labels[ii].first || ! labels[ii+3].first ) continue;
-
-        glm::vec3 t = ( axesAbs[i].x > 0.0f && axesAbs[i].y / axesAbs[i].x <= 1.0f )
-                ? glm::vec3{ axesSgn[i].x, axesSgn[i].y * axesAbs[i].y / axesAbs[i].x, 0.0f }
-                : glm::vec3{ axesSgn[i].x * axesAbs[i].x / axesAbs[i].y, axesSgn[i].y, 0.0f };
-
-        // Clamp and shift labels, so that they are not cut off:
-        t = glm::clamp( t, sk_ndcMin, sk_ndcMax );
-
-        // To do inward shift:
-        const glm::vec2 signedShift{ axesSgn[i].x, -axesSgn[i].y };
-
-        /// @todo Why do the labels go back on themselves at 12, 3, 6, and 9 o'clock?
-
-        const glm::vec4 posWinClipPos = view.winClip_T_viewClip() * glm::vec4{ t, 1.0f };
-        const glm::vec2 posWinPixelPos = camera::view_T_ndc( windowVP, glm::vec2{ posWinClipPos / posWinClipPos.w } );
-        const glm::vec2 posWinMousePos = camera::mouse_T_view( windowVP, posWinPixelPos ) +
-                fontSizePixels * ( -0.8f * signedShift + 0.35f * sk_vertShift );
-
-        const glm::vec4 negWinClipPos = view.winClip_T_viewClip() * glm::vec4{ -t, 1.0f };
-        const glm::vec2 negWinPixelPos = camera::view_T_ndc( windowVP, glm::vec2{ negWinClipPos / negWinClipPos.w } );
-        const glm::vec2 negWinMousePos = camera::mouse_T_view( windowVP, negWinPixelPos ) +
-                fontSizePixels * ( 0.8f * signedShift + 0.35f * sk_vertShift );
-
-//        nvgBeginPath( nvg );
-//        nvgStrokeColor( nvg, s_yellow );
-
-//        nvgCircle( nvg, posWinMousePos.x, posWinMousePos.y, fontSizePixels/2.0f );
-//        nvgCircle( nvg, negWinMousePos.x, negWinMousePos.y, fontSizePixels/2.0f );
-//        nvgStroke( nvg );
+        const glm::vec2 negWinMousePos = glm::clamp( label.mouseLabelPositions[1],
+                viewBL + inwardFontShift, viewTR - inwardFontShift ) + vertFontShift;
 
         nvgFontBlur( nvg, 2.0f );
         nvgFillColor( nvg, s_black );
-        nvgText( nvg, posWinMousePos.x, posWinMousePos.y, labels[ii].second.c_str(), nullptr );
-        nvgText( nvg, negWinMousePos.x, negWinMousePos.y, labels[ii+3].second.c_str(), nullptr );
+        nvgText( nvg, posWinMousePos.x, posWinMousePos.y, labels[label.labelIndex].c_str(), nullptr );
+        nvgText( nvg, negWinMousePos.x, negWinMousePos.y, labels[label.labelIndex + 3].c_str(), nullptr );
 
         nvgFontBlur( nvg, 0.0f );
         nvgFillColor( nvg, nvgRGBAf( color.r, color.g, color.b, color.a ) );
-        nvgText( nvg, posWinMousePos.x, posWinMousePos.y, labels[ii].second.c_str(), nullptr );
-        nvgText( nvg, negWinMousePos.x, negWinMousePos.y, labels[ii+3].second.c_str(), nullptr );
+        nvgText( nvg, posWinMousePos.x, posWinMousePos.y, labels[label.labelIndex].c_str(), nullptr );
+        nvgText( nvg, negWinMousePos.x, negWinMousePos.y, labels[label.labelIndex + 3].c_str(), nullptr );
     }
+
+    nvgResetScissor( nvg );
 }
 
 
@@ -1415,31 +1441,12 @@ void renderViewOutline( NVGcontext* nvg, const View& view, bool drawActiveOutlin
  */
 void renderCrosshairsOverlay(
         NVGcontext* nvg,
-        const Viewport& windowVP,
         const View& view,
-        const glm::mat4& world_T_refSubject,
-        const glm::vec4& worldCrosshairs,
-        const glm::vec4& color )
+        const glm::vec4& color,
+        const std::list<AnatomicalLabelPosInfo>& labelPosInfo )
 {
     // Line segment stipple length in pixels
     constexpr float sk_stippleLen = 8.0f;
-
-//    auto compute_mouse_T_viewClip = [&windowVP, &view] ( const glm::vec4& viewClipPos ) -> glm::vec2
-//    {
-//        const glm::vec4 winClipPos = view.winClip_T_viewClip() * viewClipPos;
-//        const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos } );
-//        const glm::vec2 mousePos = camera::mouse_T_view( windowVP, pixelPos );
-//        return mousePos;
-//    };
-
-    const glm::mat4 mouse_T_viewClip =
-            camera::mouse_T_view( windowVP ) *
-            camera::view_T_ndc( windowVP ) *
-            view.winClip_T_viewClip();
-
-    const glm::mat3 mouse_T_viewClip_IT = glm::inverseTranspose( glm::mat3{ mouse_T_viewClip } );
-
-    const auto viewClipLabelPositions = computeAnatomicalLabelPositions( windowVP, view, world_T_refSubject );
 
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
@@ -1464,75 +1471,42 @@ void renderCrosshairsOverlay(
     // Clip against the view bounds, even though not strictly necessary with how lines are defined
     nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
 
-    glm::vec4 viewClipXhairPos = camera::clip_T_world( view.camera() ) * worldCrosshairs;
-    viewClipXhairPos /= viewClipXhairPos.w;
-
-    // Scaling to account for aspect ratio
-    const float aspectRatio = viewWidth / viewHeight;
-
-    const glm::vec2 aspectRatioScale = ( aspectRatio < 1.0f )
-            ? glm::vec2{ aspectRatio, 1.0f }
-            : glm::vec2{ 1.0f, 1.0f / aspectRatio };
-
-    for ( const auto& pos : viewClipLabelPositions )
+    for ( const auto& pos : labelPosInfo )
     {
-        if ( ! pos.visible ) continue;
+        if ( ! pos.mouseXhairPositions )
+        {
+            // Only render crosshairs when there are two intersections with the view box:
+            continue;
+        }
 
-        const glm::vec3 viewClipXhairDir{ pos.viewClipDir.x, pos.viewClipDir.y, 0.0f };
-
-        glm::vec3 mouseXhairDir = glm::normalize( mouse_T_viewClip_IT * viewClipXhairDir );
-        mouseXhairDir.x *= aspectRatioScale.x;
-        mouseXhairDir.y *= aspectRatioScale.y;
-
-        glm::vec4 mouseXhairPos = mouse_T_viewClip * viewClipXhairPos;
-        mouseXhairPos /= mouseXhairPos.w;
-
-//        auto t1 = math::computeRayAABBoxIntersection( glm::vec3{ mouseXhairPos },
-//                             mouseXhairDir,
-//                             glm::vec3{ viewBL.x, viewBL.y, 0.0f },
-//                             glm::vec3{ viewBL.x + viewWidth, viewBL.y + viewHeight, 0.0f } );
-
-//        const glm::vec3 mouseXhairPos0 = glm::vec3{ mouseXhairPos } + t1 * mouseXhairDir;
-
-        const float maxlen = viewWidth + viewHeight;
-        const glm::vec2 c{ mouseXhairPos };
-        const glm::vec2 d{ mouseXhairDir };
-        const glm::vec2 a = c + maxlen * d;
-        const glm::vec2 b = c - maxlen * d;
+        const auto& hits = *( pos.mouseXhairPositions );
 
         if ( camera::CameraType::Oblique != view.cameraType() )
         {
             // Orthogonal views get solid crosshairs:
             nvgBeginPath( nvg );
-            nvgMoveTo( nvg, a.x, a.y );
-            nvgLineTo( nvg, b.x, b.y );
+            nvgMoveTo( nvg, hits[0].x, hits[0].y );
+            nvgLineTo( nvg, hits[1].x, hits[1].y );
             nvgStroke( nvg );
         }
         else
         {
             // Oblique views get stippled crosshairs:
-
-            // Line from center to first edge:
-            const uint32_t numLinesAC = glm::distance( a, c ) / sk_stippleLen;
-            nvgBeginPath( nvg );
-            for ( uint32_t i = 0; i <= numLinesAC; ++i )
+            for ( int line = 0; line < 2; ++line )
             {
-                const glm::vec2 p = c + static_cast<float>( i ) / static_cast<float>( numLinesAC ) * ( a - c );
-                if ( i % 2 ) nvgMoveTo( nvg, p.x, p.y );
-                else nvgLineTo( nvg, p.x, p.y );
-            }
-            nvgStroke( nvg );
+                const uint32_t numLines = glm::distance( hits[line], pos.mouseXhairCenterPos ) / sk_stippleLen;
 
-            // Line from center to second edge:
-            const uint32_t numLinesBC = glm::distance( b, c ) / sk_stippleLen;
-            nvgBeginPath( nvg );
-            for ( uint32_t i = 0; i <= numLinesBC; ++i )
-            {
-                const glm::vec2 p = c + static_cast<float>( i ) / static_cast<float>( numLinesBC ) * ( b - c );
-                if ( i % 2 ) nvgMoveTo( nvg, p.x, p.y );
-                else nvgLineTo( nvg, p.x, p.y );
+                nvgBeginPath( nvg );
+                for ( uint32_t i = 0; i <= numLines; ++i )
+                {
+                    const float t = static_cast<float>( i ) / static_cast<float>( numLines );
+                    const glm::vec2 p = pos.mouseXhairCenterPos + t * ( hits[line] - pos.mouseXhairCenterPos );
+
+                    if ( i % 2 ) nvgLineTo( nvg, p.x, p.y ); // when i odd
+                    else nvgMoveTo( nvg, p.x, p.y ); // when i even
+                }
+                nvgStroke( nvg );
             }
-            nvgStroke( nvg );
         }
     }
 
@@ -2885,11 +2859,11 @@ void Rendering::renderVectorOverlays()
                 if ( m_showOverlays &&
                      camera::ViewRenderMode::Disabled != view->renderMode() )
                 {
-                    renderCrosshairsOverlay( m_nvg, windowVP, *view, world_T_refSubject, worldCrosshairs,
-                                             m_appData.renderData().m_crosshairsColor );
+                    const auto labelPosInfo = computeAnatomicalLabelPosInfo(
+                                windowVP, *view, world_T_refSubject, worldCrosshairs );
 
-                    renderAnatomicalLabels( m_nvg, windowVP, *view, world_T_refSubject,
-                                            m_appData.renderData().m_anatomicalLabelColor );
+                    renderCrosshairsOverlay( m_nvg, *view, m_appData.renderData().m_crosshairsColor, labelPosInfo );
+                    renderAnatomicalLabels( m_nvg, *view, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
                 }
 
                 const bool drawActiveOutline = ( annotating && activeViewUid && ( *activeViewUid == viewUid ) );

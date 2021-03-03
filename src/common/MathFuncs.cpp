@@ -335,4 +335,78 @@ std::tuple<bool, float, float> slabs(glm::vec3 rayPos, glm::vec3 rayDir, glm::ve
     return std::make_tuple( a <= b, a, b );
 }
 
+
+std::optional<float> computeRayLineSegmentIntersection(
+        const glm::vec2& rayOrigin,
+        const glm::vec2& rayDir,
+        const glm::vec2& lineA,
+        const glm::vec2& lineB )
+{
+    const glm::vec2 v1 = rayOrigin - lineA;
+    const glm::vec2 v2 = lineB - lineA;
+    const glm::vec2 v3{ -rayDir.y, rayDir.x };
+
+    const float d = glm::dot( v2, v3 );
+
+    if ( std::abs( d ) < glm::epsilon<float>() )
+    {
+        return std::nullopt;
+    }
+
+    const float t1 = ( v2.x * v1.y - v2.y * v1.x ) / d;
+    const float t2 = glm::dot( v1, v3 ) / glm::dot( v2, v3 );
+
+    if ( 0.0f <= t1 && 0.0f <= t2 && t2 <= 1.0f )
+    {
+        return t1;
+    }
+
+    return std::nullopt;
+}
+
+
+std::vector< glm::vec2 >
+computeRayAABoxIntersections(
+        const glm::vec2& rayStart,
+        const glm::vec2& rayDir,
+        const glm::vec2& boxMin,
+        const glm::vec2& boxSize,
+        bool doBothRayDirections )
+{
+    std::vector< glm::vec2 > allHits;
+
+    std::array< std::pair<glm::vec2, glm::vec2>, 4 > lineSegs =
+    {
+        std::make_pair( glm::vec2{ boxMin.x, boxMin.y }, glm::vec2{ boxMin.x, boxMin.y + boxSize.y } ), // left
+        std::make_pair( glm::vec2{ boxMin.x + boxSize.x, boxMin.y }, glm::vec2{ boxMin.x + boxSize.x, boxMin.y + boxSize.y } ), // right
+        std::make_pair( glm::vec2{ boxMin.x, boxMin.y + boxSize.y }, glm::vec2{ boxMin.x + boxSize.x, boxMin.y + boxSize.y } ), // top
+        std::make_pair( glm::vec2{ boxMin.x, boxMin.y }, glm::vec2{ boxMin.x + boxSize.x, boxMin.y } ) // bottom
+    };
+
+    const glm::vec2 dirPos = glm::normalize( rayDir );
+
+    for ( const auto& lineSeg : lineSegs )
+    {
+        if ( const auto hit = math::computeRayLineSegmentIntersection( rayStart, dirPos, lineSeg.first, lineSeg.second ) )
+        {
+            allHits.push_back( rayStart + (*hit) * dirPos );
+        }
+    }
+
+    if ( doBothRayDirections )
+    {
+        const glm::vec2 dirNeg = -dirPos;
+
+        for ( const auto& lineSeg : lineSegs )
+        {
+            if ( const auto hit = math::computeRayLineSegmentIntersection( rayStart, dirNeg, lineSeg.first, lineSeg.second ) )
+            {
+                allHits.push_back( rayStart + (*hit) * dirNeg );
+            }
+        }
+    }
+
+    return allHits;
+}
+
 } // namespace math

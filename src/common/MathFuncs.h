@@ -159,6 +159,21 @@ std::pair<float,float> hits( glm::vec3 e1, glm::vec3 d, glm::vec3 uMinCorner, gl
 
 std::tuple<bool, float, float> slabs(glm::vec3 rayPos, glm::vec3 rayDir, glm::vec3 boxMin, glm::vec3 boxMax);
 
+std::optional<float>
+computeRayLineSegmentIntersection(
+        const glm::vec2& rayOrigin,
+        const glm::vec2& rayDir,
+        const glm::vec2& lineA,
+        const glm::vec2& lineB );
+
+std::vector< glm::vec2 >
+computeRayAABoxIntersections(
+        const glm::vec2& rayOrigin,
+        const glm::vec2& rayDir,
+        const glm::vec2& boxMin,
+        const glm::vec2& boxSize,
+        bool doBothRayDirections = false );
+
 } // namespace math
 
 #endif // MATH_FUNCS_H
