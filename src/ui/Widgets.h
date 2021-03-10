@@ -3,6 +3,8 @@
 
 #include <glm/vec3.hpp>
 
+#include <uuid.h>
+
 #include <functional>
 #include <utility>
 

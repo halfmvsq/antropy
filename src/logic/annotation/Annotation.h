@@ -39,7 +39,7 @@ class Annotation
 public:
 
     explicit Annotation(
-            const glm::vec4& planeEquation,
+            const glm::vec4& subjectPlaneEquation,
             std::shared_ptr< Polygon<float, 2> > polygon );
 
     ~Annotation() = default;
@@ -85,27 +85,27 @@ public:
     void setColor( glm::vec3 color );
     const glm::vec3& getColor() const;
 
-    /// Get the annotation plane
-    const glm::vec4& getPlaneEquation() const;
+    /// Get the annotation plane equation in Subject space
+    const glm::vec4& getSubjectPlaneEquation() const;
 
-    /// Get the annotation plane origin
-    const glm::vec3& getPlaneOrigin() const;
+    /// Get the annotation plane origin in Subject space
+    const glm::vec3& getSubjectPlaneOrigin() const;
 
-    /// Get the annotation plane coordinate axes
-    const std::pair<glm::vec3, glm::vec3>& getPlaneAxes() const;
+    /// Get the annotation plane coordinate axes in Subject space
+    const std::pair<glm::vec3, glm::vec3>& getSubjectPlaneAxes() const;
 
 
     /// Compute the projection of a 3D point into 2D annotation plane coordinates
-    glm::vec2 projectPoint( const glm::vec3& point3d ) const;
+    glm::vec2 projectPointToAnnotationPlane( const glm::vec3& point3d ) const;
 
     /// Compute the un-projected 3D coordinates of a 2D point defined in annotation plane coordinates
-    glm::vec3 unprojectPoint( const glm::vec2& planePoint2d ) const;
+    glm::vec3 unprojectPointFromAnnotationPlane( const glm::vec2& planePoint2d ) const;
 
 
 private:
 
-    /// Set the axes of the plane
-    bool setPlane( const glm::vec4& planeEquation );
+    /// Set the axes of the plane in Subject space
+    bool setsubjectPlane( const glm::vec4& subjectPlaneEquation );
 
     /// Set the annotation layer, with 0 being the backmost layer.
     /// @note Use the function \c changeSlideAnnotationLayering to change annotation layer
@@ -115,17 +115,16 @@ private:
     /// @note Set using the function \c changeSlideAnnotationLayering
     void setMaxLayer( uint32_t maxLayer );
 
-    /// Name of annotation
+    /// Annotation name
     std::string m_name;
 
     /// Annotation polygon, which can include holes
     std::shared_ptr< Polygon<float, 2> > m_polygon;
 
-    /// Internal layer of the annotation: 0 is the backmost layer and higher layers are more
-    /// frontwards.
+    /// Annotation layer: 0 is the backmost layer and higher layers are more frontwards
     uint32_t m_layer;
 
-    /// The maximum layer among all annotations for a given slide.
+    /// The maximum layer among all annotations in the same plane as this annotation
     uint32_t m_maxLayer;
 
     /// Annotation visibility
@@ -137,15 +136,16 @@ private:
     /// Annotation color (non-premultiplied RGB triple)
     glm::vec3 m_color;
 
-    /// Equation of the 3D plane containing this annotation.
-    /// The plane is defined by (A, B, C, D), where Ax + By + Cz + D = 0
-    glm::vec4 m_planeEquation;
+    /// Equation of the 3D plane containing this annotation. The plane is defined by the
+    /// coefficients (A, B, C, D) of equation Ax + By + Cz + D = 0, where (x, y, z) are
+    /// coordinates in image Subject space.
+    glm::vec4 m_subjectPlaneEquation;
 
-    /// Origin of the plane in 3D
-    glm::vec3 m_planeOrigin;
+    /// 3D origin of the plane in image Subject space
+    glm::vec3 m_subjectPlaneOrigin;
 
-    /// Coordinate axes of the plane in 3D
-    std::pair<glm::vec3, glm::vec3> m_planeAxes;
+    /// 3D axes of the plane in image Subject space
+    std::pair<glm::vec3, glm::vec3> m_subjectPlaneAxes;
 };
 
 #endif // ANNOTATION_H

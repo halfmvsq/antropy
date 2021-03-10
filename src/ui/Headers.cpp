@@ -50,6 +50,11 @@ static const ImVec4 imgHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
 /// Color of the active image header
 static const ImVec4 imgActiveHeaderColor( 0.20f, 0.62f, 0.45f, 1.0f );
 
+static const std::string sk_referenceAndActiveImageMessage( "This is the reference and active image." );
+static const std::string sk_referenceImageMessage( "This is the reference image." );
+static const std::string sk_activeImageMessage( "This is the active image." );
+static const std::string sk_nonActiveImageMessage( "This is not the active image." );
+
 } // anonymous
 
 
@@ -336,6 +341,7 @@ void renderImageHeader(
         {
             if ( appData.setActiveImageUid( imageUid ) ) return;
         }
+
         if ( ImGui::IsItemHovered() )
         {
             ImGui::SetTooltip( "Make this the active image." );
@@ -345,46 +351,64 @@ void renderImageHeader(
     {
         ImGui::Button( ICON_FK_TOGGLE_ON );
 
-        ImGui::SameLine();
-        if ( ImGui::Button( ( image->transformations().is_worldDef_T_affine_locked()
-                              ? ICON_FK_LOCK : ICON_FK_UNLOCK ), sk_smallToolbarButtonSize ) )
-        {
-            setLockManualImageTransformation( imageUid, ! image->transformations().is_worldDef_T_affine_locked() );
-        }
         if ( ImGui::IsItemHovered() )
         {
-            if ( image->transformations().is_worldDef_T_affine_locked() )
-            {
-                ImGui::SetTooltip( "Manual image transformation is locked.\nClick to unlock and allow movement." );
-            }
-            else
-            {
-                ImGui::SetTooltip( "Manual image transformation is unlocked.\nClick to lock and prevent movement." );
-            }
+            ImGui::SetTooltip( "This is the active image." );
         }
     }
 
-
-    ImGui::SameLine( 0.0f, 12.0f );
+    ImGui::SameLine();
 
     const bool isRef = ( 0 == imageIndex );
 
     if ( isRef && isActiveImage )
     {
-        ImGui::Text( "This is the reference and active image." );
+        ImGui::Text( "%s", sk_referenceAndActiveImageMessage.c_str() );
     }
     else if ( isRef )
     {
-        ImGui::Text( "This is the reference image." );
+        ImGui::Text( "%s", sk_referenceImageMessage.c_str() );
     }
     else if ( isActiveImage )
     {
-        ImGui::Text( "This is the active image." );
+        ImGui::Text( "%s", sk_activeImageMessage.c_str() );
     }
     else
     {
-        ImGui::Text( "This is not the active image." );
+        ImGui::Text( "%s", sk_nonActiveImageMessage.c_str() );
     }
+
+
+    if ( isActiveImage )
+    {
+        if ( ImGui::Button( ( image->transformations().is_worldDef_T_affine_locked()
+                              ? ICON_FK_LOCK : ICON_FK_UNLOCK ), sk_smallToolbarButtonSize ) )
+        {
+            setLockManualImageTransformation( imageUid, ! image->transformations().is_worldDef_T_affine_locked() );
+        }
+
+        if ( image->transformations().is_worldDef_T_affine_locked() )
+        {
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "Manual image transformation is locked.\nClick to unlock and allow movement." );
+            }
+
+            ImGui::SameLine();
+            ImGui::Text( "Transformation is locked." );
+        }
+        else
+        {
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "Manual image transformation is unlocked.\nClick to lock and prevent movement." );
+            }
+
+            ImGui::SameLine();
+            ImGui::Text( "Transformation is unlocked." );
+        }
+    }
+
 
     if ( 0 < imageIndex )
     {
@@ -1130,20 +1154,19 @@ void renderSegmentationHeader(
 
     if ( isRef && isActiveImage )
     {
-        ImGui::Text( "This is the reference and active image." );
+        ImGui::Text( "%s", sk_referenceAndActiveImageMessage.c_str() );
     }
     else if ( isRef )
     {
-        ImGui::Text( "This is the reference image." );
+        ImGui::Text( "%s", sk_referenceImageMessage.c_str() );
     }
     else if ( isActiveImage )
     {
-        ImGui::Text( "This is the active image." );
+        ImGui::Text( "%s", sk_activeImageMessage.c_str() );
     }
     else
     {
-        // Serves as a reminder to the user that the image is not active:
-        ImGui::Text( "This is not the active image." );
+        ImGui::Text( "%s", sk_nonActiveImageMessage.c_str() );
     }
 
 

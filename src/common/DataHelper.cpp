@@ -389,7 +389,7 @@ std::optional< uuids::uuid > findAnnotationForImage(
         const Annotation* annot = appData.annotation( annotUid );
         if ( ! annot ) continue;
 
-        const glm::vec4 P = annot->getPlaneEquation();
+        const glm::vec4 P = annot->getSubjectPlaneEquation();
 
         // Compare angle between normal vectors and distances between plane offsets:
         const glm::vec3 n1 = glm::normalize( glm::vec3{ P } );

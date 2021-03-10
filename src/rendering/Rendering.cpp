@@ -1259,7 +1259,7 @@ void renderAnnotations(
         for ( size_t i = 0; i < subjectPlaneVertices.size(); ++i )
         {
             const glm::vec2 subjectPlanePos = subjectPlaneVertices[i];
-            const glm::vec3 subjectPos = annot->unprojectPoint( subjectPlanePos );
+            const glm::vec3 subjectPos = annot->unprojectPointFromAnnotationPlane( subjectPlanePos );
             const glm::vec4 worldPos = world_T_subject * glm::vec4{ subjectPos, 1.0f };
             const glm::vec2 mousePos = convertWorldToMousePos( glm::vec3{ worldPos / worldPos.w } );
 

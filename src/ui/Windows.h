@@ -99,4 +99,8 @@ void renderInspectionWindow(
         const std::function< std::optional<int64_t> ( size_t imageIndex ) >& getSegLabel,
         const std::function< ParcellationLabelTable* ( size_t tableIndex ) >& getLabelTable );
 
+void renderOpacityBlenderWindow(
+        AppData& appData,
+        const std::function< void ( const uuids::uuid& imageUid ) >& updateImageUniforms );
+
 #endif // UI_WINDOWS_H

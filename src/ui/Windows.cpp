@@ -457,6 +457,11 @@ void renderImagePropertiesWindow(
                     getActiveImageIndex,
                     setActiveImageIndex );
 
+        if ( ImGui::Button( "Opacity mixer" ) )
+        {
+            appData.guiData().m_showOpacityBlenderWindow = true;
+        }
+
         ImGui::Separator();
 
         size_t imageIndex = 0;
@@ -1101,12 +1106,12 @@ void renderInspectionWindow(
     };
 
 
-    auto showSelectionButton = [/*&contextMenu*/] ()
+    auto showSelectionButton = [] ()
     {
         ImGui::PushStyleColor( ImGuiCol_Button, buttonColor );
-        if ( ImGui::Button( ICON_FK_LIST_UL ) )
+        if ( ImGui::Button( ICON_FK_LIST_ALT ) )
         {
-//            ImGui::OpenPopup( "selectionPopup" );
+            ImGui::OpenPopup( "selectionPopup" );
         }
         ImGui::PopStyleColor( 1 );
 
@@ -1114,18 +1119,6 @@ void renderInspectionWindow(
         {
             ImGui::SetTooltip( "Select image(s) to inspect" );
         }
-
-//        ImGui::BeginPopup( "selectionPopup" );
-//        {
-//            contextMenu();
-//            ImGui::EndPopup();
-//        }
-
-        /// @todo This is not correct. We should be using the code above
-//        if ( ImGui::BeginPopupContextWindow( "selectionPopup", ImGuiPopupFlags_MouseButtonLeft ) )
-//        {
-//            contextMenu();
-//        }
     };
 
 
@@ -1306,7 +1299,152 @@ void renderInspectionWindow(
 
         if ( ImGui::BeginPopupContextWindow() )
         {
+            // Show context menu on right-button click:
             contextMenu();
+        }
+        else if ( ImGui::BeginPopup( "selectionPopup" ) )
+        {
+            // Show context menu if the user has clicked the popup button:
+            contextMenu();
+            ImGui::EndPopup();
+        }
+    }
+
+    ImGui::End();
+}
+
+
+void renderOpacityBlenderWindow(
+        AppData& appData,
+        const std::function< void ( const uuids::uuid& imageUid ) >& updateImageUniforms )
+{
+    static const char* windowName = "Image Opacity Mixer";
+
+    if ( ! appData.guiData().m_showOpacityBlenderWindow ) return;
+
+    const bool showWindow = ImGui::Begin(
+                windowName,
+                &( appData.guiData().m_showOpacityBlenderWindow ),
+                ImGuiWindowFlags_NoCollapse |
+                ImGuiWindowFlags_AlwaysAutoResize );
+
+    if ( ! showWindow )
+    {
+        ImGui::End();
+        return;
+    }
+
+    int imageIndex = 0;
+
+    for ( const auto& imageUid : appData.imageUidsOrdered() )
+    {
+        Image* image = appData.image( imageUid );
+        if ( ! image ) continue;
+
+        ImageSettings& imgSettings = image->settings();
+
+        double opacity = imgSettings.opacity();
+
+        const glm::vec3 borderColorHsv = glm::hsvColor( imgSettings.borderColor() );
+
+        const float hue = borderColorHsv[0];
+        const float sat = borderColorHsv[1];
+        const float val = borderColorHsv[2];
+
+        const glm::vec3 bgColor = glm::rgbColor( glm::vec3{ hue, 0.5f * sat, 0.5f * val } );
+        const glm::vec3 bgHoveredColor = glm::rgbColor( glm::vec3{ hue, 0.6f * sat, 0.5f * val } );
+        const glm::vec3 frameBgActiveColor = glm::rgbColor( glm::vec3{ hue, 0.7f * sat, 0.5f * val } );
+        const glm::vec3 sliderGrabColor = glm::rgbColor( glm::vec3{ hue, sat, val } );
+
+        ImGui::PushID( imageIndex );
+        ImGui::PushStyleColor( ImGuiCol_FrameBg, ImVec4( bgColor.r, bgColor.g, bgColor.b, 1.0f ) );
+        ImGui::PushStyleColor( ImGuiCol_FrameBgHovered, ImVec4( bgHoveredColor.r, bgHoveredColor.g, bgHoveredColor.b, 1.0f ) );
+        ImGui::PushStyleColor( ImGuiCol_FrameBgActive, ImVec4( frameBgActiveColor.r, frameBgActiveColor.g, frameBgActiveColor.b, 1.0f ) );
+        ImGui::PushStyleColor( ImGuiCol_SliderGrab, ImVec4( sliderGrabColor.r, sliderGrabColor.g, sliderGrabColor.b, 1.0f ) );
+
+        const std::string name = imgSettings.displayName() + "##" + std::to_string( imageIndex );
+
+        if ( mySliderF64( name.c_str(), &opacity, 0.0, 1.0 ) && ! appData.renderData().m_opacityMixMode )
+        {
+            imgSettings.setOpacity( opacity );
+            updateImageUniforms( imageUid );
+        }
+
+        if ( ImGui::IsItemActive() || ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%.2f", opacity );
+        }
+
+        ImGui::PopStyleColor( 4 );
+        ImGui::PopID();
+    }
+
+
+    static double mix = 0.0;
+
+    if ( appData.numImages() > 1 )
+    {
+        ImGui::Checkbox( "Master opacity mixer", &( appData.renderData().m_opacityMixMode ) );
+        ImGui::SameLine(); helpMarker( "Show master opacity mixer" );
+    }
+    else
+    {
+        appData.renderData().m_opacityMixMode = false;
+    }
+
+    if ( appData.renderData().m_opacityMixMode )
+    {
+        mySliderF64( "Blend", &mix, 0.0, 1.0 );
+
+        const double imgIndex = mix * static_cast<double>( appData.numImages() - 1 );
+
+        const double frac = imgIndex - std::floor( imgIndex );
+
+        size_t imgIndexLo = static_cast<size_t>( std::floor( imgIndex ) );
+        size_t imgIndexHi = static_cast<size_t>( std::ceil( imgIndex ) );
+
+//        if ( imgIndexLo == imgIndexHi )
+//        {
+//            if ( 0 == imgIndexLo )
+//            {
+//                imgIndexHi = 1;
+//            }
+//            else if ( appData.numImages() - 1 == imgIndexHi )
+//            {
+//                imgIndexLo = imgIndexHi - 1;
+//            }
+//        }
+
+//        std::ostringstream ss;
+//        ss << "Blend images " << imgIndexLo << " and " << imgIndexHi << " (%.2f)" << std::ends;
+
+//        mySliderF64( "Blend", &mix, 0.0, 1.0, ss.str().c_str() );
+
+        for ( size_t i = 0; i < appData.numImages(); ++i )
+        {
+            const auto imgUid = appData.imageUid( i );
+            if ( ! imgUid ) continue;
+
+            Image* img = appData.image( *imgUid );
+            if ( ! img ) continue;
+
+            double op = 0.0;
+
+            if ( i < imgIndexLo || imgIndexHi < i )
+            {
+                op = 0.0;
+            }
+            else if ( imgIndexLo == i )
+            {
+                op = 1.0 - frac;
+            }
+            else if ( imgIndexHi == i )
+            {
+                op = frac;
+            }
+
+            img->settings().setOpacity( op );
+            updateImageUniforms( *imgUid );
         }
     }
 

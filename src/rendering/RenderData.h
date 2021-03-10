@@ -107,6 +107,10 @@ struct RenderData
     // Should image segmentation opacity be modulated by the image opacity?
     bool m_modulateSegOpacityWithImageOpacity;
 
+    // Flag that image opacities are adjusted in "mix" mode, which allows
+    // blending between a pair of images
+    bool m_opacityMixMode;
+
     glm::vec3 m_backgroundColor; // View background (clear) color
     glm::vec4 m_crosshairsColor; // Crosshairs color (non-premultiplied by alpha)
     glm::vec4 m_anatomicalLabelColor; // Anatomical label text color (non-premultiplied by alpha)

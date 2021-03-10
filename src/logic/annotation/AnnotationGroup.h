@@ -1,7 +1,7 @@
 #ifndef ANNOTATION_GROUP_H
 #define ANNOTATION_GROUP_H
 
-/// This class holds annotations that belong to the same subject plane.
+/// This class holds annotations that belong to the same plane of the same subject
 /// This way, annotations on the same slice are group together in the UI.
 /// It also makes searching for annotations by normal/distance (plane equation) faster, since all annotations
 /// on the same slice are grouped.

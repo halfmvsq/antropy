@@ -187,7 +187,7 @@ void renderPaletteWindow(
         const std::function< const ImageColorMap* ( size_t cmapIndex ) >& getImageColorMap,
         const std::function< size_t (void) >& getCurrentImageColormapIndex,
         const std::function< void ( size_t cmapIndex ) >& setCurrentImageColormapIndex,
-        const std::function< void (void) >& updateImageUniforms )
+        const std::function< void ( void ) >& updateImageUniforms )
 {
     /// @todo model this after the Example: Property editor in ImGui
 

@@ -24,6 +24,7 @@ struct GuiData
     bool m_showAnnotationsWindow = false; //!< Show annotations window
     bool m_showSettingsWindow = false; //!< Show settings window
     bool m_showInspectionWindow = true; //!< Show cursor inspection window
+    bool m_showOpacityBlenderWindow = false; //!< Show opacity blender window
     bool m_showDemoWindow = false; //!< Show ImGui demo window
 
     /// Map of imageUid to boolean of whether its image color map window is shown.

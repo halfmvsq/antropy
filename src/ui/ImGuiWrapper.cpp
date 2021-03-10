@@ -3,6 +3,7 @@
 #include "ui/Helpers.h"
 #include "ui/Style.h"
 #include "ui/Toolbars.h"
+#include "ui/Widgets.h"
 #include "ui/Windows.h"
 
 #include "logic/app/Data.h"
@@ -519,6 +520,11 @@ void ImGuiWrapper::render()
                         m_appData,
                         m_recenterView,
                         recenterViewsOnCurrentCrosshairsPosition );
+        }
+
+        if ( m_appData.guiData().m_showOpacityBlenderWindow )
+        {
+            renderOpacityBlenderWindow( m_appData, m_updateImageUniforms );
         }
 
         renderToolbar(
