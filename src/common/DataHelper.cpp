@@ -241,7 +241,7 @@ glm::vec2 sliceMoveDistance(
 }
 
 
-AABB<float> enclosingWorldBox(
+AABB<float> computeWorldAABBoxEnclosingImages(
         const AppData& data,
         const ImageSelection& imageSelection )
 {
@@ -260,8 +260,11 @@ AABB<float> enclosingWorldBox(
         const auto world_T_subject = img->transformations().worldDef_T_subject();
         const auto subjectCorners = img->header().subjectAABboxMinMaxCorners();
 
-        corners.push_back( glm::vec3{ world_T_subject * glm::vec4{ subjectCorners.first, 1.0f } } );
-        corners.push_back( glm::vec3{ world_T_subject * glm::vec4{ subjectCorners.second, 1.0f } } );
+        glm::vec4 corner1 = world_T_subject * glm::vec4{ subjectCorners.first, 1.0f };
+        glm::vec4 corner2 = world_T_subject * glm::vec4{ subjectCorners.second, 1.0f };
+
+        corners.push_back( glm::vec3{ corner1 / corner1.w } );
+        corners.push_back( glm::vec3{ corner2 / corner2.w } );
     }
 
     if ( ! anyImagesUsed )
@@ -357,7 +360,7 @@ void moveCrosshairsOnViewSlice(
     const auto viewUid = appData.windowData().currentViewUidAtCursor( currWindowPos );
     if ( ! viewUid ) return;
 
-    const View* view = appData.windowData().currentView( *viewUid );
+    const View* view = appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 

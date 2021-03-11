@@ -8,6 +8,9 @@
 
 #include <glm/glm.hpp>
 
+#define GLM_ENABLE_EXPERIMENTAL
+#include <glm/gtx/string_cast.hpp>
+
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
@@ -324,20 +327,23 @@ void WindowData::setupViews()
     m_layouts.emplace_back( createGridLayout ( 1, 1, false, false, camera::CameraType::Axial ) );
     m_layouts.emplace_back( createGridLayout ( 2, 1, false, false, camera::CameraType::Axial ) );
     m_layouts.emplace_back( createGridLayout ( 3, 1, false, false, camera::CameraType::Axial ) );
-    updateViews();
+
+    updateAllViews();
 }
 
 void WindowData::addGridLayout( int width, int height, bool offsetViews, bool isLightbox )
 {
-    m_layouts.emplace_back( createGridLayout( width, height, offsetViews, isLightbox,
-                                              camera::CameraType::Axial ) );
-    updateViews();
+    m_layouts.emplace_back(
+                createGridLayout( width, height, offsetViews, isLightbox,
+                                  camera::CameraType::Axial ) );
+
+    updateAllViews();
 }
 
 void WindowData::addLightboxLayoutForImage( size_t numSlices )
 {
-    constexpr bool k_offsetViews = true;
-    constexpr bool k_isLightbox = true;
+    static constexpr bool k_offsetViews = true;
+    static constexpr bool k_isLightbox = true;
 
     const int w = static_cast<int>( std::sqrt( numSlices + 1 ) );
     const auto div = std::div( static_cast<int>( numSlices ), w );
@@ -349,7 +355,7 @@ void WindowData::addLightboxLayoutForImage( size_t numSlices )
 void WindowData::addAxCorSagLayout( size_t numImages )
 {
     m_layouts.emplace_back( createTriTopBottomLayout( numImages ) );
-    updateViews();
+    updateAllViews();
 }
 
 void WindowData::removeLayout( size_t index )
@@ -363,7 +369,7 @@ void WindowData::removeLayout( size_t index )
 void WindowData::setDefaultRenderedImagesForLayout(
         Layout& layout, uuid_range_t orderedImageUids )
 {
-    constexpr bool s_filterAgainstDefaults = true;
+    static constexpr bool s_filterAgainstDefaults = true;
 
     std::list<uuids::uuid> renderedImages;
     std::list<uuids::uuid> metricImages;
@@ -400,7 +406,7 @@ void WindowData::setDefaultRenderedImagesForLayout(
 
 void WindowData::setDefaultRenderedImagesForAllLayouts( uuid_range_t orderedImageUids )
 {
-    constexpr bool s_filterAgainstDefaults = true;
+    static constexpr bool s_filterAgainstDefaults = true;
 
     std::list<uuids::uuid> renderedImages;
     std::list<uuids::uuid> metricImages;
@@ -457,10 +463,9 @@ void WindowData::updateImageOrdering( uuid_range_t orderedImageUids )
 }
 
 
-void WindowData::recenterViews(
+void WindowData::recenterAllViews(
         const glm::vec3& worldCenter,
         const glm::vec3& worldFov,
-        float scale,
         bool resetZoom,
         bool resetObliqueOrientation )
 {
@@ -468,50 +473,49 @@ void WindowData::recenterViews(
     {
         for ( auto& view : layout.views() )
         {
-            if ( ! view.second ) continue;
-
-            if ( resetZoom )
+            if ( view.second )
             {
-                camera::resetZoom( view.second->camera() );
+                recenterView( view.second.get(), worldCenter, worldFov, resetZoom, resetObliqueOrientation );
             }
-
-            if ( resetObliqueOrientation &&
-                 ( camera::CameraType::Oblique == view.second->cameraType() ) )
-            {
-                // Reset the view orientation for oblique views
-                camera::resetViewTransformation( view.second->camera() );
-            }
-
-            camera::positionCameraForWorldTargetAndFov(
-                        view.second->camera(), worldFov, worldCenter, scale );
         }
     }
-
-    updateViews();
 }
 
 
-/// @todo Bring this function into CallbackHandler?
-/// would need to make updateViews public.
 void WindowData::recenterView(
         const uuids::uuid& viewUid,
         const glm::vec3& worldCenter,
         const glm::vec3& worldFov,
+        bool resetZoom,
         bool resetObliqueOrientation )
 {
-    View* view = currentView( viewUid );
+    recenterView( getView( viewUid ), worldCenter, worldFov, resetZoom, resetObliqueOrientation );
+}
+
+
+void WindowData::recenterView(
+        View* view,
+        const glm::vec3& worldCenter,
+        const glm::vec3& worldFov,
+        bool resetZoom,
+        bool resetObliqueOrientation )
+{
     if ( ! view ) return;
+
+    if ( resetZoom )
+    {
+        camera::resetZoom( view->camera() );
+    }
 
     if ( resetObliqueOrientation && ( camera::CameraType::Oblique == view->cameraType() ) )
     {
-        // Reset the view orientation for oblique views
+        // Reset the view orientation for oblique views:
         camera::resetViewTransformation( view->camera() );
     }
 
-    // This function doesn't mess with the view's FOV
-    camera::positionCameraForWorldTarget( view->camera(), worldFov, worldCenter );
+    camera::positionCameraForWorldTargetAndFov( view->camera(), worldFov, worldCenter );
 
-    updateViews();
+    updateView( view );
 }
 
 
@@ -520,7 +524,7 @@ uuid_range_t WindowData::currentViewUids() const
     return ( m_layouts.at( m_currentLayout ).views() | boost::adaptors::map_keys );
 }
 
-const View* WindowData::currentView( const uuids::uuid& uid ) const
+const View* WindowData::getCurrentView( const uuids::uuid& uid ) const
 {
     const auto& views = m_layouts.at( m_currentLayout ).views();
     auto it = views.find( uid );
@@ -531,7 +535,7 @@ const View* WindowData::currentView( const uuids::uuid& uid ) const
     return nullptr;
 }
 
-View* WindowData::currentView( const uuids::uuid& uid )
+View* WindowData::getCurrentView( const uuids::uuid& uid )
 {
     auto& views = m_layouts.at( m_currentLayout ).views();
     auto it = views.find( uid );
@@ -542,8 +546,34 @@ View* WindowData::currentView( const uuids::uuid& uid )
     return nullptr;
 }
 
-std::optional<uuids::uuid> WindowData::currentViewUidAtCursor(
-        const glm::vec2& windowPos ) const
+const View* WindowData::getView( const uuids::uuid& uid ) const
+{
+    for ( const auto& layout : m_layouts )
+    {
+        auto it = layout.views().find( uid );
+        if ( std::end( layout.views() ) != it )
+        {
+            if ( it->second ) return it->second.get();
+        }
+    }
+    return nullptr;
+}
+
+View* WindowData::getView( const uuids::uuid& uid )
+{
+    for ( const auto& layout : m_layouts )
+    {
+        auto it = layout.views().find( uid );
+        if ( std::end( layout.views() ) != it )
+        {
+            if ( it->second ) return it->second.get();
+        }
+    }
+    return nullptr;
+}
+
+std::optional<uuids::uuid>
+WindowData::currentViewUidAtCursor( const glm::vec2& windowPos ) const
 {
     if ( m_layouts.empty() ) return std::nullopt;
 
@@ -628,14 +658,14 @@ void WindowData::resizeViewport( int width, int height )
 {
     m_viewport.setWidth( static_cast<float>( width ) );
     m_viewport.setHeight( static_cast<float>( height ) );
-    updateViews();
+    updateAllViews();
 }
 
 void WindowData::setDeviceScaleRatio( const glm::vec2& scale )
 {
     spdlog::trace( "Setting device scale ratio to {}x{}", scale.x, scale.y );
     m_viewport.setDevicePixelRatio( scale );
-    updateViews();
+    updateAllViews();
 }
 
 uuid_range_t WindowData::cameraTranslationGroupViewUids(
@@ -661,7 +691,7 @@ void WindowData::applyImageSelectionToAllCurrentViews(
 {
     constexpr bool s_filterAgainstDefaults = false;
 
-    const View* referenceView = currentView( referenceViewUid );
+    const View* referenceView = getCurrentView( referenceViewUid );
     if ( ! referenceView ) return;
 
     const auto renderedImages = referenceView->renderedImages();
@@ -669,7 +699,7 @@ void WindowData::applyImageSelectionToAllCurrentViews(
 
     for ( auto& viewUid : currentViewUids() )
     {
-        View* view = currentView( viewUid );
+        View* view = getCurrentView( viewUid );
         if ( ! view ) continue;
 
         view->setRenderedImages( renderedImages, s_filterAgainstDefaults );
@@ -677,16 +707,17 @@ void WindowData::applyImageSelectionToAllCurrentViews(
     }
 }
 
-void WindowData::applyViewShaderToAllCurrentViews( const uuids::uuid& referenceViewUid )
+void WindowData::applyViewShaderToAllCurrentViews(
+        const uuids::uuid& referenceViewUid )
 {
-    const View* referenceView = currentView( referenceViewUid );
+    const View* referenceView = getCurrentView( referenceViewUid );
     if ( ! referenceView ) return;
 
     const auto shaderType = referenceView->renderMode();
 
     for ( auto& viewUid : currentViewUids() )
     {
-        View* view = currentView( viewUid );
+        View* view = getCurrentView( viewUid );
         if ( ! view ) continue;
 
         if ( camera::CameraType::ThreeD == view->cameraType() )
@@ -699,68 +730,95 @@ void WindowData::applyViewShaderToAllCurrentViews( const uuids::uuid& referenceV
     }
 }
 
-void WindowData::updateViews()
-{
-    recomputeViewAspectRatios();
-    recomputeViewCorners();
-}
-
-void WindowData::recomputeViewAspectRatios()
+void WindowData::recomputeAllViewAspectRatios()
 {
     for ( auto& layout : m_layouts )
     {
         for ( auto& view : layout.views() )
         {
-            if ( ! view.second ) continue;
-
-            const auto ratio = m_viewport.aspectRatio() *
-                    view.second->winClipViewport().aspectRatio();
-
-            view.second->camera().setAspectRatio( ratio );
+            if ( view.second )
+            {
+                recomputeViewAspectRatio( view.second.get() );
+            }
         }
     }
 }
 
-void WindowData::recomputeViewCorners()
+void WindowData::recomputeViewAspectRatio( View* view )
 {
-    // Bottom-left and top-right coordinates in Clip space
+    if ( ! view ) return;
+
+    // The view camera's aspect ratio is the product of the main window's
+    // aspect ratio and the view's aspect ratio:
+    view->camera().setAspectRatio( m_viewport.aspectRatio() * view->winClipViewport().aspectRatio() );
+}
+
+void WindowData::recomputeAllViewCorners()
+{
+    // Bottom-left and top-right coordinates in Clip space:
     static const glm::vec4 s_clipViewBL{ -1, -1, 0, 1 };
     static const glm::vec4 s_clipViewTR{ 1, 1, 0, 1 };
 
     for ( auto& layout : m_layouts )
     {
-        for ( auto& view : layout.views() )
+        if ( layout.isLightbox() )
         {
-            if ( layout.isLightbox() )
-            {
-                const glm::vec4 winClipViewBL = s_clipViewBL;
-                const glm::vec2 winPixelViewBL = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewBL } );
-                const glm::vec2 winMouseViewBL = camera::mouse_T_view( m_viewport, winPixelViewBL );
-
-                const glm::vec4 winClipViewTR = s_clipViewTR;
-                const glm::vec2 winPixelViewTR = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewTR } );
-                const glm::vec2 winMouseViewTR = camera::mouse_T_view( m_viewport, winPixelViewTR );
-
-                const glm::vec2 cornerMin = glm::min( winMouseViewBL, winMouseViewTR );
-                const glm::vec2 cornerMax = glm::max( winMouseViewBL, winMouseViewTR );
-
-                layout.setWinMouseMinMaxCoords( { cornerMin, cornerMax } );
-            }
-
-            if ( ! view.second ) continue;
-
-            const glm::vec4 winClipViewBL = view.second->winClip_T_viewClip() * s_clipViewBL;
+            const glm::vec4 winClipViewBL = s_clipViewBL;
             const glm::vec2 winPixelViewBL = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewBL } );
             const glm::vec2 winMouseViewBL = camera::mouse_T_view( m_viewport, winPixelViewBL );
 
-            const glm::vec4 winClipViewTR = view.second->winClip_T_viewClip() * s_clipViewTR;
+            const glm::vec4 winClipViewTR = s_clipViewTR;
             const glm::vec2 winPixelViewTR = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewTR } );
             const glm::vec2 winMouseViewTR = camera::mouse_T_view( m_viewport, winPixelViewTR );
 
             const glm::vec2 cornerMin = glm::min( winMouseViewBL, winMouseViewTR );
             const glm::vec2 cornerMax = glm::max( winMouseViewBL, winMouseViewTR );
 
-            view.second->setWinMouseMinMaxCoords( { cornerMin, cornerMax } );
+            layout.setWinMouseMinMaxCoords( { cornerMin, cornerMax } );
+        }
+        else
+        {
+            for ( auto& view : layout.views() )
+            {
+                if ( view.second )
+                {
+                    recomputeViewCorners( view.second.get() );
+                }
+            }
         }
     }
+}
+
+void WindowData::recomputeViewCorners( View* view )
+{
+    // Bottom-left and top-right coordinates in Clip space:
+    static const glm::vec4 s_clipViewBL{ -1, -1, 0, 1 };
+    static const glm::vec4 s_clipViewTR{ 1, 1, 0, 1 };
+
+    if ( ! view ) return;
+
+    const glm::vec4 winClipViewBL = view->winClip_T_viewClip() * s_clipViewBL;
+    const glm::vec2 winPixelViewBL = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewBL } );
+    const glm::vec2 winMouseViewBL = camera::mouse_T_view( m_viewport, winPixelViewBL );
+
+    const glm::vec4 winClipViewTR = view->winClip_T_viewClip() * s_clipViewTR;
+    const glm::vec2 winPixelViewTR = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewTR } );
+    const glm::vec2 winMouseViewTR = camera::mouse_T_view( m_viewport, winPixelViewTR );
+
+    const glm::vec2 cornerMin = glm::min( winMouseViewBL, winMouseViewTR );
+    const glm::vec2 cornerMax = glm::max( winMouseViewBL, winMouseViewTR );
+
+    view->setWinMouseMinMaxCoords( { cornerMin, cornerMax } );
+}
+
+void WindowData::updateAllViews()
+{
+    recomputeAllViewAspectRatios();
+    recomputeAllViewCorners();
+}
+
+void WindowData::updateView( View* view )
+{
+    recomputeViewAspectRatio( view );
+    recomputeViewCorners( view );
 }

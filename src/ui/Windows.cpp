@@ -457,7 +457,7 @@ void renderImagePropertiesWindow(
                     getActiveImageIndex,
                     setActiveImageIndex );
 
-        if ( ImGui::Button( "Opacity mixer" ) )
+        if ( ImGui::Button( "Show opacity mixer" ) )
         {
             appData.guiData().m_showOpacityBlenderWindow = true;
         }
@@ -545,7 +545,6 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( const uuids::uuid& viewUid ) >& /*recenterView*/,
         const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews )
 {
     if ( ImGui::Begin( "Landmarks",
@@ -1384,8 +1383,8 @@ void renderOpacityBlenderWindow(
 
     if ( appData.numImages() > 1 )
     {
-        ImGui::Checkbox( "Master opacity mixer", &( appData.renderData().m_opacityMixMode ) );
-        ImGui::SameLine(); helpMarker( "Show master opacity mixer" );
+        ImGui::Checkbox( "Comparison blender", &( appData.renderData().m_opacityMixMode ) );
+        ImGui::SameLine(); helpMarker( "Use a single slider to blend across all adjacent image layers" );
     }
     else
     {
@@ -1394,31 +1393,14 @@ void renderOpacityBlenderWindow(
 
     if ( appData.renderData().m_opacityMixMode )
     {
-        mySliderF64( "Blend", &mix, 0.0, 1.0 );
+        mySliderF64( "Blend", &mix, 0.0, static_cast<double>( appData.numImages() - 1 ) );
 
-        const double imgIndex = mix * static_cast<double>( appData.numImages() - 1 );
+        const double imgIndex = mix;
 
         const double frac = imgIndex - std::floor( imgIndex );
 
         size_t imgIndexLo = static_cast<size_t>( std::floor( imgIndex ) );
         size_t imgIndexHi = static_cast<size_t>( std::ceil( imgIndex ) );
-
-//        if ( imgIndexLo == imgIndexHi )
-//        {
-//            if ( 0 == imgIndexLo )
-//            {
-//                imgIndexHi = 1;
-//            }
-//            else if ( appData.numImages() - 1 == imgIndexHi )
-//            {
-//                imgIndexLo = imgIndexHi - 1;
-//            }
-//        }
-
-//        std::ostringstream ss;
-//        ss << "Blend images " << imgIndexLo << " and " << imgIndexHi << " (%.2f)" << std::ends;
-
-//        mySliderF64( "Blend", &mix, 0.0, 1.0, ss.str().c_str() );
 
         for ( size_t i = 0; i < appData.numImages(); ++i )
         {

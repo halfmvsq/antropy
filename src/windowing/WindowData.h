@@ -27,14 +27,13 @@ public:
     void setDefaultRenderedImagesForAllLayouts( uuid_range_t orderedImageUids );
     void setDefaultRenderedImagesForLayout( Layout& layout, uuid_range_t orderedImageUids );
 
-    // Call this when image order changes in order to update rendered and metric images:
+    /// Call this when image order changes in order to update rendered and metric images
     void updateImageOrdering( uuid_range_t orderedImageUids );
 
-    /// Initialize the view to the given center and FOV, defined in World space
-    void recenterViews(
+    /// Initialize all view to the given center and FOV, defined in World space
+    void recenterAllViews(
             const glm::vec3& worldCenter,
             const glm::vec3& worldFov,
-            float scale,
             bool resetZoom,
             bool resetObliqueOrientation );
 
@@ -44,6 +43,14 @@ public:
             const uuids::uuid& viewUid,
             const glm::vec3& worldCenter,
             const glm::vec3& worldFov,
+            bool resetZoom,
+            bool resetObliqueOrientation );
+
+    void recenterView(
+            View* view,
+            const glm::vec3& worldCenter,
+            const glm::vec3& worldFov,
+            bool resetZoom,
             bool resetObliqueOrientation );
 
     /// Get all current view UIDs
@@ -52,11 +59,13 @@ public:
     /// In which view is the window position?
     std::optional<uuids::uuid> currentViewUidAtCursor( const glm::vec2& windowPos ) const;
 
-    /// Get const pointer to a current view
-    const View* currentView( const uuids::uuid& ) const;
+    /// Get const/non-const pointer to a current view
+    const View* getCurrentView( const uuids::uuid& ) const;
+    View* getCurrentView( const uuids::uuid& );
 
-    /// Get non-const pointer to a current view
-    View* currentView( const uuids::uuid& );
+    /// Get const/non-const pointer to a view
+    const View* getView( const uuids::uuid& ) const;
+    View* getView( const uuids::uuid& );
 
     /// Get UID of active view
     std::optional<uuids::uuid> activeViewUid() const;
@@ -114,10 +123,20 @@ public:
 
 private:
 
+    // Create the default view layouts
     void setupViews();
-    void updateViews();
-    void recomputeViewAspectRatios();
-    void recomputeViewCorners();
+
+    // Recompute view aspect ratios
+    void recomputeAllViewAspectRatios();
+    void recomputeViewAspectRatio( View* view );
+
+    // Recompute view corners
+    void recomputeAllViewCorners();
+    void recomputeViewCorners( View* view );
+
+    // Recompute view aspect ratios and corners
+    void updateAllViews();
+    void updateView( View* view );
 
     Viewport m_viewport; // Window viewport (encompassing all views)
     std::vector<Layout> m_layouts; // All view layouts

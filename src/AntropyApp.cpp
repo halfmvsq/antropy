@@ -307,8 +307,9 @@ void AntropyApp::run()
 
         m_imgui.render(); // Render one frame of the UI
 
-        constexpr bool k_recenterCrosshairs = true;
-        constexpr bool k_recenterOnCurrentCrosshairsPos = false;
+        // Recenter the crosshairs, but don't recenter views on the crosshairs:
+        static constexpr bool k_recenterCrosshairs = true;
+        static constexpr bool k_recenterOnCurrentCrosshairsPos = false;
 
         m_callbackHandler.recenterViews( m_data.state().recenteringMode(),
                                          k_recenterCrosshairs,

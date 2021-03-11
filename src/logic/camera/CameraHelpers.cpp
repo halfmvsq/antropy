@@ -672,7 +672,9 @@ std::optional< glm::vec3 > worldCameraPlaneIntersection(
 
 
 void positionCameraForWorldTargetAndFov(
-        Camera& camera, const glm::vec3& worldBoxSize, const glm::vec3& worldTarget, float scale )
+        Camera& camera,
+        const glm::vec3& worldBoxSize,
+        const glm::vec3& worldTarget )
 {
     float pullBackDistance = 0.0f;
     float farDistance = 0.0f;
@@ -680,7 +682,7 @@ void positionCameraForWorldTargetAndFov(
 
     if ( camera.isOrthographic() )
     {
-        const float fov = scale * glm::compMax( worldBoxSize );
+        const float fov = glm::compMax( worldBoxSize );
         camera.setDefaultFov( glm::vec2{ fov, fov } );
     }
 
@@ -690,7 +692,9 @@ void positionCameraForWorldTargetAndFov(
 
 
 void positionCameraForWorldTarget(
-        Camera& camera, const glm::vec3& worldBoxSize, const glm::vec3& worldTarget )
+        Camera& camera,
+        const glm::vec3& worldBoxSize,
+        const glm::vec3& worldTarget )
 {
     float pullBackDistance = 0.0f;
     float farDistance = 0.0f;

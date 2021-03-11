@@ -31,7 +31,7 @@ ImGuiWrapper::ImGuiWrapper( GLFWwindow* window, AppData& appData )
       m_appData( appData ),
 
       m_recenterView( nullptr ),
-      m_recenterCurrentViews( nullptr ),
+      m_recenterAllViews( nullptr ),
 
       m_getOverlayVisibility( nullptr ),
       m_setOverlayVisibility( nullptr ),
@@ -109,7 +109,7 @@ void ImGuiWrapper::setCallbacks(
         std::function< bool ( const uuids::uuid& imageUid, bool locked ) > setLockManualImageTransformation )
 {
     m_recenterView = recenterView;
-    m_recenterCurrentViews = recenterCurrentViews;
+    m_recenterAllViews = recenterCurrentViews;
     m_getOverlayVisibility = getOverlayVisibility;
     m_setOverlayVisibility = setOverlayVisibility;
     m_updateImageUniforms = updateImageUniforms;
@@ -349,17 +349,17 @@ void ImGuiWrapper::render()
         m_appData.state().setMouseMode( mouseMode );
     };
 
-    auto recenterViews = [this] ()
+    auto recenterAllViews = [this] ()
     {
         static constexpr bool s_recenterCrosshairs = true;
         static constexpr bool s_recenterOnCurrentCrosshairsPosition = false;
-        m_recenterCurrentViews( s_recenterCrosshairs, s_recenterOnCurrentCrosshairsPosition );
+        m_recenterAllViews( s_recenterCrosshairs, s_recenterOnCurrentCrosshairsPosition );
     };
 
-    auto recenterViewsOnCurrentCrosshairsPosition = [this] ( bool recenterOnCurrentCrosshairsPosition )
+    auto recenterAllViewsOnCurrentCrosshairsPosition = [this] ( bool recenterOnCurrentCrosshairsPosition )
     {
         static constexpr bool s_recenterCrosshairs = false;
-        m_recenterCurrentViews( s_recenterCrosshairs, recenterOnCurrentCrosshairsPosition );
+        m_recenterAllViews( s_recenterCrosshairs, recenterOnCurrentCrosshairsPosition );
     };
 
     auto cycleViewLayout = [this] ( int step )
@@ -466,7 +466,7 @@ void ImGuiWrapper::render()
                         getNumImageColorMaps,
                         getImageColorMap,
                         m_updateMetricUniforms,
-                        recenterViews );
+                        recenterAllViews );
         }
 
         if ( m_appData.guiData().m_showInspectionWindow )
@@ -518,8 +518,7 @@ void ImGuiWrapper::render()
         {
             renderLandmarkPropertiesWindow(
                         m_appData,
-                        m_recenterView,
-                        recenterViewsOnCurrentCrosshairsPosition );
+                        recenterAllViewsOnCurrentCrosshairsPosition );
         }
 
         if ( m_appData.guiData().m_showOpacityBlenderWindow )
@@ -531,7 +530,7 @@ void ImGuiWrapper::render()
                     m_appData,
                     getMouseMode,
                     setMouseMode,
-                    recenterViews,
+                    recenterAllViews,
                     m_getOverlayVisibility,
                     m_setOverlayVisibility,
                     cycleViewLayout,
@@ -586,7 +585,7 @@ void ImGuiWrapper::render()
                     [&currentLayout] ( const camera::CameraType& cameraType ) { return currentLayout.setCameraType( cameraType ); },
                     [&currentLayout] ( const camera::ViewRenderMode& shaderType ) { return currentLayout.setRenderMode( shaderType ); },
 
-                    [this]() { m_recenterCurrentViews( s_recenterCrosshairs, s_recenterOnCurrentCrosshairsPosition ); },
+                    [this]() { m_recenterAllViews( s_recenterCrosshairs, s_recenterOnCurrentCrosshairsPosition ); },
                     nullptr );
     }
     else if ( m_appData.guiData().m_renderUiOverlays && ! currentLayout.isLightbox() )
@@ -595,7 +594,7 @@ void ImGuiWrapper::render()
 
         for ( const auto& viewUid : m_appData.windowData().currentViewUids() )
         {
-            View* view = m_appData.windowData().currentView( viewUid );
+            View* view = m_appData.windowData().getCurrentView( viewUid );
             if ( ! view ) return;
 
             auto setCameraType = [view] ( const camera::CameraType& cameraType )

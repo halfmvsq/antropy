@@ -695,7 +695,7 @@ void renderImageHeader(
 
         // Image colormap dialog:
         bool* showImageColormapWindow = &( guiData.m_showImageColormapWindow[imageUid] );
-        *showImageColormapWindow |= ImGui::Button( "Colormap" );
+        *showImageColormapWindow |= ImGui::Button( "Select colormap" );
 
         bool invertedCmap = imgSettings.isColorMapInverted();
 

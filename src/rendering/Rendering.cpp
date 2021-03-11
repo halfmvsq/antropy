@@ -2853,7 +2853,7 @@ void Rendering::renderVectorOverlays()
 
             for ( const auto& viewUid : windowData.currentViewUids() )
             {
-                const View* view = windowData.currentView( viewUid );
+                const View* view = windowData.getCurrentView( viewUid );
                 if ( ! view ) continue;
 
                 if ( m_showOverlays &&

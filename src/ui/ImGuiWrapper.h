@@ -52,7 +52,7 @@ private:
 
     // Callbacks:
     std::function< void ( const uuids::uuid& viewUid ) > m_recenterView;
-    std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) > m_recenterCurrentViews;
+    std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) > m_recenterAllViews;
     std::function< bool ( void ) > m_getOverlayVisibility;
     std::function< void ( bool ) > m_setOverlayVisibility;
     std::function< void ( const uuids::uuid& viewUid ) > m_updateImageUniforms;

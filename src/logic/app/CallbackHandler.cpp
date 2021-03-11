@@ -33,6 +33,8 @@ namespace
 
 static const glm::vec2 sk_maxClip{ 1, 1 };
 
+static constexpr float k_viewAABBoxScaleFactor = 1.03f;
+
 }
 
 
@@ -239,85 +241,48 @@ void CallbackHandler::recenterViews(
         bool recenterCrosshairs,
         bool recenterOnCurrentCrosshairsPos )
 {
-//    static const glm::vec3 sk_defaultCrosshairsWorldPos{ 0, 0, 0 };
-
     if ( 0 == m_appData.numImages() )
     {
         spdlog::warn( "No images loaded: preparing views using default bounds" );
     }
 
     // Compute the AABB that we are recentering views on:
-    const auto worldBox = data::enclosingWorldBox( m_appData, imageSelection );
+    const auto worldBox = data::computeWorldAABBoxEnclosingImages( m_appData, imageSelection );
 
     if ( recenterCrosshairs )
     {
-        /// @note The commented-out code used to recenter crosshairs on only the reference image.
-        /// Instead, we now recenter crosshairs on the center of the worldBox
-
-        /*
-        // Initialize crosshairs to center of the reference image
-        glm::vec3 worldPos = sk_defaultCrosshairsWorldPos;
-
-        if ( const auto* refImg = m_appData.refImage() )
-        {
-            const auto& tx = refImg->transformations();
-
-            const glm::vec4 centerWorldPos = tx.worldDef_T_subject() *
-                    glm::vec4{ refImg->header().subjectBBoxCenter(), 1 };
-
-            const glm::vec4 centerPixelPos = tx.pixel_T_worldDef() * centerWorldPos;
-
-            const glm::vec3 roundedCenterPixelPos = glm::vec3{
-                    glm::round( centerPixelPos / centerPixelPos.w ) };
-
-            const glm::vec4 roundedCenterWorldPos =
-                    tx.worldDef_T_pixel() * glm::vec4{ roundedCenterPixelPos, 1 };
-
-            worldPos = glm::vec3{ roundedCenterWorldPos / roundedCenterWorldPos.w };
-        }
-
-        m_appData.state().setWorldCrosshairsPos( worldPos );
-        */
-
         const glm::vec3 worldPos = math::computeAABBoxCenter( worldBox );
         m_appData.state().setWorldCrosshairsPos( worldPos );
     }
 
-    // Scale images slightly down
-    constexpr float k_scale = 1.03f;
-
     // Option to reset zoom or not:
-    constexpr bool k_doNotResetZoom = false;
-    constexpr bool k_resetZoom = true;
+    static constexpr bool k_doNotResetZoom = false;
+    static constexpr bool k_resetZoom = true;
 
-    constexpr bool k_resetObliqueOrientation = true;
+    static constexpr bool k_resetObliqueOrientation = true;
 
     if ( recenterOnCurrentCrosshairsPos )
     {
         // Size the views based on the enclosing AABB;
         // Position the views based on the curent crosshairs:
-        m_appData.windowData().recenterViews(
+        m_appData.windowData().recenterAllViews(
                     m_appData.state().worldCrosshairs().worldOrigin(),
-                    math::computeAABBoxSize( worldBox ),
-                    k_scale,
+                    k_viewAABBoxScaleFactor * math::computeAABBoxSize( worldBox ),
                     k_doNotResetZoom,
                     k_resetObliqueOrientation );
     }
     else
     {
         // Size and position the views based on the enclosing AABB:
-        m_appData.windowData().recenterViews(
+        m_appData.windowData().recenterAllViews(
                     math::computeAABBoxCenter( worldBox ),
-                    math::computeAABBoxSize( worldBox ),
-                    k_scale,
+                    k_viewAABBoxScaleFactor * math::computeAABBoxSize( worldBox ),
                     k_resetZoom,
                     k_resetObliqueOrientation );
     }
 }
 
 
-/// @todo maybe this is dumb, maybe ImGuiWrapper should just do this without callback?
-/// or maybe we need a class that just does "actions"?
 void CallbackHandler::recenterView(
         const ImageSelection& imageSelection,
         const uuids::uuid& viewUid )
@@ -327,15 +292,18 @@ void CallbackHandler::recenterView(
         spdlog::warn( "No images loaded: recentering view {} using default bounds", viewUid );
     }
 
-    // Size and position the views based on the enclosing AABB
-    const auto worldBox = data::enclosingWorldBox( m_appData, imageSelection );
+    // Size and position the views based on the enclosing AABB of the image selection:
+    const auto worldBox = data::computeWorldAABBoxEnclosingImages( m_appData, imageSelection );
+    const auto worldBoxSize = math::computeAABBoxSize( worldBox );
 
-    constexpr bool k_resetObliqueOrientation = true;
+    static constexpr bool k_resetZoom = false;
+    static constexpr bool k_resetObliqueOrientation = true;
 
     m_appData.windowData().recenterView(
                 viewUid,
                 m_appData.state().worldCrosshairs().worldOrigin(),
-                math::computeAABBoxSize( worldBox ),
+                k_viewAABBoxScaleFactor * worldBoxSize,
+                k_resetZoom,
                 k_resetObliqueOrientation );
 }
 
@@ -353,7 +321,7 @@ void CallbackHandler::doCrosshairsMove(
         if ( activeViewUid != *viewUid ) return;
     }
 
-    const View* view = m_appData.windowData().currentView( *viewUid );
+    const View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -415,7 +383,7 @@ void CallbackHandler::doCrosshairsScroll(
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( currWindowPos );
     if ( ! viewUid ) return;
 
-    const View* view = m_appData.windowData().currentView( *viewUid );
+    const View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -491,7 +459,7 @@ void CallbackHandler::doSegment(
         if ( activeViewUid != *viewUid ) return;
     }
 
-    const View* view = m_appData.windowData().currentView( *viewUid );
+    const View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -654,7 +622,7 @@ void CallbackHandler::doAnnotate(
         if ( activeViewUid != *viewUid ) return;
     }
 
-    const View* view = m_appData.windowData().currentView( *viewUid );
+    const View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
 
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
@@ -773,7 +741,7 @@ void CallbackHandler::doWindowLevel(
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( currWindowPos );
     if ( ! viewUid ) return; // not in a view
 
-    const View* view = m_appData.windowData().currentView( *viewUid );
+    const View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -832,7 +800,7 @@ void CallbackHandler::doOpacity(
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( currWindowPos );
     if ( ! viewUid ) return; // not in a view
 
-    const View* view = m_appData.windowData().currentView( *viewUid );
+    const View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -880,7 +848,7 @@ void CallbackHandler::doCameraTranslate2d(
     const auto viewUid = windowData.currentViewUidAtCursor( startWindowPos );
     if ( ! viewUid ) return;
 
-    View* view = windowData.currentView( *viewUid );
+    View* view = windowData.getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -902,7 +870,7 @@ void CallbackHandler::doCameraTranslate2d(
     {
         for ( const auto& uid : windowData.cameraTranslationGroupViewUids( *transGroupUid ) )
         {
-            if ( View* v = windowData.currentView( uid ) )
+            if ( View* v = windowData.getCurrentView( uid ) )
             {
                 panRelativeToWorldPosition( v->camera(), lastViewNdcPos, currViewNdcPos,
                                             m_appData.state().worldCrosshairs().worldOrigin() );
@@ -928,7 +896,7 @@ void CallbackHandler::doCameraRotate2d(
     const auto viewUid = windowData.currentViewUidAtCursor( startWindowPos );
     if ( ! viewUid ) return;
 
-    View* view = windowData.currentView( *viewUid );
+    View* view = windowData.getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -970,7 +938,7 @@ void CallbackHandler::doCameraRotate3d(
     const auto viewUid = windowData.currentViewUidAtCursor( startWindowPos );
     if ( ! viewUid ) return;
 
-    View* view = windowData.currentView( *viewUid );
+    View* view = windowData.getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -1011,7 +979,7 @@ void CallbackHandler::doCameraZoomDrag(
     const auto currViewUid = m_appData.windowData().currentViewUidAtCursor( startWindowPos );
     if ( ! currViewUid ) return;
 
-    View* currView = m_appData.windowData().currentView( *currViewUid );
+    View* currView = m_appData.windowData().getCurrentView( *currViewUid );
     if ( ! currView ) return;
 
     if ( camera::ViewRenderMode::Disabled == currView->renderMode() ) return;
@@ -1061,7 +1029,7 @@ void CallbackHandler::doCameraZoomDrag(
     {
         for ( const auto& viewUid : m_appData.windowData().currentViewUids() )
         {
-            if ( View* v = m_appData.windowData().currentView( viewUid ) )
+            if ( View* v = m_appData.windowData().getCurrentView( viewUid ) )
             {
                 camera::zoomNdc( v->camera(), factor, getCenterViewClipPos( v ) );
             }
@@ -1073,7 +1041,7 @@ void CallbackHandler::doCameraZoomDrag(
         {
             for ( const auto& viewUid : m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
             {
-                if ( View* v = m_appData.windowData().currentView( viewUid ) )
+                if ( View* v = m_appData.windowData().getCurrentView( viewUid ) )
                 {
                     camera::zoomNdc( v->camera(), factor, getCenterViewClipPos( v ) );
                 }
@@ -1105,7 +1073,7 @@ void CallbackHandler::doCameraZoomScroll(
         if ( activeViewUid != *currViewUid ) return;
     }
 
-    View* currView = m_appData.windowData().currentView( *currViewUid );
+    View* currView = m_appData.windowData().getCurrentView( *currViewUid );
     if ( ! currView ) return;
 
     if ( camera::ViewRenderMode::Disabled == currView->renderMode() ) return;
@@ -1157,7 +1125,7 @@ void CallbackHandler::doCameraZoomScroll(
     {
         for ( const auto& viewUid : m_appData.windowData().currentViewUids() )
         {
-            if ( View* v = m_appData.windowData().currentView( viewUid ) )
+            if ( View* v = m_appData.windowData().getCurrentView( viewUid ) )
             {
                 camera::zoomNdc( v->camera(), factor, getCenterViewClipPos( v ) );
             }
@@ -1169,7 +1137,7 @@ void CallbackHandler::doCameraZoomScroll(
         {
             for ( const auto& viewUid : m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
             {
-                if ( View* v = m_appData.windowData().currentView( viewUid ) )
+                if ( View* v = m_appData.windowData().getCurrentView( viewUid ) )
                 {
                     camera::zoomNdc( v->camera(), factor, getCenterViewClipPos( v ) );
                 }
@@ -1193,7 +1161,7 @@ void CallbackHandler::doImageTranslate(
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( startWindowPos );
     if ( ! viewUid ) return;
 
-    View* view = m_appData.windowData().currentView( *viewUid );
+    View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -1273,7 +1241,7 @@ void CallbackHandler::doImageRotate(
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( startWindowPos );
     if ( ! viewUid ) return;
 
-    View* view = m_appData.windowData().currentView( *viewUid );
+    View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -1366,7 +1334,7 @@ void CallbackHandler::doImageScale(
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( startWindowPos );
     if ( ! viewUid ) return;
 
-    View* view = m_appData.windowData().currentView( *viewUid );
+    View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
@@ -1676,7 +1644,7 @@ void CallbackHandler::scrollViewSlice( const glm::vec2& currWindowPos, int numSl
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( currWindowPos );
     if ( ! viewUid ) return;
 
-    const View* view = m_appData.windowData().currentView( *viewUid );
+    const View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 

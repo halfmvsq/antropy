@@ -242,11 +242,21 @@ std::optional< glm::vec3 > worldCameraPlaneIntersection(
         const glm::vec3& worldPlanePos );
 
 
+/**
+ * @brief Position the camera to look at a target in World space and adjust the camera such that
+ * it fits a given AABB (defined in World space) in its field of view.
+ * @param[in] worldBoxSize AABB (World space)
+ * @param[in] worldTarget Target point (World space)
+ */
 void positionCameraForWorldTargetAndFov(
-        Camera&, const glm::vec3& worldBoxSize, const glm::vec3& worldTarget, float scale );
+        Camera&,
+        const glm::vec3& worldBoxSize,
+        const glm::vec3& worldTarget );
 
 void positionCameraForWorldTarget(
-        Camera&, const glm::vec3& worldBoxSize, const glm::vec3& worldTarget );
+        Camera&,
+        const glm::vec3& worldBoxSize,
+        const glm::vec3& worldTarget );
 
 std::pair<float, float> computePullbackAndFarDistances(
         const Camera&, const glm::vec3& worldBoxSize );

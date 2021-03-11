@@ -62,10 +62,15 @@ glm::vec2 sliceMoveDistance(
         const ImageSelection&,
         const View* view );
 
-/// @brief Compute the enclosing AABB of images in World space
-AABB<float> enclosingWorldBox(
-        const AppData&,
-        const ImageSelection& );
+
+/**
+ * @brief Compute the enclosing World-space AABB of the given image selection
+ * @return AABB in World-space coordinates
+ */
+AABB<float> computeWorldAABBoxEnclosingImages(
+        const AppData& appData,
+        const ImageSelection& imageSelection );
+
 
 std::optional< uuids::uuid >
 createLabelColorTableForSegmentation(

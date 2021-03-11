@@ -76,7 +76,6 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( const uuids::uuid& viewUid ) >& /*recenterView*/,
         const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews );
 
 
