@@ -116,6 +116,7 @@ public:
 
     const glm::mat4& worldDef_T_subject() const; //!< Get tx from image Subject to Deformed World space
     const glm::mat4& subject_T_worldDef() const; //!< Get tx from Deformed World to image Subject space
+    const glm::mat3& subject_T_worldDef_invTransp() const; /// Get inverse-transpose of tx from World to image Subject space
 
     const glm::mat4& subject_T_pixel() const; //!< Get tx from image Pixel to Subject space
     const glm::mat4& pixel_T_subject() const; //!< Get tx from image Subject to Pixel space
@@ -131,9 +132,7 @@ public:
 
     const glm::mat4& worldDef_T_pixel() const; //!< Get tx from image Pixel to Deformed World space
     const glm::mat4& pixel_T_worldDef() const; //!< Get tx from Deformed World to image Pixel space
-
-    /// Get inverse-transpose of tx from World to image Pixel space
-    const glm::mat4& pixel_T_worldDef_invTransp() const;
+    const glm::mat3& pixel_T_worldDef_invTransp() const; /// Get inverse-transpose of tx from World to image Pixel space
 
     friend std::ostream& operator<< ( std::ostream&, const ImageTransformations& );
 
@@ -179,13 +178,14 @@ private:
 
     glm::mat4 m_worldDef_T_subject; //!< Subject to Deformed World space
     glm::mat4 m_subject_T_worldDef; //!< Deformed World to Subject space (inverse of above)
+    glm::mat3 m_subject_T_worldDef_invTransp; //!< Inverse-transpose of Deformed World to Subject space tx
 
     glm::mat4 m_worldDef_T_texture; //!< Texture to Deformed World space
     glm::mat4 m_texture_T_worldDef; //!< Deformed World to Texture space (inverse of above)
 
     glm::mat4 m_worldDef_T_pixel; //!< Pixel to Deformed World space
     glm::mat4 m_pixel_T_worldDef; //!< Deformed World to Pixel space
-    glm::mat4 m_pixel_T_worldDef_invTransp; //!< Inverse-transpose of Deformed World to Pixel space tx
+    glm::mat3 m_pixel_T_worldDef_invTransp; //!< Inverse-transpose of Deformed World to Pixel space tx
 };
 
 

@@ -16,6 +16,7 @@
 
 #include <array>
 #include <string>
+#include <type_traits>
 #include <utility>
 #include <vector>
 
@@ -378,9 +379,21 @@ std::vector<ComponentType> createBuffer( const float* buffer, size_t numElements
     std::vector<ComponentType> data;
     data.resize( numElements );
 
-    for ( size_t i = 0; i < numElements; ++i )
+    if ( std::is_unsigned<ComponentType>() )
     {
-        data[i] = static_cast<ComponentType>( buffer[i] );
+        // If casting to an unsigned integer type,
+        // then set all negative values to 0 prior to casting
+        for ( size_t i = 0; i < numElements; ++i )
+        {
+            data[i] = static_cast<ComponentType>( std::max( buffer[i], 0.0f ) );
+        }
+    }
+    else
+    {
+        for ( size_t i = 0; i < numElements; ++i )
+        {
+            data[i] = static_cast<ComponentType>( buffer[i] );
+        }
     }
 
     return data;

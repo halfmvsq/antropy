@@ -2,6 +2,8 @@
 #include "logic/camera/Camera.h"
 #include "logic/camera/CameraHelpers.h"
 
+#include "common/Exception.hpp"
+
 #include <glm/gtc/matrix_inverse.hpp>
 
 #define EPSILON 0.000001
@@ -135,11 +137,15 @@ glm::vec3 projectPointToPlane(
 {
     // Plane normal is (A, B, C):
     const glm::vec3 planeNormal{ planeEquation };
+    const float L = glm::length( planeNormal );
+
+    if ( L < glm::epsilon<float>() )
+    {
+        throw_debug( "Cannot project point to plane: plane normal has zero length" )
+    }
 
     // Signed distance of point to plane (positive if on same side of plane as normal vector):
-    const float distancePointToPlane =
-            glm::dot( planeEquation, glm::vec4{ point, 1.0f }) /
-            glm::length( planeNormal );
+    const float distancePointToPlane = glm::dot( planeEquation, glm::vec4{ point, 1.0f }) / L;
 
     // Point projected to plane:
     return ( point - distancePointToPlane * planeNormal );
@@ -152,15 +158,12 @@ glm::vec2 projectPointToPlaneLocal2dCoords(
         const glm::vec3& planeOrigin,
         const std::pair<glm::vec3, glm::vec3>& planeAxes )
 {
-    // Point projected to plane:
     const glm::vec3 pointProjectedToPlane = projectPointToPlane( point, planeEquation );
 
-    // Project point to local 2D plane coordinates:
-    const glm::vec2 pointProjection2d{
+    // Express projected point in 2D plane coordinates:
+    return glm::vec2{
         glm::dot( pointProjectedToPlane - planeOrigin, glm::normalize( planeAxes.first ) ),
         glm::dot( pointProjectedToPlane - planeOrigin, glm::normalize( planeAxes.second ) ) };
-
-    return pointProjection2d;
 }
 
 

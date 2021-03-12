@@ -166,7 +166,7 @@ float sliceScrollDistance(
         if ( ! image ) continue;
 
         // Scroll in image Pixel space along the camera's front direction:
-        const glm::mat3 pixel_T_world_IT{ image->transformations().pixel_T_worldDef_invTransp() };
+        const glm::mat3& pixel_T_world_IT = image->transformations().pixel_T_worldDef_invTransp();
         const glm::vec3 pixelDir = glm::abs( glm::normalize( pixel_T_world_IT * worldCameraFrontDir ) );
 
         // Scroll distance is proportional to spacing of image along the view direction
@@ -190,7 +190,7 @@ float sliceScrollDistance(
         const Image& image )
 {
     // Scroll in image Pixel space along the camera's front direction:
-    const glm::mat3 pixel_T_world_IT{ image.transformations().pixel_T_worldDef_invTransp() };
+    const glm::mat3& pixel_T_world_IT = image.transformations().pixel_T_worldDef_invTransp();
     const glm::vec3 pixelDir = glm::abs( glm::normalize( pixel_T_world_IT * worldCameraFrontDir ) );
 
     // Scroll distance is proportional to spacing of image along the view direction
@@ -220,7 +220,7 @@ glm::vec2 sliceMoveDistance(
         if ( ! image ) continue;
 
         // Scroll in image Pixel space along the camera's front direction:
-        const glm::mat3 pixel_T_world_IT{ image->transformations().pixel_T_worldDef_invTransp() };
+        const glm::mat3& pixel_T_world_IT = image->transformations().pixel_T_worldDef_invTransp();
         const glm::vec3 pixelRightDir = glm::abs( glm::normalize( pixel_T_world_IT * worldCameraRightDir ) );
         const glm::vec3 pixelUpDir = glm::abs( glm::normalize( pixel_T_world_IT * worldCameraUpDir ) );
 
@@ -379,36 +379,39 @@ void moveCrosshairsOnViewSlice(
 }
 
 
-std::optional< uuids::uuid > findAnnotationForImage(
+std::vector< uuids::uuid > findAnnotationsForImage(
         const AppData& appData,
         const uuids::uuid& imageUid,
-        const glm::vec4& planeEquation,
+        const glm::vec4& querySubjectPlaneEquation,
         float planeDistanceThresh )
 {
-    constexpr float k_normalAngleThresh = 1.0e-4f;
+    static constexpr float k_normalAngleThresh = 1.0e-4f;
+
+    std::vector< uuids::uuid > annotUids;
 
     for ( const auto& annotUid : appData.annotationsForImage( imageUid ) )
     {
         const Annotation* annot = appData.annotation( annotUid );
         if ( ! annot ) continue;
 
-        const glm::vec4 P = annot->getSubjectPlaneEquation();
+        const glm::vec4 testSubjectPlaneEquation = annot->getSubjectPlaneEquation();
 
         // Compare angle between normal vectors and distances between plane offsets:
-        const glm::vec3 n1 = glm::normalize( glm::vec3{ P } );
-        const glm::vec3 n2 = glm::normalize( glm::vec3{ planeEquation } );
+        const glm::vec3 n1 = glm::normalize( glm::vec3{ testSubjectPlaneEquation } );
+        const glm::vec3 n2 = glm::normalize( glm::vec3{ querySubjectPlaneEquation } );
 
-        const float d1 = P[3];
-        const float d2 = planeEquation[3];
+        const float d1 = testSubjectPlaneEquation[3];
+        const float d2 = querySubjectPlaneEquation[3];
 
         if ( ( std::abs( glm::angle( n1, n2 ) ) < k_normalAngleThresh ) &&
              std::abs( d1 - d2 ) < planeDistanceThresh )
         {
-            return annotUid;
+            // The plane of this annotation group matches the query plane:
+            annotUids.push_back( annotUid );
         }
     }
 
-    return std::nullopt;
+    return annotUids;
 }
 
 } // namespace data

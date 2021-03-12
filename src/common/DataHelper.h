@@ -87,10 +87,20 @@ void moveCrosshairsOnViewSlice(
         const glm::vec2& currWindowPos,
         int stepX, int stepY );
 
-std::optional< uuids::uuid > findAnnotationForImage(
+/**
+ * @brief Find annotation for a given image. The search is done by matching the
+ * annotation plane equations.
+ *
+ * @param appData Application data
+ * @param imageUid UID of image to search
+ * @param querySubjectPlaneEquation Plane equation (in Subject space) to search with
+ * @param planeDistanceThresh Threshold distance
+ * @return Vector of matching annotation UIDs
+ */
+std::vector< uuids::uuid > findAnnotationsForImage(
         const AppData& appData,
         const uuids::uuid& imageUid,
-        const glm::vec4& planeEquation,
+        const glm::vec4& querySubjectPlaneEquation,
         float planeDistanceThresh );
 
 } // namespace data

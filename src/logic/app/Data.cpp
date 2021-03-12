@@ -325,7 +325,8 @@ bool AppData::removeSeg( const uuids::uuid& segUid )
     // Remove segmentation from image-to-segmentation map for all images
     for ( auto& m : m_imageToSegs )
     {
-        m.second.erase( std::remove( std::begin( m.second ), std::end( m.second ), segUid ), std::end( m.second ) );
+        m.second.erase( std::remove( std::begin( m.second ), std::end( m.second ), segUid ),
+                        std::end( m.second ) );
     }
 
     // Remove it as an active segmentation
@@ -383,7 +384,8 @@ bool AppData::removeDef( const uuids::uuid& defUid )
     // Remove deformation from image-to-deformation map for all images
     for ( auto& m : m_imageToDefs )
     {
-        m.second.erase( std::remove( std::begin( m.second ), std::end( m.second ), defUid ), std::end( m.second ) );
+        m.second.erase( std::remove( std::begin( m.second ), std::end( m.second ), defUid ),
+                        std::end( m.second ) );
     }
 
     // Remove it as an active deformation

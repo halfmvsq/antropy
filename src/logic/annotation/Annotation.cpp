@@ -2,7 +2,6 @@
 
 #include "common/Exception.hpp"
 
-#include "logic/annotation/Polygon.tpp"
 #include "logic/camera/MathUtility.h"
 
 #include <glm/glm.hpp>
@@ -20,12 +19,10 @@ static const glm::vec3 sk_defaultColor{ 0.5f, 0.5f, 0.5f };
 } // anonymous
 
 
-Annotation::Annotation(
-        const glm::vec4& subjectPlaneEquation,
-        std::shared_ptr< Polygon<float, 2> > polygon )
+Annotation::Annotation( const glm::vec4& subjectPlaneEquation )
     :
       m_name(),
-      m_polygon( polygon ),
+      m_polygon(),
       m_layer( 0 ),
       m_maxLayer( 0 ),
       m_visibility( true ),
@@ -36,29 +33,29 @@ Annotation::Annotation(
       m_subjectPlaneOrigin{ 0.0f, 0.0f, 0.0f },
       m_subjectPlaneAxes( { 1.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } )
 {
-    if ( ! setsubjectPlane( subjectPlaneEquation ) )
+    if ( ! setSubjectPlane( subjectPlaneEquation ) )
     {
         throw_debug( "Cannot construct Annotation with invalid plane" )
     }
 }
 
-bool Annotation::setsubjectPlane( const glm::vec4& subjectPlaneEquation )
+bool Annotation::setSubjectPlane( const glm::vec4& subjectPlaneEquation )
 {
-    constexpr float k_minLength = 1.0e-4f;
+    static constexpr float k_minLength = 1.0e-4f;
     static const glm::vec3 k_origin( 0.0f, 0.0f, 0.0f );
 
-    const glm::vec3 planeNormal = glm::vec3{ subjectPlaneEquation };
+    const glm::vec3 subjectPlaneNormal = glm::vec3{ subjectPlaneEquation };
 
-    if ( glm::length( planeNormal ) < k_minLength )
+    if ( glm::length( subjectPlaneNormal ) < k_minLength )
     {
         spdlog::error( "The annotation plane normal vector {} is invalid",
-                       glm::to_string( planeNormal ) );
+                       glm::to_string( subjectPlaneNormal ) );
         return false;
     }
 
-    m_subjectPlaneEquation = glm::vec4{ glm::normalize( planeNormal ), subjectPlaneEquation[3] };
+    m_subjectPlaneEquation = glm::vec4{ glm::normalize( subjectPlaneNormal ), subjectPlaneEquation[3] };
     m_subjectPlaneOrigin = math::projectPointToPlane( k_origin, subjectPlaneEquation );
-    m_subjectPlaneAxes = math::buildOrthonormalBasis_branchless( planeNormal );
+    m_subjectPlaneAxes = math::buildOrthonormalBasis_branchless( subjectPlaneNormal );
 
     // Make double sure that the axes are normalized:
     m_subjectPlaneAxes.first = glm::normalize( m_subjectPlaneAxes.first );
@@ -67,44 +64,39 @@ bool Annotation::setsubjectPlane( const glm::vec4& subjectPlaneEquation )
     return true;
 }
 
-std::weak_ptr< Polygon<float, 2> > Annotation::polygon()
+Polygon<float, 2>& Annotation::polygon()
 {
     return m_polygon;
 }
 
-Polygon<float, 2>* Annotation::polygon() const
+const Polygon<float, 2>& Annotation::polygon() const
 {
-    return ( m_polygon ? m_polygon.get() : nullptr );
+    return m_polygon;
 }
 
 const std::vector< std::vector< glm::vec2 > >&
 Annotation::getAllVertices() const
 {
-    static const std::vector< std::vector< glm::vec2 > > sk_empty{};
-    if ( ! m_polygon ) return sk_empty;
-    return m_polygon->getAllVertices();
+    return m_polygon.getAllVertices();
 }
 
 const std::vector<glm::vec2>&
 Annotation::getBoundaryVertices( size_t boundary ) const
 {
-    static const std::vector< glm::vec2 > sk_empty{};
-    if ( ! m_polygon ) return sk_empty;
-    return m_polygon->getBoundaryVertices( boundary );
+    return m_polygon.getBoundaryVertices( boundary );
 }
 
-std::optional<glm::vec2>
-Annotation::addPointToBoundary( size_t boundary, const glm::vec3& point )
+std::optional<glm::vec2> Annotation::addSubjectPointToBoundary(
+        size_t boundary, const glm::vec3& subjectPoint )
 {
-    if ( ! m_polygon )
-    {
-        return std::nullopt;
-    }
+    const glm::vec2 projectedPoint =
+            math::projectPointToPlaneLocal2dCoords(
+                subjectPoint,
+                m_subjectPlaneEquation,
+                m_subjectPlaneOrigin,
+                m_subjectPlaneAxes );
 
-    const glm::vec2 projectedPoint = math::projectPointToPlaneLocal2dCoords(
-                point, m_subjectPlaneEquation, m_subjectPlaneOrigin, m_subjectPlaneAxes );
-
-    m_polygon->addVertexToBoundary( boundary, projectedPoint );
+    m_polygon.addVertexToBoundary( boundary, projectedPoint );
     return projectedPoint;
 }
 
@@ -161,18 +153,34 @@ const glm::vec3& Annotation::getColor() const
     return m_color;
 }
 
-const glm::vec4& Annotation::getSubjectPlaneEquation() const { return m_subjectPlaneEquation; }
-const glm::vec3& Annotation::getSubjectPlaneOrigin() const { return m_subjectPlaneOrigin; }
-const std::pair<glm::vec3, glm::vec3>& Annotation::getSubjectPlaneAxes() const { return m_subjectPlaneAxes; }
-
-
-glm::vec2 Annotation::projectPointToAnnotationPlane( const glm::vec3& point3d ) const
+const glm::vec4& Annotation::getSubjectPlaneEquation() const
 {
-    return math::projectPointToPlaneLocal2dCoords(
-                point3d, m_subjectPlaneEquation, m_subjectPlaneOrigin, m_subjectPlaneAxes );
+    return m_subjectPlaneEquation;
 }
 
-glm::vec3 Annotation::unprojectPointFromAnnotationPlane( const glm::vec2& planePoint2d ) const
+const glm::vec3& Annotation::getSubjectPlaneOrigin() const
+{
+    return m_subjectPlaneOrigin;
+}
+
+const std::pair<glm::vec3, glm::vec3>&
+Annotation::getSubjectPlaneAxes() const
+{
+    return m_subjectPlaneAxes;
+}
+
+glm::vec2 Annotation::projectSubjectPointToAnnotationPlane(
+        const glm::vec3& point3d ) const
+{
+    return math::projectPointToPlaneLocal2dCoords(
+                point3d,
+                m_subjectPlaneEquation,
+                m_subjectPlaneOrigin,
+                m_subjectPlaneAxes );
+}
+
+glm::vec3 Annotation::unprojectFromAnnotationPlaneToSubjectPoint(
+        const glm::vec2& planePoint2d ) const
 {
     return m_subjectPlaneOrigin +
             planePoint2d[0] * m_subjectPlaneAxes.first +

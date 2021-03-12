@@ -471,11 +471,9 @@ void ImGuiWrapper::render()
 
         if ( m_appData.guiData().m_showInspectionWindow )
         {
-            renderInspectionWindow(
+            renderInspectionWindowWithTable(
                         m_appData,
-                        getNumImages,
                         getImageDisplayAndFileNames,
-                        m_getWorldDeformedPos,
                         m_getSubjectPos,
                         m_getVoxelPos,
                         m_getImageValue,

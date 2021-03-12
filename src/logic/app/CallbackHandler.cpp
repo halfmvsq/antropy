@@ -31,6 +31,7 @@
 namespace
 {
 
+static const glm::vec2 sk_minClip{ -1, -1 };
 static const glm::vec2 sk_maxClip{ 1, 1 };
 
 static constexpr float k_viewAABBoxScaleFactor = 1.03f;
@@ -636,10 +637,17 @@ void CallbackHandler::doAnnotate(
     const Image* activeImage = ( activeImageUid ? m_appData.image( *activeImageUid ) : nullptr );
     if ( ! activeImage ) return;
 
-    const auto& windowVP = m_appData.windowData().viewport();
-    const glm::vec4 winClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
+    const glm::vec4 winClipPos{
+        camera::ndc2d_T_view( m_appData.windowData().viewport(), currWindowPos ),
+                view->clipPlaneDepth(), 1.0f };
+
     const glm::vec4 viewClipPos = view->viewClip_T_winClip() * winClipPos;
-    if ( glm::any( glm::greaterThan( glm::abs( glm::vec2{ viewClipPos } ), sk_maxClip ) ) ) return;
+
+    if ( glm::any( glm::lessThan( glm::abs( glm::vec2{ viewClipPos } ), sk_minClip ) ) ||
+         glm::any( glm::greaterThan( glm::abs( glm::vec2{ viewClipPos } ), sk_maxClip ) ) )
+    {
+        return;
+    }
 
     // The pointer is in the view bounds! Make this the active view:
     m_appData.windowData().setActiveViewUid( *viewUid );
@@ -658,7 +666,7 @@ void CallbackHandler::doAnnotate(
     const float offsetDist = static_cast<float>( view->numOffsets() ) *
             data::sliceScrollDistance( worldCameraFront, *refImg );
 
-    worldPos -= glm::vec4{ offsetDist * worldCameraFront, 0 };
+    worldPos -= glm::vec4{ offsetDist * worldCameraFront, 0.0f };
 
 
     // Compute the equation of the view plane in the space of the active image Subject:
@@ -670,41 +678,48 @@ void CallbackHandler::doAnnotate(
     const glm::vec4 worldPlaneNormal{ worldCameraBackDir, 0.0f };
     const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
 
-    const glm::vec3 worldPlanePoint = worldPos;
-    const glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldPlanePoint, 1.0f };
+    glm::vec4 subjectPlanePoint = subject_T_world * worldPos;
+    subjectPlanePoint /= subjectPlanePoint.w;
 
     const glm::vec4 subjectPlaneEquation = math::makePlane(
-                subjectPlaneNormal, glm::vec3{ subjectPlanePoint / subjectPlanePoint.w } );
+                subjectPlaneNormal, glm::vec3{ subjectPlanePoint } );
 
-    // Use the slice scroll distance as the threshold for plane distances:
+    // Use the image slice scroll distance as the threshold for plane distances:
     const float planeDistanceThresh = data::sliceScrollDistance( worldCameraFront, *activeImage );
 
     /// @todo Create AnnotationGroup, which consists of all annotations for an image that fall
     /// on one of the slices.
-    std::optional<uuids::uuid> annotUid = data::findAnnotationForImage(
-                m_appData, *activeImageUid, subjectPlaneEquation, planeDistanceThresh );
+    const auto annotUids = data::findAnnotationsForImage(
+                m_appData, *activeImageUid,
+                subjectPlaneEquation, planeDistanceThresh );
 
-    if ( ! annotUid )
+    std::optional<uuids::uuid> annotUid;
+
+    if ( ! annotUids.empty() )
+    {
+        annotUid = annotUids[0];
+    }
+    else
     {
         // Create new annotation for this image:
         try
         {
-            Annotation annotation( subjectPlaneEquation, std::make_shared< Polygon<float, 2> >() );
-            annotUid = m_appData.addAnnotation( *activeImageUid, std::move( annotation ) );
+            annotUid = m_appData.addAnnotation(
+                        *activeImageUid, Annotation( subjectPlaneEquation ) );
 
             if ( ! annotUid )
             {
-                spdlog::error( "Unable to add new annotation (subject plane = {}) for image {}",
+                spdlog::error( "Unable to add new annotation (subject plane: {}) for image {}",
                                glm::to_string( subjectPlaneEquation ), *activeImageUid );
                 return;
             }
 
-            spdlog::debug( "Added new annotation {} (subject plane = {}) for image {}",
+            spdlog::debug( "Added new annotation {} (subject plane: {}) for image {}",
                            *annotUid, glm::to_string( subjectPlaneEquation ), *activeImageUid );
         }
         catch ( const std::exception& e )
         {
-            spdlog::error( "Unable to create new annotation (subject plane = {}) for image {}: {}",
+            spdlog::error( "Unable to create new annotation (subject plane: {}) for image {}: {}",
                            glm::to_string( subjectPlaneEquation ), *activeImageUid, e.what() );
             return;
         }
@@ -713,24 +728,25 @@ void CallbackHandler::doAnnotate(
     Annotation* annot = m_appData.annotation( *annotUid );
     if ( ! annot ) return;
 
-    spdlog::trace( "Got annotation uid = {}" , *annotUid );
+//    spdlog::trace( "Got annotation uid: {}" , *annotUid );
 
     // Add points to the outer boundary (0) for now:
     /// @todo Ability to select boundary
-    constexpr uint32_t k_outerBoundary = 0;
+    static constexpr uint32_t k_outerBoundary = 0;
 
-    const auto projectedPoint = annot->addPointToBoundary( k_outerBoundary, worldPos );
+    const auto projectedPoint = annot->addSubjectPointToBoundary(
+                k_outerBoundary, glm::vec3{ subjectPlanePoint } );
 
     if ( ! projectedPoint )
     {
         spdlog::error( "Unable to add point {} to boundary {}",
                        glm::to_string( worldPos ), k_outerBoundary );
     }
-    else
-    {
-        spdlog::trace( "Projected annotation point {} to plane {}",
-                       glm::to_string( worldPos ), glm::to_string( *projectedPoint ) );
-    }
+//    else
+//    {
+//        spdlog::trace( "Projected annotation point {} to plane {}",
+//                       glm::to_string( worldPos ), glm::to_string( *projectedPoint ) );
+//    }
 }
 
 

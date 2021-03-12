@@ -57,6 +57,7 @@ ImageTransformations::ImageTransformations(
 
       m_worldDef_T_subject( 1.0f ),
       m_subject_T_worldDef( 1.0f ),
+      m_subject_T_worldDef_invTransp( 1.0f ),
 
       m_worldDef_T_texture( 1.0f ),
       m_texture_T_worldDef( 1.0f ),
@@ -229,6 +230,11 @@ const glm::mat4& ImageTransformations::subject_T_worldDef() const
     return m_subject_T_worldDef;
 }
 
+const glm::mat3& ImageTransformations::subject_T_worldDef_invTransp() const
+{
+    return m_subject_T_worldDef_invTransp;
+}
+
 const glm::mat4& ImageTransformations::worldDef_T_texture() const
 {
     return m_worldDef_T_texture;
@@ -249,7 +255,7 @@ const glm::mat4& ImageTransformations::pixel_T_worldDef() const
     return m_pixel_T_worldDef;
 }
 
-const glm::mat4& ImageTransformations::pixel_T_worldDef_invTransp() const
+const glm::mat3& ImageTransformations::pixel_T_worldDef_invTransp() const
 {
     return m_pixel_T_worldDef_invTransp;
 }
@@ -278,13 +284,14 @@ void ImageTransformations::updateTransformations()
 
     m_worldDef_T_subject = get_worldDef_T_affine() * get_affine_T_subject();
     m_subject_T_worldDef = glm::inverse( m_worldDef_T_subject );
+    m_subject_T_worldDef_invTransp = glm::mat3{ glm::inverseTranspose( m_subject_T_worldDef ) };
 
     m_worldDef_T_texture = m_worldDef_T_subject * m_subject_T_texture;
     m_texture_T_worldDef = glm::inverse( m_worldDef_T_texture );
 
     m_worldDef_T_pixel = m_worldDef_T_subject * m_subject_T_pixel;
     m_pixel_T_worldDef = glm::inverse( m_worldDef_T_pixel );
-    m_pixel_T_worldDef_invTransp = glm::transpose( m_worldDef_T_pixel );
+    m_pixel_T_worldDef_invTransp = glm::mat3{ glm::inverseTranspose( m_pixel_T_worldDef ) };
 }
 
 

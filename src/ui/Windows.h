@@ -76,7 +76,7 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews );
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterViews );
 
 
 void renderSettingsWindow(
@@ -92,6 +92,15 @@ void renderInspectionWindow(
         const std::function< size_t (void) >& getNumImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< glm::vec3 () >& getWorldDeformedPos,
+        const std::function< std::optional<glm::vec3> ( size_t imageIndex ) >& getSubjectPos,
+        const std::function< std::optional<glm::ivec3> ( size_t imageIndex ) >& getVoxelPos,
+        const std::function< std::optional<double> ( size_t imageIndex ) >& getImageValue,
+        const std::function< std::optional<int64_t> ( size_t imageIndex ) >& getSegLabel,
+        const std::function< ParcellationLabelTable* ( size_t tableIndex ) >& getLabelTable );
+
+void renderInspectionWindowWithTable(
+        AppData& appData,
+        const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< std::optional<glm::vec3> ( size_t imageIndex ) >& getSubjectPos,
         const std::function< std::optional<glm::ivec3> ( size_t imageIndex ) >& getVoxelPos,
         const std::function< std::optional<double> ( size_t imageIndex ) >& getImageValue,

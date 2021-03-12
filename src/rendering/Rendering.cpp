@@ -1211,7 +1211,7 @@ void renderAnnotations(
             continue;
         }
 
-        spdlog::trace( "Rendering annotations for image {}", imgUid );
+//        spdlog::trace( "Rendering annotations for image {}", imgUid );
 
         // Compute plane equation in image Subject space:
         /// @todo Pull this out into a MathHelper function
@@ -1220,25 +1220,28 @@ void renderAnnotations(
 
         const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldViewNormal };
 
-        const glm::vec3 worldPlanePoint = worldCrosshairs;
-        const glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldPlanePoint, 1.0f };
+        glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldCrosshairs, 1.0f };
+        subjectPlanePoint /= subjectPlanePoint.w;
 
         const glm::vec4 subjectPlaneEquation = math::makePlane(
-                    subjectPlaneNormal, glm::vec3{ subjectPlanePoint / subjectPlanePoint.w } );
+                    subjectPlaneNormal, glm::vec3{ subjectPlanePoint } );
 
-
-        // Slice spacing of the image along the view normal is the plane distance threshold for annotation searching:
+        // Slice spacing of the image along the view normal is the plane distance threshold
+        // for annotation searching:
         const float sliceSpacing = data::sliceScrollDistance( -worldViewNormal, *img );
 
-        spdlog::trace( "Finding annotations for plane {} with distance threshold {}", glm::to_string( subjectPlaneEquation ), sliceSpacing );
+//        spdlog::trace( "Finding annotations for plane {} with distance threshold {}",
+//                       glm::to_string( subjectPlaneEquation ), sliceSpacing );
 
-        const auto annotUid = data::findAnnotationForImage( appData, imgUid, subjectPlaneEquation, sliceSpacing );
-        if ( ! annotUid ) continue;
+        const auto annotUids = data::findAnnotationsForImage(
+                    appData, imgUid, subjectPlaneEquation, sliceSpacing );
 
-        const Annotation* annot = appData.annotation( *annotUid );
+        if ( annotUids.empty() ) continue;
+
+        const Annotation* annot = appData.annotation( annotUids[0] );
         if ( ! annot ) continue;
 
-        spdlog::trace( "Found annotation {}", *annotUid );
+//        spdlog::trace( "Found annotation {}", *annotUid );
 
         // Annotation vertices in Subject space:
         const auto& subjectPlaneVertices = annot->getBoundaryVertices( 0 );
@@ -1249,6 +1252,7 @@ void renderAnnotations(
 
         const glm::vec3 color = img->settings().borderColor();
         const float opacity = static_cast<float>( img->settings().visibility() ) * img->settings().opacity();
+
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
 
 
@@ -1259,7 +1263,7 @@ void renderAnnotations(
         for ( size_t i = 0; i < subjectPlaneVertices.size(); ++i )
         {
             const glm::vec2 subjectPlanePos = subjectPlaneVertices[i];
-            const glm::vec3 subjectPos = annot->unprojectPointFromAnnotationPlane( subjectPlanePos );
+            const glm::vec3 subjectPos = annot->unprojectFromAnnotationPlaneToSubjectPoint( subjectPlanePos );
             const glm::vec4 worldPos = world_T_subject * glm::vec4{ subjectPos, 1.0f };
             const glm::vec2 mousePos = convertWorldToMousePos( glm::vec3{ worldPos / worldPos.w } );
 
@@ -1274,7 +1278,7 @@ void renderAnnotations(
                 nvgLineTo( nvg, mousePos.x, mousePos.y );
             }
 
-            spdlog::trace( "Point i = {}: {}", i, glm::to_string( mousePos ) );
+//            spdlog::trace( "Point i = {}: {}", i, glm::to_string( mousePos ) );
         }
 
         nvgStroke( nvg );

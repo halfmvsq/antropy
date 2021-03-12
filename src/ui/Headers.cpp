@@ -708,7 +708,7 @@ void renderImageHeader(
         ImGui::SameLine(); helpMarker( "Select/invert the image colormap" );
 
         renderPaletteWindow(
-                    std::string( "Select colormap for " + imgSettings.displayName() ).c_str(),
+                    std::string( "Select colormap for image '" + imgSettings.displayName() + "'" ).c_str(),
                     showImageColormapWindow,
                     getNumImageColorMaps,
                     getImageColorMap,

@@ -447,6 +447,8 @@ void renderImagePropertiesWindow(
         const std::function< void ( const uuids::uuid& imageUid ) >& updateImageInterpolationMode,
         const std::function< bool ( const uuids::uuid& imageUid, bool locked ) >& setLockManualImageTransformation )
 {
+    static const std::string sk_showOpacityMixer = std::string( ICON_FK_SLIDERS ) + " Show opacity mixer";
+
     if ( ImGui::Begin( "Images##Images",
                        &( appData.guiData().m_showImagePropertiesWindow ),
                        ImGuiWindowFlags_AlwaysAutoResize ) )
@@ -457,7 +459,7 @@ void renderImagePropertiesWindow(
                     getActiveImageIndex,
                     setActiveImageIndex );
 
-        if ( ImGui::Button( "Show opacity mixer" ) )
+        if ( ImGui::Button( sk_showOpacityMixer.c_str() ) )
         {
             appData.guiData().m_showOpacityBlenderWindow = true;
         }
@@ -545,7 +547,7 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews )
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterViews )
 {
     if ( ImGui::Begin( "Landmarks",
                        &( appData.guiData().m_showLandmarksWindow ),
@@ -563,7 +565,7 @@ void renderLandmarkPropertiesWindow(
                         imageUid,
                         imageIndex++,
                         isActiveImage,
-                        recenterCurrentViews );
+                        recenterViews );
         }
 
         ImGui::End();
@@ -1310,6 +1312,333 @@ void renderInspectionWindow(
     }
 
     ImGui::End();
+}
+
+
+void renderInspectionWindowWithTable(
+        AppData& appData,
+        const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
+        const std::function< std::optional<glm::vec3> ( size_t imageIndex ) >& getSubjectPos,
+        const std::function< std::optional<glm::ivec3> ( size_t imageIndex ) >& getVoxelPos,
+        const std::function< std::optional<double> ( size_t imageIndex ) >& getImageValue,
+        const std::function< std::optional<int64_t> ( size_t imageIndex ) >& getSegLabel,
+        const std::function< ParcellationLabelTable* ( size_t tableIndex ) >& getLabelTable )
+{
+    static bool s_firstRun = true; // Is this the first run?
+
+    static constexpr float sk_pad = 10.0f;
+    static int corner = 2;
+
+//    bool selectionButtonShown = false;
+
+    static const ImVec4 buttonColor( 0.0f, 0.0f, 0.0f, 0.0f );
+    static const ImVec4 blueColor( 0.0f, 0.5f, 1.0f, 1.0f );
+
+    // For which images to show coordinates?
+    static std::unordered_map<uuids::uuid, bool> s_showSubject;
+
+    if ( s_firstRun )
+    {
+        // Show all images by default:
+        for ( const auto& imageUid : appData.imageUidsOrdered() )
+        {
+            s_showSubject.insert( { imageUid, true } );
+        }
+
+        s_firstRun = false;
+    }
+
+
+    auto contextMenu = [&appData, &getImageDisplayAndFileName] ()
+    {
+        if ( ImGui::BeginMenu( "Show" ) )
+        {
+            for ( size_t imageIndex = 0; imageIndex < appData.numImages(); ++imageIndex )
+            {
+                const auto imageUid = appData.imageUid( imageIndex );
+                if ( ! imageUid ) continue;
+
+                bool& visible = s_showSubject[*imageUid];
+
+                const auto names = getImageDisplayAndFileName( imageIndex );
+
+                if ( ImGui::MenuItem( names.first, nullptr, visible ) )
+                {
+                    visible = ! visible;
+                }
+
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", names.second );
+                }
+            }
+
+            ImGui::EndMenu();
+        }
+
+        if ( ImGui::BeginMenu( "Position" ) )
+        {
+            if ( ImGui::MenuItem( "Custom", nullptr, corner == -1 ) ) corner = -1;
+            if ( ImGui::MenuItem( "Top-left", nullptr, corner == 0 ) ) corner = 0;
+            if ( ImGui::MenuItem( "Top-right", nullptr, corner == 1 ) ) corner = 1;
+            if ( ImGui::MenuItem( "Bottom-left", nullptr, corner == 2 ) ) corner = 2;
+            if ( ImGui::MenuItem( "Bottom-right", nullptr, corner == 3 ) ) corner = 3;
+
+            ImGui::EndMenu();
+        }
+
+        if ( appData.guiData().m_showInspectionWindow && ImGui::MenuItem( "Close" ) )
+        {
+            appData.guiData().m_showInspectionWindow = false;
+        }
+
+        ImGui::EndPopup();
+    };
+
+
+//    auto showSelectionButton = [] ()
+//    {
+//        ImGui::PushStyleColor( ImGuiCol_Button, buttonColor );
+//        if ( ImGui::Button( ICON_FK_LIST_ALT ) )
+//        {
+//            ImGui::OpenPopup( "selectionPopup" );
+//        }
+//        ImGui::PopStyleColor( 1 );
+
+//        if ( ImGui::IsItemHovered() )
+//        {
+//            ImGui::SetTooltip( "Select image(s) to inspect" );
+//        }
+//    };
+
+
+    ImGuiIO& io = ImGui::GetIO();
+
+    ImGuiWindowFlags windowFlags =
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoFocusOnAppearing |
+            ImGuiWindowFlags_NoNav;
+
+    if ( corner != -1 )
+    {
+        windowFlags |= ImGuiWindowFlags_NoMove;
+
+        const ImVec2 windowPos = ImVec2( ( corner & 1 ) ? io.DisplaySize.x - sk_pad : sk_pad,
+                                         ( corner & 2 ) ? io.DisplaySize.y - sk_pad : sk_pad );
+
+        const ImVec2 windowPosPivot = ImVec2( ( corner & 1 ) ? 1.0f : 0.0f,
+                                              ( corner & 2 ) ? 1.0f : 0.0f );
+
+        ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
+    }
+
+    ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
+
+    if ( ImGui::Begin( "##InspectionWindow", &( appData.guiData().m_showInspectionWindow ), windowFlags ) )
+    {
+        // When using ScrollX or ScrollY we need to specify a size for our table container!
+        // Otherwise by default the table will fit all available space, like a BeginChild() call.
+
+//        ImVec2 outer_size = ImVec2( 0.0f, ImGui::GetTextLineHeightWithSpacing() * 8 );
+
+        if ( ImGui::BeginTable(
+                 "Image Information", 6,
+                 ImGuiTableFlags_Resizable |
+                 ImGuiTableFlags_Reorderable |
+                 ImGuiTableFlags_Hideable |
+                 ImGuiTableFlags_Borders |
+                 ImGuiTableFlags_SizingFixedFit |
+                 ImGuiTableFlags_ScrollX |
+                 ImGuiTableFlags_ScrollY
+//                 , outer_size
+                 ) )
+        {
+            ImGui::TableSetupScrollFreeze( 1, 1 );
+
+            ImGui::TableSetupColumn( "Image" );
+
+            ImGui::TableSetupColumn( "Value" );
+            ImGui::TableSetupColumn( "Label" );
+            ImGui::TableSetupColumn( "Region", ImGuiTableColumnFlags_DefaultHide );
+
+            ImGui::TableSetupColumn( "Voxel" );
+            ImGui::TableSetupColumn( "Physical (mm)" );
+
+
+            ImGui::TableHeadersRow();
+
+            for ( size_t imageIndex = 0; imageIndex < appData.numImages(); ++imageIndex )
+            {
+                const auto imageUid = appData.imageUid( imageIndex );
+                const Image* image = ( imageUid ? appData.image( *imageUid ) : nullptr );
+                if ( ! image ) continue;
+
+                const bool visible = s_showSubject[*imageUid];
+                if ( ! visible ) continue;
+
+                ImGui::PushID( imageIndex );
+
+                const auto segUid = appData.imageToActiveSegUid( *imageUid );
+                const Image* seg = ( segUid ? appData.seg( *segUid ) : nullptr );
+                const auto* table = getLabelTable( seg->settings().labelTableIndex() );
+
+                const std::optional<double> imageValue = getImageValue( imageIndex );
+                const std::optional<long> segLabel = getSegLabel( imageIndex );
+
+                const std::optional<glm::ivec3> voxelPos = getVoxelPos( imageIndex );
+                const std::optional<glm::vec3> subjectPos = getSubjectPos( imageIndex );
+
+                ImGui::TableNextColumn(); // "Image"
+
+                const glm::vec3 color = image->settings().borderColor();
+
+                ImGui::TextColored( ImVec4( color.r, color.g, color.b, 1.0f ), "%s",
+                                    image->settings().displayName().c_str() );
+
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", image->header().fileName().c_str() );
+                }
+
+
+                ImGui::TableNextColumn(); // "Value"
+
+                if ( imageValue )
+                {
+                    if ( isComponentFloatingPoint( image->header().memoryComponentType() ) )
+                    {
+                        double a = *imageValue;
+                        ImGui::PushItemWidth( -1 );
+                        ImGui::InputScalar( "##imageValue", ImGuiDataType_Double, &a, nullptr, nullptr, "%0.3f" );
+                        ImGui::PopItemWidth();
+
+                        if ( image->header().numComponentsPerPixel() > 1 )
+                        {
+                            if ( ImGui::IsItemHovered() )
+                            {
+                                ImGui::SetTooltip( "Active component: %d", image->settings().activeComponent() );
+                            }
+                        }
+                    }
+                    else
+                    {
+                        long a = static_cast<long>( *imageValue );
+                        ImGui::PushItemWidth( -1 );
+                        ImGui::InputScalar( "##imageValue", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
+                        ImGui::PopItemWidth();
+
+                        if ( image->header().numComponentsPerPixel() > 1 )
+                        {
+                            // Multi-component case: show the value of the active component
+                            if ( ImGui::IsItemHovered() )
+                            {
+                                ImGui::SetTooltip( "Active component: %d", image->settings().activeComponent() );
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    ImGui::Text( "<N/A>" );
+                }
+
+
+                if ( segLabel )
+                {
+                    ImGui::TableNextColumn(); // "Label"
+
+                    long a = static_cast<long>( *segLabel );
+                    ImGui::PushItemWidth( -1 );
+                    ImGui::InputScalar( "##segLabel", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
+                    ImGui::PopItemWidth();
+
+                    if ( table )
+                    {
+                        const char* labelName = table->getName( static_cast<size_t>( *segLabel ) ).c_str();
+
+                        if ( ImGui::IsItemHovered() )
+                        {
+                            ImGui::SetTooltip( "%s", labelName );
+                        }
+
+                        ImGui::TableNextColumn(); // "Region"
+                        ImGui::Text( "%s", labelName );
+                    }
+                    else
+                    {
+                        ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                    }
+                }
+                else
+                {
+                    ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                    ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                }
+
+
+                if ( voxelPos )
+                {
+                    ImGui::TableNextColumn(); // "Voxel"
+
+                    ImGui::PushItemWidth( -1 );
+                    glm::ivec3 a = *voxelPos;
+                    ImGui::InputInt3( "##voxel", glm::value_ptr( a ), ImGuiInputTextFlags_AllowTabInput );
+                    ImGui::PopItemWidth();
+
+                    if ( ImGui::IsItemHovered() )
+                    {
+                        ImGui::SetTooltip( "Voxel coordinate (i: column, j: row, k: slice)" );
+                    }
+                }
+                else
+                {
+                    ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                }
+
+
+                if ( subjectPos )
+                {
+                    ImGui::TableNextColumn(); // "Physical"
+
+                    ImGui::PushItemWidth( -1 );
+                    glm::vec3 a = *subjectPos;
+                    ImGui::InputFloat3( "##physical", glm::value_ptr( a ), "%.3f", ImGuiInputTextFlags_AllowTabInput );
+                    ImGui::PopItemWidth();
+
+                    if ( ImGui::IsItemHovered() )
+                    {
+                        ImGui::SetTooltip( "Physical coordinate (x: R->L, y: A->P, z: I->S)" );
+                    }
+                }
+                else
+                {
+                    ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                }
+
+                ImGui::PopID(); // imageIndex
+            }
+
+            ImGui::EndTable();
+        }
+
+//        ImGui::SameLine();
+//        showSelectionButton();
+
+        if ( ImGui::BeginPopupContextWindow() )
+        {
+            // Show context menu on right-button click:
+            contextMenu();
+        }
+        else if ( ImGui::BeginPopup( "selectionPopup" ) )
+        {
+            // Show context menu if the user has clicked the popup button:
+            contextMenu();
+            ImGui::EndPopup();
+        }
+
+        ImGui::End();
+    }
 }
 
 

@@ -1,6 +1,8 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
+#include "logic/annotation/Polygon.tpp"
+
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
@@ -15,14 +17,14 @@
 class AppData;
 //enum class LayerChangeType;
 
-template<typename TComp, uint32_t Dim>
-class Polygon;
+//template<typename TComp, uint32_t Dim>
+//class Polygon;
 
 
 
 /**
  * @brief An image annotation, which (for now) is a closed, planar polygon with vertices
- * defined with 2D coordinates
+ * defined with 2D coordinates. The annotation plane is defined in the image's Subject coordinate system.
  *
  * @todo Layering
  * @todo Text and regular shape annotations
@@ -38,31 +40,31 @@ class Annotation
 
 public:
 
-    explicit Annotation(
-            const glm::vec4& subjectPlaneEquation,
-            std::shared_ptr< Polygon<float, 2> > polygon );
-
+    explicit Annotation( const glm::vec4& subjectPlaneEquation );
     ~Annotation() = default;
 
 
-    /// Set/get the annotation name
+    /// @brief Set/get the annotation name
     void setName( std::string name );
     const std::string& getName() const;
 
-    /// Get the annotation's polygon
-    std::weak_ptr< Polygon<float, 2> > polygon();
-
-    /// Get the annotation's polygon
-    Polygon<float, 2>* polygon() const ;
+    /// @brief Get the annotation's polygon as a const/non-const reference
+    Polygon<float, 2>& polygon();
+    const Polygon<float, 2>& polygon() const ;
 
     const std::vector< std::vector<glm::vec2> >& getAllVertices() const;
 
     const std::vector<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
 
-    /// Add a 3D point to the annotation polygon's boundary.
-    /// @return Projected point in 2D plane coordinates
-    std::optional<glm::vec2> addPointToBoundary(
-            size_t boundary, const glm::vec3& point );
+
+    /**
+     * @brief Add a 3D Subject point to the annotation polygon.
+     * @param[in] boundary Boundary to add point to
+     * @param[in] subjectPoint 3D point in Subject space to project
+     * @return Projected point in 2D Subject plane coordinates
+     */
+    std::optional<glm::vec2> addSubjectPointToBoundary(
+            size_t boundary, const glm::vec3& subjectPoint );
 
 
     /// Get the annotation layer, with 0 being the backmost layer and layers increasing in value
@@ -73,39 +75,43 @@ public:
     uint32_t getMaxLayer() const;
 
 
-    /// Set/get the annotation visibility
+    /// @brief Set/get the annotation visibility
     void setVisibility( bool visibility );
     bool getVisibility() const;
 
-    /// Set/get the annotation opacity in range [0.0, 1.0]
+    /// @brief Set/get the annotation opacity in range [0.0, 1.0]
     void setOpacity( float opacity );
     float getOpacity() const;
 
-    /// Set/get the annotation color (non-premultiplied RGB)
+    /// @brief Set/get the annotation color (non-premultiplied RGB)
     void setColor( glm::vec3 color );
     const glm::vec3& getColor() const;
 
-    /// Get the annotation plane equation in Subject space
+    /// @brief Get the annotation plane equation in Subject space
     const glm::vec4& getSubjectPlaneEquation() const;
 
-    /// Get the annotation plane origin in Subject space
+    /// @brief Get the annotation plane origin in Subject space
     const glm::vec3& getSubjectPlaneOrigin() const;
 
-    /// Get the annotation plane coordinate axes in Subject space
+    /// @brief Get the annotation plane coordinate axes in Subject space
     const std::pair<glm::vec3, glm::vec3>& getSubjectPlaneAxes() const;
 
 
-    /// Compute the projection of a 3D point into 2D annotation plane coordinates
-    glm::vec2 projectPointToAnnotationPlane( const glm::vec3& point3d ) const;
+    /// @brief Compute the projection of a 3D point (in Subject space) into
+    /// 2D annotation Subject plane coordinates
+    glm::vec2 projectSubjectPointToAnnotationPlane(
+            const glm::vec3& subjectPoint ) const;
 
-    /// Compute the un-projected 3D coordinates of a 2D point defined in annotation plane coordinates
-    glm::vec3 unprojectPointFromAnnotationPlane( const glm::vec2& planePoint2d ) const;
+    /// @brief Compute the un-projected 3D coordinates (in Subject space) of a
+    /// 2D point defined in annotation Subject plane coordinates
+    glm::vec3 unprojectFromAnnotationPlaneToSubjectPoint(
+            const glm::vec2& planePoint2d ) const;
 
 
 private:
 
     /// Set the axes of the plane in Subject space
-    bool setsubjectPlane( const glm::vec4& subjectPlaneEquation );
+    bool setSubjectPlane( const glm::vec4& subjectPlaneEquation );
 
     /// Set the annotation layer, with 0 being the backmost layer.
     /// @note Use the function \c changeSlideAnnotationLayering to change annotation layer
@@ -119,7 +125,7 @@ private:
     std::string m_name;
 
     /// Annotation polygon, which can include holes
-    std::shared_ptr< Polygon<float, 2> > m_polygon;
+    Polygon<float, 2> m_polygon;
 
     /// Annotation layer: 0 is the backmost layer and higher layers are more frontwards
     uint32_t m_layer;
@@ -138,13 +144,13 @@ private:
 
     /// Equation of the 3D plane containing this annotation. The plane is defined by the
     /// coefficients (A, B, C, D) of equation Ax + By + Cz + D = 0, where (x, y, z) are
-    /// coordinates in image Subject space.
+    /// coordinates in Subject space.
     glm::vec4 m_subjectPlaneEquation;
 
-    /// 3D origin of the plane in image Subject space
+    /// 3D origin of the plane in Subject space
     glm::vec3 m_subjectPlaneOrigin;
 
-    /// 3D axes of the plane in image Subject space
+    /// 3D axes of the plane in Subject space
     std::pair<glm::vec3, glm::vec3> m_subjectPlaneAxes;
 };
 

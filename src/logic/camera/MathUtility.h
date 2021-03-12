@@ -82,6 +82,14 @@ glm::vec3 projectPointToPlane(
         const glm::vec3& point,
         const glm::vec4& planeEquation );
 
+/**
+ * @brief Project a 3D point into a plane and return the point's local 2D plane coordinates
+ * @param[in] point Point in 3D
+ * @param[in] planeEquation Plane equation coefficients (A, B, C, D) where Ax + By + Cz + D = 0
+ * @param[in] planeOrigin Plane origin in 3D
+ * @param[in] planeAxes Plane axes in 3D that define the local plane coordinate system
+ * @return The point expressed in local 2D plane coordinates after being projected into the plane
+ */
 glm::vec2 projectPointToPlaneLocal2dCoords(
         const glm::vec3& point,
         const glm::vec4& planeEquation,
