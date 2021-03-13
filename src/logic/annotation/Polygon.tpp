@@ -28,7 +28,7 @@
  * @tparam Dim Vertex dimension
  */
 template< typename TComp, uint32_t Dim >
-class Polygon
+class AnnotPolygon
 {
 public:
 
@@ -40,7 +40,7 @@ public:
 
 
     /// Construct empty polygon with no triangulation
-    explicit Polygon()
+    explicit AnnotPolygon()
         :
           m_vertices(),
           m_triangulation(),
@@ -48,7 +48,7 @@ public:
           m_aabb( std::nullopt )
     {}
 
-    ~Polygon() = default;
+    ~AnnotPolygon() = default;
 
 
     /// Set all vertices of the polygon. The first vector defines the main (outer) polygon boundary;
@@ -189,7 +189,7 @@ public:
     /// @return Empty vector if invalid boundary
     const std::vector<PointType>& getBoundaryVertices( size_t boundary ) const
     {
-        static const std::vector< Polygon::PointType > sk_emptyBoundary;
+        static const std::vector< AnnotPolygon::PointType > sk_emptyBoundary;
 
         if ( boundary >= m_vertices.size() )
         {
@@ -225,7 +225,7 @@ public:
     /// Get the i'th vertex of a given boundary, where 0 is the outer boundary and subsequent boundaries
     /// define holes.
     /// @return Null optional if invalid boundary or vertex index
-    std::optional<Polygon::PointType>
+    std::optional<AnnotPolygon::PointType>
     getBoundaryVertex( size_t boundary, size_t i ) const
     {
         if ( boundary >= m_vertices.size() )
@@ -249,7 +249,7 @@ public:
     /// Get i'th vertex of the whole polygon. Here i indexes the collection of all ordered vertices
     /// of the outer boundary and all hole boundaries.
     /// @return Null optional if invalid vertex
-    std::optional<Polygon::PointType> getVertex( size_t i ) const
+    std::optional<AnnotPolygon::PointType> getVertex( size_t i ) const
     {
         size_t j = i;
 
@@ -335,7 +335,7 @@ public:
 
     /// Return true iff this polygon equals (in terms of both vertices and triangulation)
     /// another polygon. The comparison is done based on unique IDs of the polygons.
-    bool equals( const Polygon& otherPolygon ) const
+    bool equals( const AnnotPolygon& otherPolygon ) const
     {
         return ( m_currentUid == otherPolygon.getCurrentUid() );
     }

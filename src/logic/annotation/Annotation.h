@@ -45,12 +45,12 @@ public:
 
 
     /// @brief Set/get the annotation name
-    void setName( std::string name );
-    const std::string& getName() const;
+    //void setName( std::string name );
+    //const std::string& getName() const;
 
     /// @brief Get the annotation's polygon as a const/non-const reference
-    Polygon<float, 2>& polygon();
-    const Polygon<float, 2>& polygon() const ;
+    AnnotPolygon<float, 2>& polygon();
+    const AnnotPolygon<float, 2>& polygon() const;
 
     const std::vector< std::vector<glm::vec2> >& getAllVertices() const;
 
@@ -125,7 +125,7 @@ private:
     std::string m_name;
 
     /// Annotation polygon, which can include holes
-    Polygon<float, 2> m_polygon;
+    AnnotPolygon<float, 2> m_polygon;
 
     /// Annotation layer: 0 is the backmost layer and higher layers are more frontwards
     uint32_t m_layer;

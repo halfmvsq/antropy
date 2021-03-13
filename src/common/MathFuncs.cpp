@@ -19,6 +19,9 @@
 #include <random>
 #include <string>
 
+#undef min
+#undef max
+
 
 namespace math
 {

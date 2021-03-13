@@ -64,12 +64,12 @@ bool Annotation::setSubjectPlane( const glm::vec4& subjectPlaneEquation )
     return true;
 }
 
-Polygon<float, 2>& Annotation::polygon()
+AnnotPolygon<float, 2>& Annotation::polygon()
 {
     return m_polygon;
 }
 
-const Polygon<float, 2>& Annotation::polygon() const
+const AnnotPolygon<float, 2>& Annotation::polygon() const
 {
     return m_polygon;
 }
