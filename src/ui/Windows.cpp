@@ -573,6 +573,34 @@ void renderLandmarkPropertiesWindow(
 }
 
 
+void renderAnnotationWindow(
+        AppData& appData,
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterViews )
+{
+    if ( ImGui::Begin( "Annotations",
+                       &( appData.guiData().m_showAnnotationsWindow ),
+                       ImGuiWindowFlags_AlwaysAutoResize ) )
+    {
+        size_t imageIndex = 0;
+        const auto activeUid = appData.activeImageUid();
+
+        for ( const auto& imageUid : appData.imageUidsOrdered() )
+        {
+            const bool isActiveImage = activeUid && ( imageUid == *activeUid );
+
+            renderAnnotationsHeader(
+                        appData,
+                        imageUid,
+                        imageIndex++,
+                        isActiveImage,
+                        recenterViews );
+        }
+
+        ImGui::End();
+    }
+}
+
+
 void renderSettingsWindow(
         AppData& appData,
         const std::function< size_t (void) >& getNumImageColorMaps,

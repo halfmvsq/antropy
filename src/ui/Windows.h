@@ -79,6 +79,11 @@ void renderLandmarkPropertiesWindow(
         const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterViews );
 
 
+void renderAnnotationWindow(
+        AppData& appData,
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterViews );
+
+
 void renderSettingsWindow(
         AppData& appData,
         const std::function< size_t (void) >& getNumImageColorMaps,

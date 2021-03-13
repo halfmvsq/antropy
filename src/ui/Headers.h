@@ -114,4 +114,12 @@ void renderLandmarkGroupHeader(
         const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews );
 
 
+void renderAnnotationsHeader(
+        AppData& appData,
+        const uuids::uuid& imageUid,
+        size_t imageIndex,
+        bool isActiveImage,
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews );
+
+
 #endif // UI_HEADERS_H

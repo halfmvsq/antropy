@@ -42,17 +42,6 @@ static const ImVec4 sk_blackText( 0, 0, 0, 1 );
 /// Size of small toolbar buttons (pixels)
 static const ImVec2 sk_smallToolbarButtonSize( 24, 24 );
 
-/// Color of the reference image header
-/// (Currently set to the same color as for non-reference images)
-//static const ImVec4 imgRefHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
-//static const ImVec4 imgRefHeaderColor( 0.70f, 0.075f, 0.03f, 1.00f );
-
-/// Color of the image headers for non-reference and non-active images
-//static const ImVec4 imgHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
-
-/// Color of the active image header
-//static const ImVec4 imgActiveHeaderColor( 0.20f, 0.62f, 0.45f, 1.0f );
-
 static const std::string sk_referenceAndActiveImageMessage( "This is the reference and active image." );
 static const std::string sk_referenceImageMessage( "This is the reference image." );
 static const std::string sk_activeImageMessage( "This is the active image." );
@@ -553,7 +542,7 @@ void renderImageHeader(
             bool segVisible = activeSeg->settings().visibility();
 
             ImGui::SameLine();
-            if ( ImGui::Checkbox( "Segmentation visibility", &segVisible ) )
+            if ( ImGui::Checkbox( "Segmentation visible", &segVisible ) )
             {
                 activeSeg->settings().setVisibility( segVisible );
                 updateImageUniforms();
@@ -561,7 +550,6 @@ void renderImageHeader(
         }
 
         ImGui::SameLine(); helpMarker( "Show/hide the image (W) or its segmentation (S) on all views" );
-
 
 //        if ( visible )
         {
@@ -1144,13 +1132,6 @@ void renderSegmentationHeader(
             imgSettings.displayName() +
             "###" + std::to_string( imageIndex );
 
-//    ImGui::PushStyleColor( ImGuiCol_Header,
-//                           ( isActiveImage ? imgActiveHeaderColor
-//                                           : ( 0 == imageIndex )
-//                                             ? imgRefHeaderColor
-//                                             : imgHeaderColor ) );
-
-
     glm::vec3 darkerBorderColorHsv = glm::hsvColor( imgSettings.borderColor() );
     darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
     const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
@@ -1461,9 +1442,7 @@ void renderLandmarkGroupHeader(
         headerFlags |= ImGuiTreeNodeFlags_DefaultOpen;
     }
 
-    /****************************************************/
-    ImGui::PushID( uuids::to_string( imageUid ).c_str() );
-    /****************************************************/
+    ImGui::PushID( uuids::to_string( imageUid ).c_str() ); /** PushID imageUid **/
 
     // Header is ID'ed only by the image index.
     // ### allows the header name to change without changing its ID.
@@ -1471,12 +1450,6 @@ void renderLandmarkGroupHeader(
             std::to_string( imageIndex ) + ") " +
             image->settings().displayName() +
             "###" + std::to_string( imageIndex );
-
-//    ImGui::PushStyleColor( ImGuiCol_Header,
-//                           ( isActiveImage ? imgActiveHeaderColor
-//                                           : ( 0 == imageIndex )
-//                                             ? imgRefHeaderColor
-//                                             : imgHeaderColor ) );
 
     const auto imgSettings = image->settings();
 
@@ -1743,7 +1716,15 @@ void renderLandmarkGroupHeader(
 
     ImGui::Spacing();
 
-    /****************************************************/
-    ImGui::PopID(); // imageUid
-    /****************************************************/
+    ImGui::PopID(); /** PopID imageUid **/
+}
+
+
+void renderAnnotationsHeader(
+        AppData& /*appData*/,
+        const uuids::uuid& /*imageUid*/,
+        size_t /*imageIndex*/,
+        bool /*isActiveImage*/,
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& /*recenterCurrentViews*/ )
+{
 }
