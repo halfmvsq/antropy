@@ -52,8 +52,7 @@ static const std::string sk_nonActiveImageMessage( "This is not the active image
 
 void renderImageHeaderInformation(
         const ImageHeader& imgHeader,
-        const ImageTransformations& imgTx,
-        ImageSettings& imgSettings )
+        const ImageTransformations& imgTx )
 {
     // File name:
     std::string fileName = imgHeader.fileName();
@@ -61,16 +60,6 @@ void renderImageHeaderInformation(
     ImGui::SameLine(); helpMarker( "Image file name" );
     ImGui::Spacing();
 
-
-    // Display name text:
-    std::string displayName = imgSettings.displayName();
-    if ( ImGui::InputText( "Display name", &displayName ) )
-    {
-        imgSettings.setDisplayName( displayName );
-    }
-    ImGui::SameLine(); helpMarker( "Set the display name" );
-
-    ImGui::Spacing();
     ImGui::Separator();
 
 
@@ -309,14 +298,6 @@ void renderImageHeader(
             imgSettings.displayName() +
             "###" + std::to_string( imageIndex );
 
-//    ImGui::PushStyleColor( ImGuiCol_Header,
-//                           ( isActiveImage
-//                             ? imgActiveHeaderColor
-//                             : ( 0 == imageIndex )
-//                               ? imgRefHeaderColor
-//                               : imgHeaderColor ) );
-
-
     glm::vec3 darkerBorderColorHsv = glm::hsvColor( imgSettings.borderColor() );
     darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
     const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
@@ -338,6 +319,29 @@ void renderImageHeader(
     }
 
     ImGui::Spacing();
+
+
+    // Border color:
+    glm::vec3 borderColor{ imgSettings.borderColor() };
+
+    if ( ImGui::ColorEdit3( "##BorderColor", glm::value_ptr( borderColor ), sk_colorNoAlphaEditFlags ) )
+    {
+        imgSettings.setBorderColor( borderColor );
+        imgSettings.setEdgeColor( borderColor ); // Set edge color to border color
+        updateImageUniforms();
+    }
+//    ImGui::SameLine(); helpMarker( "Image border color" );
+
+    // Display name text:
+    std::string displayName = imgSettings.displayName();
+    ImGui::SameLine();
+
+    if ( ImGui::InputText( "Name", &displayName ) )
+    {
+        imgSettings.setDisplayName( displayName );
+    }
+    ImGui::SameLine(); helpMarker( "Set the image display name and border color" );
+
 
     if ( ! isActiveImage )
     {
@@ -446,7 +450,7 @@ void renderImageHeader(
             }
             if ( ImGui::IsItemHovered() )
             {
-                ImGui::SetTooltip( "Move image backwards in layers (decrease the image order)" );
+                ImGui::SetTooltip( "Move image backward in layers (decrease the image order)" );
             }
         }
 
@@ -459,7 +463,7 @@ void renderImageHeader(
             }
             if ( ImGui::IsItemHovered() )
             {
-                ImGui::SetTooltip( "Move image forwards in layers (increase the image order)" );
+                ImGui::SetTooltip( "Move image forward in layers (increase the image order)" );
             }
 
             ImGui::SameLine();
@@ -476,18 +480,6 @@ void renderImageHeader(
         /*** ImGuiStyleVar_ItemSpacing ***/
         ImGui::PopStyleVar( 1 );
     }
-
-    ImGui::Spacing();
-
-    glm::vec3 borderColor{ imgSettings.borderColor() };
-
-    if ( ImGui::ColorEdit3( "Border color", glm::value_ptr( borderColor ), sk_colorNoAlphaEditFlags ) )
-    {
-        imgSettings.setBorderColor( borderColor );
-        imgSettings.setEdgeColor( borderColor ); // Set edge color to border color
-        updateImageUniforms();
-    }
-    ImGui::SameLine(); helpMarker( "Image border color" );
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -1079,7 +1071,7 @@ void renderImageHeader(
 
     if ( ImGui::TreeNode( "Header Information" ) )
     {
-        renderImageHeaderInformation( imgHeader, imgTx, imgSettings );
+        renderImageHeaderInformation( imgHeader, imgTx );
         ImGui::TreePop();
     }
 
@@ -1397,7 +1389,7 @@ void renderSegmentationHeader(
 
     if ( ImGui::TreeNode( "Header Information" ) )
     {
-        renderImageHeaderInformation( segHeader, segTx, segSettings );
+        renderImageHeaderInformation( segHeader, segTx );
 
         ImGui::Separator();
         ImGui::TreePop();

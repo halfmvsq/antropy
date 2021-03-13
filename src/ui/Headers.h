@@ -23,13 +23,10 @@ class ParcellationLabelTable;
  *
  * @param[in] imgHeader Image header data
  * @param[in] imgTx Image transformation data
- * @param[in,out] imgSettings Image settings data. The user is able to modify the
- * displayName entry through the UI.
  */
 void renderImageHeaderInformation(
         const ImageHeader& imgHeader,
-        const ImageTransformations& imgTx,
-        ImageSettings& imgSettings );
+        const ImageTransformations& imgTx );
 
 
 /**

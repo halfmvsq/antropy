@@ -29,18 +29,11 @@
 namespace
 {
 
+static const ImVec4 sk_whiteText( 1, 1, 1, 1 );
+static const ImVec4 sk_blackText( 0, 0, 0, 1 );
+
 static const ImVec2 sk_toolbarButtonSize( 32, 32 );
 static const ImVec2 sk_smallToolbarButtonSize( 24, 24 );
-
-/// Color of the reference image header
-//static const ImVec4 imgRefHeaderColor( 0.70f, 0.075f, 0.03f, 1.00f );
-static const ImVec4 imgRefHeaderColor( 0.20f, 0.41f, 0.68f, 1.00f );
-
-/// Color of the image header
-static const ImVec4 imgHeaderColor( 0.20f, 0.41f, 0.68f, 1.00f );
-
-/// Color of the active image header
-static const ImVec4 imgActiveHeaderColor( 0.20f, 0.62f, 0.45f, 1.00f );
 
 } // anonymous
 
@@ -1554,12 +1547,24 @@ void renderInspectionWindowWithTable(
                 const std::optional<glm::ivec3> voxelPos = getVoxelPos( imageIndex );
                 const std::optional<glm::vec3> subjectPos = getSubjectPos( imageIndex );
 
-                ImGui::TableNextColumn(); // "Image"
+                ImGui::TableNextColumn(); // "Image"              
 
-                const glm::vec3 color = image->settings().borderColor();
+                glm::vec3 darkerBorderColorHsv = glm::hsvColor( image->settings().borderColor() );
+                darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
+                const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
 
-                ImGui::TextColored( ImVec4( color.r, color.g, color.b, 1.0f ), "%s",
-                                    image->settings().displayName().c_str() );
+                const ImVec4 inputTextBgColor( darkerBorderColorRgb.r, darkerBorderColorRgb.g, darkerBorderColorRgb.b, 1.0f );
+                const ImVec4 inputTextFgColor = ( glm::luminosity( darkerBorderColorRgb ) < 0.75f ) ? sk_whiteText : sk_blackText;
+
+                ImGui::PushStyleColor( ImGuiCol_FrameBg, inputTextBgColor );
+                ImGui::PushStyleColor( ImGuiCol_Text, inputTextFgColor );
+                ImGui::PushItemWidth( -1 );
+                {
+                    std::string displayName = image->settings().displayName();
+                    ImGui::InputText( "", &displayName, ImGuiInputTextFlags_ReadOnly );
+                }
+                ImGui::PopItemWidth();
+                ImGui::PopStyleColor( 2 ); // ImGuiCol_FrameBg, ImGuiCol_Text
 
                 if ( ImGui::IsItemHovered() )
                 {
@@ -1577,8 +1582,10 @@ void renderInspectionWindowWithTable(
                     {
                         double a = *imageValue;
                         ImGui::PushItemWidth( -1 );
-                        ImGui::InputScalar( "##imageValue", ImGuiDataType_Double, &a, nullptr, nullptr,
-                                            appData.guiData().m_imageValuePrecisionFormat.c_str() );
+                        {
+                            ImGui::InputScalar( "##imageValue", ImGuiDataType_Double, &a, nullptr, nullptr,
+                                                appData.guiData().m_imageValuePrecisionFormat.c_str() );
+                        }
                         ImGui::PopItemWidth();
 
                         if ( image->header().numComponentsPerPixel() > 1 )
@@ -1593,7 +1600,9 @@ void renderInspectionWindowWithTable(
                     {
                         int64_t a = static_cast<int64_t>( *imageValue );
                         ImGui::PushItemWidth( -1 );
-                        ImGui::InputScalar( "##imageValue", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
+                        {
+                            ImGui::InputScalar( "##imageValue", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
+                        }
                         ImGui::PopItemWidth();
 
                         if ( image->header().numComponentsPerPixel() > 1 )
@@ -1618,7 +1627,9 @@ void renderInspectionWindowWithTable(
 
                     int64_t a = static_cast<int64_t>( *segLabel );
                     ImGui::PushItemWidth( -1 );
-                    ImGui::InputScalar( "##segLabel", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
+                    {
+                        ImGui::InputScalar( "##segLabel", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
+                    }
                     ImGui::PopItemWidth();
 
                     if ( table )
@@ -1649,9 +1660,11 @@ void renderInspectionWindowWithTable(
                 {
                     ImGui::TableNextColumn(); // "Voxel"
 
-                    ImGui::PushItemWidth( -1 );
                     glm::ivec3 a = *voxelPos;
-                    ImGui::InputInt3( "##voxel", glm::value_ptr( a ), ImGuiInputTextFlags_AllowTabInput );
+                    ImGui::PushItemWidth( -1 );
+                    {
+                        ImGui::InputInt3( "##voxel", glm::value_ptr( a ), ImGuiInputTextFlags_AllowTabInput );
+                    }
                     ImGui::PopItemWidth();
 
                     if ( ImGui::IsItemHovered() )
@@ -1669,11 +1682,13 @@ void renderInspectionWindowWithTable(
                 {
                     ImGui::TableNextColumn(); // "Physical"
 
-                    ImGui::PushItemWidth( -1 );
                     glm::vec3 a = *subjectPos;
-                    ImGui::InputFloat3( "##physical", glm::value_ptr( a ),
-                                        appData.guiData().m_coordsPrecisionFormat.c_str(),
-                                        ImGuiInputTextFlags_AllowTabInput );
+                    ImGui::PushItemWidth( -1 );
+                    {
+                        ImGui::InputFloat3( "##physical", glm::value_ptr( a ),
+                                            appData.guiData().m_coordsPrecisionFormat.c_str(),
+                                            ImGuiInputTextFlags_AllowTabInput );
+                    }
                     ImGui::PopItemWidth();
 
                     if ( ImGui::IsItemHovered() )
@@ -1686,7 +1701,7 @@ void renderInspectionWindowWithTable(
                     ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
                 }
 
-                ImGui::PopID(); //  /** PopID: imageIndex **/
+                ImGui::PopID(); /** PopID: imageIndex **/
             }
 
             ImGui::EndTable();
