@@ -765,6 +765,9 @@ void renderSettingsWindow(
 
 
                 // View centering:
+
+                ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
+
                 if ( ImGui::TreeNode( "View Recentering" ) )
                 {
                     ImGui::Text( "Center views and crosshairs on:" );
@@ -989,6 +992,46 @@ void renderSettingsWindow(
                 helpMarker( "Render landmarks on top of all image layers" );
 
                 ImGui::PopID(); /*** PopID landmarks ***/
+                ImGui::EndTabItem();
+            }
+
+
+            if ( ImGui::BeginTabItem( "Other" ) )
+            {
+                static constexpr uint32_t sk_minPrecision = 0;
+                static constexpr uint32_t sk_maxPrecision = 6;
+                static constexpr uint32_t sk_stepPrecision = 1;
+
+                ImGui::PushID( "other" ); /*** PushID other ***/
+
+                uint32_t valuePrecision = appData.guiData().m_imageValuePrecision;
+                uint32_t coordPrecision = appData.guiData().m_coordsPrecision;
+
+                ImGui::Text( "Floating-point precision in Inspector:" );
+
+                if ( ImGui::InputScalar( "Image value precision", ImGuiDataType_U32,
+                                         &valuePrecision, &sk_stepPrecision, &sk_stepPrecision, "%d" ) )
+                {
+                    appData.guiData().m_imageValuePrecision = std::min( std::max( valuePrecision, sk_minPrecision ), sk_maxPrecision );
+
+                    appData.guiData().m_imageValuePrecisionFormat = std::string( "%0." ) +
+                            std::to_string( appData.guiData().m_imageValuePrecision ) +
+                            std::string( "f" );
+                }
+                ImGui::SameLine(); helpMarker( "Floating-point precision of image values in Inspector window" );
+
+                if ( ImGui::InputScalar( "Coordinate precision", ImGuiDataType_U32,
+                                         &coordPrecision, &sk_stepPrecision, &sk_stepPrecision, "%d" ) )
+                {
+                    appData.guiData().m_coordsPrecision = std::min( std::max( coordPrecision, sk_minPrecision ), sk_maxPrecision );
+
+                    appData.guiData().m_coordsPrecisionFormat = std::string( "%0." ) +
+                            std::to_string( appData.guiData().m_coordsPrecision ) +
+                            std::string( "f" );
+                }
+                ImGui::SameLine(); helpMarker( "Floating-point precision of image spatial coordinates in Inspector window" );
+
+                ImGui::PopID(); /*** PopID other ***/
                 ImGui::EndTabItem();
             }
 
@@ -1399,7 +1442,7 @@ void renderInspectionWindowWithTable(
 //    auto showSelectionButton = [] ()
 //    {
 //        ImGui::PushStyleColor( ImGuiCol_Button, buttonColor );
-//        if ( ImGui::Button( ICON_FK_LIST_ALT ) )
+//        if ( ImGui::Button( "..." ) )
 //        {
 //            ImGui::OpenPopup( "selectionPopup" );
 //        }
@@ -1413,6 +1456,15 @@ void renderInspectionWindowWithTable(
 
 
     ImGuiIO& io = ImGui::GetIO();
+
+    static const ImGuiTableFlags sk_tableFlags =
+            ImGuiTableFlags_Resizable |
+            ImGuiTableFlags_Reorderable |
+            ImGuiTableFlags_Hideable |
+            ImGuiTableFlags_Borders |
+            ImGuiTableFlags_SizingFixedFit |
+            ImGuiTableFlags_ScrollX |
+            ImGuiTableFlags_ScrollY;
 
     ImGuiWindowFlags windowFlags =
             ImGuiWindowFlags_NoDecoration |
@@ -1436,23 +1488,8 @@ void renderInspectionWindowWithTable(
     ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
 
     if ( ImGui::Begin( "##InspectionWindow", &( appData.guiData().m_showInspectionWindow ), windowFlags ) )
-    {
-        // When using ScrollX or ScrollY we need to specify a size for our table container!
-        // Otherwise by default the table will fit all available space, like a BeginChild() call.
-
-//        ImVec2 outer_size = ImVec2( 0.0f, ImGui::GetTextLineHeightWithSpacing() * 8 );
-
-        if ( ImGui::BeginTable(
-                 "Image Information", 6,
-                 ImGuiTableFlags_Resizable |
-                 ImGuiTableFlags_Reorderable |
-                 ImGuiTableFlags_Hideable |
-                 ImGuiTableFlags_Borders |
-                 ImGuiTableFlags_SizingFixedFit |
-                 ImGuiTableFlags_ScrollX |
-                 ImGuiTableFlags_ScrollY
-//                 , outer_size
-                 ) )
+    {       
+        if ( ImGui::BeginTable( "Image Information", 6, sk_tableFlags ) )
         {
             ImGui::TableSetupScrollFreeze( 1, 1 );
 
@@ -1477,7 +1514,7 @@ void renderInspectionWindowWithTable(
                 const bool visible = s_showSubject[*imageUid];
                 if ( ! visible ) continue;
 
-                ImGui::PushID( imageIndex );
+                ImGui::PushID( imageIndex ); /** PushID: imageIndex **/
 
                 const auto segUid = appData.imageToActiveSegUid( *imageUid );
                 const Image* seg = ( segUid ? appData.seg( *segUid ) : nullptr );
@@ -1501,6 +1538,8 @@ void renderInspectionWindowWithTable(
                     ImGui::SetTooltip( "%s", image->header().fileName().c_str() );
                 }
 
+//                ImGui::SameLine(); showSelectionButton();
+
 
                 ImGui::TableNextColumn(); // "Value"
 
@@ -1510,7 +1549,8 @@ void renderInspectionWindowWithTable(
                     {
                         double a = *imageValue;
                         ImGui::PushItemWidth( -1 );
-                        ImGui::InputScalar( "##imageValue", ImGuiDataType_Double, &a, nullptr, nullptr, "%0.3f" );
+                        ImGui::InputScalar( "##imageValue", ImGuiDataType_Double, &a, nullptr, nullptr,
+                                            appData.guiData().m_imageValuePrecisionFormat.c_str() );
                         ImGui::PopItemWidth();
 
                         if ( image->header().numComponentsPerPixel() > 1 )
@@ -1523,7 +1563,7 @@ void renderInspectionWindowWithTable(
                     }
                     else
                     {
-                        long a = static_cast<long>( *imageValue );
+                        int64_t a = static_cast<int64_t>( *imageValue );
                         ImGui::PushItemWidth( -1 );
                         ImGui::InputScalar( "##imageValue", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
                         ImGui::PopItemWidth();
@@ -1548,7 +1588,7 @@ void renderInspectionWindowWithTable(
                 {
                     ImGui::TableNextColumn(); // "Label"
 
-                    long a = static_cast<long>( *segLabel );
+                    int64_t a = static_cast<int64_t>( *segLabel );
                     ImGui::PushItemWidth( -1 );
                     ImGui::InputScalar( "##segLabel", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
                     ImGui::PopItemWidth();
@@ -1588,7 +1628,7 @@ void renderInspectionWindowWithTable(
 
                     if ( ImGui::IsItemHovered() )
                     {
-                        ImGui::SetTooltip( "Voxel coordinate (i: column, j: row, k: slice)" );
+                        ImGui::SetTooltip( "Voxel index (i: column, j: row, k: slice)" );
                     }
                 }
                 else
@@ -1603,7 +1643,9 @@ void renderInspectionWindowWithTable(
 
                     ImGui::PushItemWidth( -1 );
                     glm::vec3 a = *subjectPos;
-                    ImGui::InputFloat3( "##physical", glm::value_ptr( a ), "%.3f", ImGuiInputTextFlags_AllowTabInput );
+                    ImGui::InputFloat3( "##physical", glm::value_ptr( a ),
+                                        appData.guiData().m_coordsPrecisionFormat.c_str(),
+                                        ImGuiInputTextFlags_AllowTabInput );
                     ImGui::PopItemWidth();
 
                     if ( ImGui::IsItemHovered() )
@@ -1616,14 +1658,11 @@ void renderInspectionWindowWithTable(
                     ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
                 }
 
-                ImGui::PopID(); // imageIndex
+                ImGui::PopID(); //  /** PopID: imageIndex **/
             }
 
             ImGui::EndTable();
         }
-
-//        ImGui::SameLine();
-//        showSelectionButton();
 
         if ( ImGui::BeginPopupContextWindow() )
         {
@@ -1646,6 +1685,9 @@ void renderOpacityBlenderWindow(
         AppData& appData,
         const std::function< void ( const uuids::uuid& imageUid ) >& updateImageUniforms )
 {
+    /// @todo Use the "Drag and drop to copy/swap items" ImGui demo in order to allow reordering image layers
+    /// by dragging the opacity sliders
+
     static const char* windowName = "Image Opacity Mixer";
 
     if ( ! appData.guiData().m_showOpacityBlenderWindow ) return;
@@ -1653,8 +1695,8 @@ void renderOpacityBlenderWindow(
     const bool showWindow = ImGui::Begin(
                 windowName,
                 &( appData.guiData().m_showOpacityBlenderWindow ),
-                ImGuiWindowFlags_NoCollapse |
-                ImGuiWindowFlags_AlwaysAutoResize );
+                ImGuiWindowFlags_NoCollapse
+                | ImGuiWindowFlags_AlwaysAutoResize );
 
     if ( ! showWindow )
     {
@@ -1670,6 +1712,7 @@ void renderOpacityBlenderWindow(
         if ( ! image ) continue;
 
         ImageSettings& imgSettings = image->settings();
+        const ImageHeader& imgHeader = image->header();
 
         double opacity = imgSettings.opacity();
 
@@ -1700,7 +1743,7 @@ void renderOpacityBlenderWindow(
 
         if ( ImGui::IsItemActive() || ImGui::IsItemHovered() )
         {
-            ImGui::SetTooltip( "%.2f", opacity );
+            ImGui::SetTooltip( "%s", imgHeader.fileName().c_str() );
         }
 
         ImGui::PopStyleColor( 4 );

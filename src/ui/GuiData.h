@@ -3,6 +3,8 @@
 
 #include <imgui/imgui.h>
 #include <uuid.h>
+
+#include <string>
 #include <unordered_map>
 
 
@@ -35,6 +37,14 @@ struct GuiData
     bool m_showDifferenceColormapWindow = false; //!< Show difference colormap window
     bool m_showCorrelationColormapWindow = false; //!< Show correlation colormap window
     bool m_showJointHistogramColormapWindow = false; //!< Show joint histogram colormap window
+
+    /// Precision string used for spatial coordinates
+    std::string m_coordsPrecisionFormat = "%0.3f";
+    uint32_t m_coordsPrecision = 3;
+
+    /// Precision string used for image values
+    std::string m_imageValuePrecisionFormat = "%0.3f";
+    uint32_t m_imageValuePrecision = 3;
 
     // Pointers to fonts allocated by ImGui
     ImFont* m_cousineFont; //!< Main ImGui font

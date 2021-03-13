@@ -306,8 +306,13 @@ bool testAABBoxPlaneIntersection(
         const gvec4<T>& plane )
 {
     const gvec3<T> extent = boxMaxCorner - boxCenter;
+
     const T radius = glm::dot( extent, glm::abs( gvec3<T>{plane} ) );
+
+    // Distance of AABB center from plane
     const T dist = glm::dot( plane, gvec4<T>{boxCenter, 1} );
+
+    // Intersection occurs when distance is in [-radius, +radius]
     return ( std::abs(dist) <= radius );
 }
 

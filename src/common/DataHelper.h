@@ -103,6 +103,11 @@ std::vector< uuids::uuid > findAnnotationsForImage(
         const glm::vec4& querySubjectPlaneEquation,
         float planeDistanceThresh );
 
+
+glm::vec3 roundPointToNearestImageVoxelCenter(
+        const Image& image,
+        const glm::vec3& worldPos );
+
 } // namespace data
 
 #endif // DATA_HELPER_H

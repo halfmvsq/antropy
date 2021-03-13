@@ -36,19 +36,22 @@
 namespace
 {
 
+static const ImVec4 sk_whiteText( 1, 1, 1, 1 );
+static const ImVec4 sk_blackText( 0, 0, 0, 1 );
+
 /// Size of small toolbar buttons (pixels)
 static const ImVec2 sk_smallToolbarButtonSize( 24, 24 );
 
 /// Color of the reference image header
 /// (Currently set to the same color as for non-reference images)
-static const ImVec4 imgRefHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
+//static const ImVec4 imgRefHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
 //static const ImVec4 imgRefHeaderColor( 0.70f, 0.075f, 0.03f, 1.00f );
 
 /// Color of the image headers for non-reference and non-active images
-static const ImVec4 imgHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
+//static const ImVec4 imgHeaderColor( 0.20f, 0.41f, 0.68f, 1.0f );
 
 /// Color of the active image header
-static const ImVec4 imgActiveHeaderColor( 0.20f, 0.62f, 0.45f, 1.0f );
+//static const ImVec4 imgActiveHeaderColor( 0.20f, 0.62f, 0.45f, 1.0f );
 
 static const std::string sk_referenceAndActiveImageMessage( "This is the reference and active image." );
 static const std::string sk_referenceImageMessage( "This is the reference image." );
@@ -317,15 +320,27 @@ void renderImageHeader(
             imgSettings.displayName() +
             "###" + std::to_string( imageIndex );
 
-    ImGui::PushStyleColor( ImGuiCol_Header,
-                           ( isActiveImage
-                             ? imgActiveHeaderColor
-                             : ( 0 == imageIndex )
-                               ? imgRefHeaderColor
-                               : imgHeaderColor ) );
+//    ImGui::PushStyleColor( ImGuiCol_Header,
+//                           ( isActiveImage
+//                             ? imgActiveHeaderColor
+//                             : ( 0 == imageIndex )
+//                               ? imgRefHeaderColor
+//                               : imgHeaderColor ) );
+
+
+    glm::vec3 darkerBorderColorHsv = glm::hsvColor( imgSettings.borderColor() );
+    darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
+    const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
+
+    const ImVec4 headerColor( darkerBorderColorRgb.r, darkerBorderColorRgb.g, darkerBorderColorRgb.b, 1.0f );
+    const ImVec4 headerTextColor = ( glm::luminosity( darkerBorderColorRgb ) < 0.75f ) ? sk_whiteText : sk_blackText;
+
+    ImGui::PushStyleColor( ImGuiCol_Header, headerColor );
+    ImGui::PushStyleColor( ImGuiCol_Text, headerTextColor );
 
     const bool clicked = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
-    ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
+
+    ImGui::PopStyleColor( 2 ); // ImGuiCol_Header, ImGuiCol_Text
 
     if ( ! clicked )
     {
@@ -474,6 +489,18 @@ void renderImageHeader(
     }
 
     ImGui::Spacing();
+
+    glm::vec3 borderColor{ imgSettings.borderColor() };
+
+    if ( ImGui::ColorEdit3( "Border color", glm::value_ptr( borderColor ), sk_colorNoAlphaEditFlags ) )
+    {
+        imgSettings.setBorderColor( borderColor );
+        imgSettings.setEdgeColor( borderColor ); // Set edge color to border color
+        updateImageUniforms();
+    }
+    ImGui::SameLine(); helpMarker( "Image border color" );
+
+    ImGui::Spacing();
     ImGui::Separator();
 
 
@@ -508,14 +535,32 @@ void renderImageHeader(
         }
 
 
+        auto activeSegUid = appData.imageToActiveSegUid( imageUid );
+        Image* activeSeg = ( activeSegUid ) ? appData.seg( *activeSegUid ) : nullptr;
+
+
         // Visibility checkbox:
         bool visible = imgSettings.visibility();
-        if ( ImGui::Checkbox( "Visible", &visible ) )
+
+        if ( ImGui::Checkbox( "Image", &visible ) )
         {
             imgSettings.setVisibility( visible );
             updateImageUniforms();
         }
-        ImGui::SameLine(); helpMarker( "Show/hide the image on all views (W)" );
+
+        if ( activeSeg )
+        {
+            bool segVisible = activeSeg->settings().visibility();
+
+            ImGui::SameLine();
+            if ( ImGui::Checkbox( "Segmentation visibility", &segVisible ) )
+            {
+                activeSeg->settings().setVisibility( segVisible );
+                updateImageUniforms();
+            }
+        }
+
+        ImGui::SameLine(); helpMarker( "Show/hide the image (W) or its segmentation (S) on all views" );
 
 
 //        if ( visible )
@@ -531,9 +576,6 @@ void renderImageHeader(
 
 
             // Segmentation opacity slider:
-            auto activeSegUid = appData.imageToActiveSegUid( imageUid );
-            Image* activeSeg = ( activeSegUid ) ? appData.seg( *activeSegUid ) : nullptr;
-
             if ( activeSeg )
             {
                 double segOpacity = activeSeg->settings().opacity();
@@ -739,17 +781,6 @@ void renderImageHeader(
 
 
 //        ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
-        ImGui::Spacing();
-
-        glm::vec3 borderColor{ imgSettings.borderColor() };
-
-        if ( ImGui::ColorEdit3( "Border color", glm::value_ptr( borderColor ), sk_colorNoAlphaEditFlags ) )
-        {
-            imgSettings.setBorderColor( borderColor );
-            updateImageUniforms();
-        }
-        ImGui::SameLine(); helpMarker( "Image border color" );
-
 
 
         // Edge settings
@@ -1113,15 +1144,27 @@ void renderSegmentationHeader(
             imgSettings.displayName() +
             "###" + std::to_string( imageIndex );
 
-    ImGui::PushStyleColor( ImGuiCol_Header,
-                           ( isActiveImage ? imgActiveHeaderColor
-                                           : ( 0 == imageIndex )
-                                             ? imgRefHeaderColor
-                                             : imgHeaderColor ) );
+//    ImGui::PushStyleColor( ImGuiCol_Header,
+//                           ( isActiveImage ? imgActiveHeaderColor
+//                                           : ( 0 == imageIndex )
+//                                             ? imgRefHeaderColor
+//                                             : imgHeaderColor ) );
+
+
+    glm::vec3 darkerBorderColorHsv = glm::hsvColor( imgSettings.borderColor() );
+    darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
+    const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
+
+    const ImVec4 headerColor( darkerBorderColorRgb.r, darkerBorderColorRgb.g, darkerBorderColorRgb.b, 1.0f );
+    const ImVec4 headerTextColor = ( glm::luminosity( darkerBorderColorRgb ) < 0.75f ) ? sk_whiteText : sk_blackText;
+
+    ImGui::PushStyleColor( ImGuiCol_Header, headerColor );
+    ImGui::PushStyleColor( ImGuiCol_Text, headerTextColor );
 
     const bool open = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
 
-    ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
+    ImGui::PopStyleColor( 2 ); // ImGuiCol_Header, ImGuiCol_Text
+
 
     if ( ! open )
     {
@@ -1344,7 +1387,7 @@ void renderSegmentationHeader(
         }
         ImGui::SameLine(); helpMarker( "Show/hide the segmentation on all views (S)" );
 
-        if ( segVisible )
+//        if ( segVisible )
         {
             // Opacity (only shown if segmentation is visible):
             double segOpacity = segSettings.opacity();
@@ -1429,14 +1472,28 @@ void renderLandmarkGroupHeader(
             image->settings().displayName() +
             "###" + std::to_string( imageIndex );
 
-    ImGui::PushStyleColor( ImGuiCol_Header,
-                           ( isActiveImage ? imgActiveHeaderColor
-                                           : ( 0 == imageIndex )
-                                             ? imgRefHeaderColor
-                                             : imgHeaderColor ) );
+//    ImGui::PushStyleColor( ImGuiCol_Header,
+//                           ( isActiveImage ? imgActiveHeaderColor
+//                                           : ( 0 == imageIndex )
+//                                             ? imgRefHeaderColor
+//                                             : imgHeaderColor ) );
+
+    const auto imgSettings = image->settings();
+
+    glm::vec3 darkerBorderColorHsv = glm::hsvColor( imgSettings.borderColor() );
+    darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
+    const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
+
+    const ImVec4 headerColor( darkerBorderColorRgb.r, darkerBorderColorRgb.g, darkerBorderColorRgb.b, 1.0f );
+    const ImVec4 headerTextColor = ( glm::luminosity( darkerBorderColorRgb ) < 0.75f ) ? sk_whiteText : sk_blackText;
+
+    ImGui::PushStyleColor( ImGuiCol_Header, headerColor );
+    ImGui::PushStyleColor( ImGuiCol_Text, headerTextColor );
 
     const bool open = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
-    ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
+
+    ImGui::PopStyleColor( 2 ); // ImGuiCol_Header, ImGuiCol_Text
+
 
     if ( ! open )
     {

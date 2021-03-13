@@ -414,4 +414,17 @@ std::vector< uuids::uuid > findAnnotationsForImage(
     return annotUids;
 }
 
+
+glm::vec3 roundPointToNearestImageVoxelCenter(
+        const Image& image,
+        const glm::vec3& worldPos )
+{
+    const auto& tx = image.transformations();
+    const glm::vec4 refPixelPos = tx.pixel_T_worldDef() * glm::vec4{ worldPos, 1.0f };
+    const glm::vec4 roundedPixelPos{ glm::vec3{ glm::round( refPixelPos / refPixelPos.w ) }, 1.0f };
+
+    glm::vec4 roundedWorldPos = tx.worldDef_T_pixel() * roundedPixelPos;
+    return glm::vec3{ roundedWorldPos / roundedWorldPos.w };
+}
+
 } // namespace data

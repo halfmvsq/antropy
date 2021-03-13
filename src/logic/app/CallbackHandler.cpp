@@ -253,7 +253,14 @@ void CallbackHandler::recenterViews(
     if ( recenterCrosshairs )
     {
         const glm::vec3 worldPos = math::computeAABBoxCenter( worldBox );
-        m_appData.state().setWorldCrosshairsPos( worldPos );
+        glm::vec3 roundedWorldPos = worldPos;
+
+        if ( const Image* refImg = m_appData.refImage() )
+        {
+            roundedWorldPos = data::roundPointToNearestImageVoxelCenter( *refImg, worldPos );
+        }
+
+        m_appData.state().setWorldCrosshairsPos( roundedWorldPos );
     }
 
     // Option to reset zoom or not:
@@ -336,7 +343,10 @@ void CallbackHandler::doCrosshairsMove(
 
     const glm::vec4 viewClipPos = view->viewClip_T_winClip() * winClipPos;
 
-    if ( glm::any( glm::greaterThan( glm::abs( glm::vec2{ viewClipPos } ), sk_maxClip ) ) ) return;
+    if ( glm::any( glm::greaterThan( glm::abs( glm::vec2{ viewClipPos } ), sk_maxClip ) ) )
+    {
+        return;
+    }
 
     // The pointer is in the view bounds! Make this the active view
     m_appData.windowData().setActiveViewUid( *viewUid );
@@ -359,18 +369,11 @@ void CallbackHandler::doCrosshairsMove(
 
     // Snap to center of pixel in reference image, if using nearest-neighbor interpolation
 //    const auto interpMode = refImg->settings().interpolationMode();
-
 //    if ( InterpolationMode::NearestNeighbor == interpMode )
+
     if ( m_appData.renderData().m_snapCrosshairsToReferenceVoxels )
     {
-        const auto& refTx = refImg->transformations();
-        const glm::vec4 refPixelPos = refTx.pixel_T_worldDef() * worldPos;
-
-        const glm::vec4 roundedPixelPos{ glm::vec3{
-                glm::round( refPixelPos / refPixelPos.w ) }, 1.0f };
-
-        worldPos = refTx.worldDef_T_pixel() * roundedPixelPos;
-        worldPos /= worldPos.w;
+        worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter( *refImg, worldPos ), 1.0f };
     }
 
     m_appData.state().setWorldCrosshairsPos( glm::vec3{ worldPos } );
@@ -408,13 +411,7 @@ void CallbackHandler::doCrosshairsScroll(
         // Snap to center of pixel in reference image:
         if ( const Image* refImg = m_appData.refImage() )
         {
-            const auto& refTx = refImg->transformations();
-            const glm::vec4 refPixelPos = refTx.pixel_T_worldDef() * worldPos;
-            const glm::vec4 roundedPixelPos{ glm::vec3{
-                    glm::round( refPixelPos / refPixelPos.w ) }, 1.0f };
-
-            worldPos = refTx.worldDef_T_pixel() * roundedPixelPos;
-            worldPos /= worldPos.w;
+            worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter( *refImg, worldPos ), 1.0f };
         }
     }
 
