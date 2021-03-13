@@ -541,10 +541,13 @@ bool AppData::setActiveImageUid( const uuids::uuid& uid )
 
 void AppData::setRainbowColorsForImage()
 {
-    constexpr float sat = 0.80f;
-    constexpr float val = 0.90f;
+    static constexpr float sat = 0.80f;
+    static constexpr float val = 0.90f;
 
-    const float N = static_cast<float>( m_imageUidsOrdered.size() );
+    const float N = static_cast<float>(
+                ( m_imageUidsOrdered.size() <= 2 )
+                ? m_imageUidsOrdered.size()
+                : ( m_imageUidsOrdered.size() - 1 ) );
 
     for ( size_t i = 0; i < m_imageUidsOrdered.size(); ++i )
     {
@@ -574,14 +577,12 @@ void AppData::setRainbowColorsForLandmarkGroups()
         const Image* img = image( imageUid );
         if ( ! img ) continue;
 
-        const auto color = img->settings().edgeColor();
-
         for ( const auto lmGroupUid : imageToLandmarkGroupUids( imageUid ) )
         {
             if ( auto* lmGroup = landmarkGroup( lmGroupUid ) )
             {
                 lmGroup->setColorOverride( true );
-                lmGroup->setColor( color );
+                lmGroup->setColor( img->settings().borderColor() );
             }
         }
     }
