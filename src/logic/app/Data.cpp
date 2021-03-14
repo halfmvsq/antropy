@@ -70,6 +70,7 @@ AppData::AppData()
       m_imageToActiveDef(),
 
       m_imageToLandmarkGroups(),
+      m_imageToActiveLandmarkGroup(),
       m_imageToAnnotations(),
 
       m_imagesBeingSegmented()
@@ -814,11 +815,42 @@ AppData::imageToLandmarkGroupUids( const uuids::uuid& imageUid ) const
     return sk_emptyUidVector;
 }
 
+bool AppData::assignActiveLandmarkGroupUidToImage(
+        const uuids::uuid& imageUid, const uuids::uuid& lmGroupUid )
+{
+    if ( image( imageUid ) && landmarkGroup( lmGroupUid ) )
+    {
+        m_imageToActiveLandmarkGroup[imageUid] = lmGroupUid;
+        return true;
+    }
+    return false;
+}
+
+std::optional<uuids::uuid> AppData::imageToActiveLandmarkGroupUid(
+        const uuids::uuid& imageUid ) const
+{
+    auto it = m_imageToActiveLandmarkGroup.find( imageUid );
+    if ( std::end( m_imageToActiveLandmarkGroup ) != it )
+    {
+        return it->second;
+    }
+    return std::nullopt;
+}
+
 bool AppData::assignLandmarkGroupUidToImage( const uuids::uuid& imageUid, uuids::uuid lmGroupUid )
 {
     if ( image( imageUid ) && landmarkGroup( lmGroupUid ) )
     {
         m_imageToLandmarkGroups[imageUid].emplace_back( lmGroupUid );
+
+        // If this is the first landmark group for the image, or if the image has no active
+        // landmark group, then make this the image's active landmark group:
+        if ( 1 == m_imageToLandmarkGroups[imageUid].size() ||
+             0 == m_imageToActiveLandmarkGroup.count( imageUid ) )
+        {
+            m_imageToActiveLandmarkGroup[imageUid] = lmGroupUid;
+        }
+
         return true;
     }
     return false;

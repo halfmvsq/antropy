@@ -1408,8 +1408,6 @@ void renderLandmarkGroupHeader(
         bool isActiveImage,
         const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews )
 {
-    static std::unordered_map<uuids::uuid, uuids::uuid> s_imageToActiveLmGroupUid;
-
     static const char* sk_saveLmsButtonText( "Save landmarks..." );
     static const char* sk_saveLmsDialogTitle( "Select Landmark Group" );
     static const std::vector< const char* > sk_saveLmsDialogFilters{};
@@ -1459,7 +1457,6 @@ void renderLandmarkGroupHeader(
 
     ImGui::PopStyleColor( 2 ); // ImGuiCol_Header, ImGuiCol_Text
 
-
     if ( ! open )
     {
         ImGui::PopID(); // imageUid
@@ -1490,17 +1487,30 @@ void renderLandmarkGroupHeader(
     // Show a combo box if there are multiple landmark groups
     const bool showLmGroupCombo = ( lmGroupUids.size() > 1 );
 
+    std::optional<uuids::uuid> activeLmGroupUid =
+            appData.imageToActiveLandmarkGroupUid( imageUid );
+
     // The default active landmark group is at index 0
-    if ( 0 == s_imageToActiveLmGroupUid.count( imageUid ) )
+    if ( ! activeLmGroupUid )
     {
-        s_imageToActiveLmGroupUid[imageUid] = lmGroupUids[0];
+        if ( appData.assignActiveLandmarkGroupUidToImage( imageUid, lmGroupUids[0] ) )
+        {
+            activeLmGroupUid = appData.imageToActiveLandmarkGroupUid( imageUid );
+        }
+        else
+        {
+            spdlog::error( "Unable to assign active landmark group {} to image {}",
+                           lmGroupUids[0], imageUid );
+            return;
+        }
     }
 
-    LandmarkGroup* activeLmGroup = appData.landmarkGroup( s_imageToActiveLmGroupUid[imageUid] );
+    LandmarkGroup* activeLmGroup = appData.landmarkGroup( *activeLmGroupUid );
+
     if ( ! activeLmGroup )
     {
         spdlog::error( "Landmark group {} for image {} is null",
-                       s_imageToActiveLmGroupUid[imageUid], imageUid );
+                       *activeLmGroupUid, imageUid );
         return;
     }
 
@@ -1515,12 +1525,12 @@ void renderLandmarkGroupHeader(
                 {
                     if ( LandmarkGroup* lmGroup = appData.landmarkGroup( lmGroupUid ) )
                     {
-                        const bool isSelected = ( lmGroupUid == s_imageToActiveLmGroupUid[imageUid] );
+                        const bool isSelected = ( lmGroupUid == *activeLmGroupUid );
 
                         if ( ImGui::Selectable( lmGroup->getName().c_str(), isSelected) )
                         {
-                            s_imageToActiveLmGroupUid[imageUid] = lmGroupUid;
-                            activeLmGroup = appData.landmarkGroup( s_imageToActiveLmGroupUid[imageUid] );
+                            appData.assignActiveLandmarkGroupUidToImage( imageUid, lmGroupUid );
+                            activeLmGroup = appData.landmarkGroup( lmGroupUid );
                         }
 
                         if ( isSelected ) ImGui::SetItemDefaultFocus();
@@ -1540,8 +1550,7 @@ void renderLandmarkGroupHeader(
 
     if ( ! activeLmGroup )
     {
-        spdlog::error( "Landmark group {} for image {} is null",
-                       s_imageToActiveLmGroupUid[imageUid], imageUid );
+        spdlog::error( "Active landmark group for image {} is null", imageUid );
         return;
     }
 

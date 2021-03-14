@@ -519,6 +519,13 @@ void ImGuiWrapper::render()
                         recenterAllViewsOnCurrentCrosshairsPosition );
         }
 
+        if ( m_appData.guiData().m_showAnnotationsWindow )
+        {
+            renderAnnotationWindow(
+                        m_appData,
+                        recenterAllViewsOnCurrentCrosshairsPosition );
+        }
+
         if ( m_appData.guiData().m_showOpacityBlenderWindow )
         {
             renderOpacityBlenderWindow( m_appData, m_updateImageUniforms );

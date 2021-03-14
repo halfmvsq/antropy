@@ -206,6 +206,11 @@ public:
     bool assignLandmarkGroupUidToImage( const uuids::uuid& imageUid, uuids::uuid lmGroupUid );
     const std::vector<uuids::uuid>& imageToLandmarkGroupUids( const uuids::uuid& imageUid ) const;
 
+    /// Set/get the active landmark group for an image
+    bool assignActiveLandmarkGroupUidToImage( const uuids::uuid& imageUid, const uuids::uuid& lmGroupUid );
+    std::optional<uuids::uuid> imageToActiveLandmarkGroupUid( const uuids::uuid& imageUid ) const;
+
+
     /**
      * @brief Get a vector of all annotations assigned to a given image. The annotation order
      * corresponds to the order in which the annotations were added to the image.
@@ -295,6 +300,9 @@ private:
 
     /// Map of image to its landmark groups
     std::unordered_map< uuids::uuid, std::vector<uuids::uuid> > m_imageToLandmarkGroups;
+
+    /// Map of image to its active landmark group
+    std::unordered_map< uuids::uuid, uuids::uuid > m_imageToActiveLandmarkGroup;
 
     /// Map of image to its annotations
     std::unordered_map< uuids::uuid, std::vector<uuids::uuid> > m_imageToAnnotations;
