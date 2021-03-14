@@ -540,7 +540,7 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition )
 {
     if ( ImGui::Begin( "Landmarks",
                        &( appData.guiData().m_showLandmarksWindow ),
@@ -568,7 +568,7 @@ void renderLandmarkPropertiesWindow(
 
 void renderAnnotationWindow(
         AppData& appData,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterViews )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
 {
     if ( ImGui::Begin( "Annotations",
                        &( appData.guiData().m_showAnnotationsWindow ),
@@ -586,7 +586,7 @@ void renderAnnotationWindow(
                         imageUid,
                         imageIndex++,
                         isActiveImage,
-                        recenterViews );
+                        recenterAllViews );
         }
 
         ImGui::End();
@@ -599,8 +599,11 @@ void renderSettingsWindow(
         const std::function< size_t (void) >& getNumImageColorMaps,
         const std::function< const ImageColorMap* ( size_t cmapIndex ) >& getImageColorMap,
         const std::function< void(void) >& updateMetricUniforms,
-        const std::function< void(void) >& recenterViews )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
 {
+    static constexpr bool sk_recenterCrosshairs = true;
+    static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;
+
     static const float sk_windowMin = 0.0f;
     static const float sk_windowMax = 1.0f;
 
@@ -801,7 +804,7 @@ void renderSettingsWindow(
                              ImageSelection::ReferenceImage == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::ReferenceImage );
-                        recenterViews();
+                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference image" );
 
@@ -810,7 +813,7 @@ void renderSettingsWindow(
                              ImageSelection::ActiveImage == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::ActiveImage );
-                        recenterViews();
+                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the active image" );
 
@@ -819,7 +822,7 @@ void renderSettingsWindow(
                              ImageSelection::ReferenceAndActiveImages == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::ReferenceAndActiveImages );
-                        recenterViews();
+                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference and active images" );
 
@@ -828,28 +831,28 @@ void renderSettingsWindow(
                     if ( ImGui::RadioButton( "All visible images", ImageSelection::VisibleImagesInView == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::VisibleImagesInView );
-                        recenterViews();
+                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the visible images in each view" );
 
                     if ( ImGui::RadioButton( "Fixed image", ImageSelection::FixedImageInView == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::FixedImageInView );
-                        recenterViews();
+                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views on the fixed image in each view" );
 
                     if ( ImGui::RadioButton( "Moving image", ImageSelection::MovingImageInView == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::MovingImageInView );
-                        recenterViews();
+                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views on the moving image in each view" );
 
                     if ( ImGui::RadioButton( "Fixed and moving images", ImageSelection::FixedAndMovingImagesInView == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::FixedAndMovingImagesInView );
-                        recenterViews();
+                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views on the fixed and moving images in each view" );
                     */
@@ -859,7 +862,7 @@ void renderSettingsWindow(
                              ImageSelection::AllLoadedImages == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::AllLoadedImages );
-                        recenterViews();
+                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on all loaded images" );
 

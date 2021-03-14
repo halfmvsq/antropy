@@ -1414,7 +1414,7 @@ void renderLandmarkGroupHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
 {
     static const char* sk_saveLmsButtonText( "Save landmarks..." );
     static const char* sk_saveLmsDialogTitle( "Save Landmark Group" );
@@ -1681,7 +1681,7 @@ void renderLandmarkGroupHeader(
                 activeLmGroup,
                 appData.state().worldCrosshairs().worldOrigin(),
                 setWorldCrosshairsPos,
-                recenterAllViewsOnCurrentCrosshairsPosition );
+                recenterAllViews );
 
 
     // Save landmarks to CSV and save settings to project file:
@@ -1717,11 +1717,17 @@ void renderAnnotationsHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& /*recenterAllViewsOnCurrentCrosshairsPosition*/ )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
 {
     static const char* sk_saveAnnotButtonText( "Save annotation..." );
     static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
+
+    auto setWorldCrosshairsPos = [&appData] ( const glm::vec3& worldCrosshairsPos )
+    {
+        appData.state().setWorldCrosshairsPos( worldCrosshairsPos );
+    };
+
 
     Image* image = appData.image( imageUid );
     if ( ! image ) return;
@@ -1897,9 +1903,21 @@ void renderAnnotationsHeader(
 
     ImGui::InputFloat( "Offset (mm)", &annotPlaneEq[3], 0.0f, 0.0f, "%0.3f" );
     ImGui::SameLine(); helpMarker( "Offset distance (mm) of annotation plane from the image Subject space origin" );
-
     ImGui::Spacing();
 
+    if ( ImGui::Button( "Go to annotation" ) )
+    {
+        const glm::mat4& world_T_subject = image->transformations().worldDef_T_subject();
+
+        // Move crosshairs to the polygon centroid position:
+        const glm::vec2& planePolyCentroid = activeAnnot->polygon().getCentroid();
+        const glm::vec4 subjectPos{ activeAnnot->unprojectFromAnnotationPlaneToSubjectPoint( planePolyCentroid ), 1.0f };
+        const glm::vec4 worldPos = world_T_subject * subjectPos;
+
+        setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
+        recenterAllViews( false, true );
+    }
+    ImGui::Separator();
 
     // Save annotation SVG and save settings to project file:
 

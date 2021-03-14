@@ -349,17 +349,11 @@ void ImGuiWrapper::render()
         m_appData.state().setMouseMode( mouseMode );
     };
 
-    auto recenterAllViews = [this] ()
+    auto recenterAllViews = [this] (
+            bool recenterCrosshairs,
+            bool recenterOnCurrentCrosshairsPosition )
     {
-        static constexpr bool s_recenterCrosshairs = true;
-        static constexpr bool s_recenterOnCurrentCrosshairsPosition = false;
-        m_recenterAllViews( s_recenterCrosshairs, s_recenterOnCurrentCrosshairsPosition );
-    };
-
-    auto recenterAllViewsOnCurrentCrosshairsPosition = [this] ( bool recenterOnCurrentCrosshairsPosition )
-    {
-        static constexpr bool s_recenterCrosshairs = false;
-        m_recenterAllViews( s_recenterCrosshairs, recenterOnCurrentCrosshairsPosition );
+        m_recenterAllViews( recenterCrosshairs, recenterOnCurrentCrosshairsPosition );
     };
 
     auto cycleViewLayout = [this] ( int step )
@@ -516,14 +510,14 @@ void ImGuiWrapper::render()
         {
             renderLandmarkPropertiesWindow(
                         m_appData,
-                        recenterAllViewsOnCurrentCrosshairsPosition );
+                        recenterAllViews );
         }
 
         if ( m_appData.guiData().m_showAnnotationsWindow )
         {
             renderAnnotationWindow(
                         m_appData,
-                        recenterAllViewsOnCurrentCrosshairsPosition );
+                        recenterAllViews );
         }
 
         if ( m_appData.guiData().m_showOpacityBlenderWindow )

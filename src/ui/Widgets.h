@@ -33,13 +33,33 @@ void renderSegLabelsChildWindow(
         ParcellationLabelTable* labelTable,
         const std::function< void ( size_t tableIndex ) >& updateLabelColorTableTexture );
 
+
+/**
+ * @brief renderLandmarkChildWindow
+ * @param imageTransformations
+ * @param activeLmGroup
+ * @param worldCrosshairsPos
+ * @param setWorldCrosshairsPos
+ * @param recenterAllViews
+ */
 void renderLandmarkChildWindow(
         const ImageTransformations& imageTransformations,
         LandmarkGroup* activeLmGroup,
         const glm::vec3& worldCrosshairsPos,
         const std::function< void ( const glm::vec3& worldCrosshairsPos ) >& setWorldCrosshairsPos,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews );
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews );
 
+
+/**
+ * @brief renderPaletteWindow
+ * @param name
+ * @param showPaletteWindow
+ * @param getNumImageColorMaps
+ * @param getImageColorMap
+ * @param getCurrentImageColormapIndex
+ * @param setCurrentImageColormapIndex
+ * @param updateImageUniforms
+ */
 void renderPaletteWindow(
         const char* name,
         bool* showPaletteWindow,

@@ -1248,7 +1248,7 @@ void renderAnnotations(
 //        spdlog::trace( "Found annotation {}", *annotUid );
 
         // Annotation vertices in Subject space:
-        const auto& subjectPlaneVertices = annot->getBoundaryVertices( 0 );
+        const std::vector<glm::vec2>& subjectPlaneVertices = annot->getBoundaryVertices( 0 );
 
         if ( subjectPlaneVertices.empty() ) continue;
 
@@ -1266,8 +1266,7 @@ void renderAnnotations(
 
         for ( size_t i = 0; i < subjectPlaneVertices.size(); ++i )
         {
-            const glm::vec2 subjectPlanePos = subjectPlaneVertices[i];
-            const glm::vec3 subjectPos = annot->unprojectFromAnnotationPlaneToSubjectPoint( subjectPlanePos );
+            const glm::vec3 subjectPos = annot->unprojectFromAnnotationPlaneToSubjectPoint( subjectPlaneVertices[i] );
             const glm::vec4 worldPos = world_T_subject * glm::vec4{ subjectPos, 1.0f };
             const glm::vec2 mousePos = convertWorldToMousePos( glm::vec3{ worldPos / worldPos.w } );
 

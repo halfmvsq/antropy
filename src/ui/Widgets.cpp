@@ -266,7 +266,7 @@ void renderLandmarkChildWindow(
         LandmarkGroup* activeLmGroup,
         const glm::vec3& worldCrosshairsPos,
         const std::function< void ( const glm::vec3& worldCrosshairsPos ) >& setWorldCrosshairsPos,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
 {
     static const std::string sk_showAll = std::string( ICON_FK_EYE ) + " Show all";
     static const std::string sk_hideAll = std::string( ICON_FK_EYE_SLASH ) + " Hide all";
@@ -388,9 +388,9 @@ void renderLandmarkChildWindow(
             const glm::vec4 worldPos = world_T_landmark * glm::vec4{ pointPos, 1.0f };
             setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
 
-            // With argument set to true, this function centers all views on the crosshairs.
+            // With second argument set to true, this function centers all views on the crosshairs.
             // That way, views show the crosshairs even if they were not in the original view bounds.
-            recenterAllViewsOnCurrentCrosshairsPosition( true );
+            recenterAllViews( false, true );
         }
         if ( ImGui::IsItemHovered() )
         {

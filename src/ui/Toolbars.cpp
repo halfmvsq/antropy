@@ -58,7 +58,7 @@ void renderToolbar(
         AppData& appData,
         const std::function< MouseMode (void) >& getMouseMode,
         const std::function< void (MouseMode) >& setMouseMode,
-        const std::function< void (void) >& recenterViews,
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews,
         const std::function< bool (void) >& getOverlayVisibility,
         const std::function< void (bool) >& setOverlayVisibility,
         const std::function< void (int step) >& cycleViews,
@@ -68,6 +68,9 @@ void renderToolbar(
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex )
 {
+    static constexpr bool sk_recenterCrosshairs = true;
+    static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;
+
     // Always keep the toolbar open by setting this to null
     static bool* toolbarWindowOpen = nullptr;
 
@@ -358,8 +361,9 @@ void renderToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                if ( ImGui::Button( ICON_FK_CROSSHAIRS, sk_toolbarButtonSize) ) {
-                    recenterViews();
+                if ( ImGui::Button( ICON_FK_CROSSHAIRS, sk_toolbarButtonSize) )
+                {
+                    recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
                 }
                 if ( ImGui::IsItemHovered() ) {
                     ImGui::SetTooltip( "%s", "Recenter views (C)" );
@@ -512,7 +516,10 @@ void renderToolbar(
     renderAddLayoutModalPopup(
                 appData,
                 openAddLayoutPopup,
-                recenterViews );
+                [&recenterAllViews] ()
+                {
+                    recenterAllViews( true, sk_doNotRecenterOnCurrentCrosshairsPosition );
+                } );
 }
 
 
