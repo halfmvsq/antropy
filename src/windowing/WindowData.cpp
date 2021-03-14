@@ -730,6 +730,30 @@ void WindowData::applyViewShaderToAllCurrentViews(
     }
 }
 
+std::vector<uuids::uuid> WindowData::findCurrentViewsWithNormal(
+        const glm::vec3& worldNormal ) const
+{
+    static constexpr float EPS = glm::epsilon<float>();
+
+    std::vector<uuids::uuid> viewUids;
+
+    for ( auto& viewUid : currentViewUids() )
+    {
+        const View* view = getCurrentView( viewUid );
+        if ( ! view ) continue;
+
+        const float d = std::abs( glm::dot( camera::worldDirection( view->camera(), Directions::View::Back ),
+                                            glm::normalize( worldNormal ) ) );
+
+        if ( glm::epsilonEqual( d, 1.0f, EPS ) || glm::epsilonEqual( d, -1.0f, EPS ) )
+        {
+            viewUids.push_back( viewUid );
+        }
+    }
+
+    return viewUids;
+}
+
 void WindowData::recomputeAllViewAspectRatios()
 {
     for ( auto& layout : m_layouts )

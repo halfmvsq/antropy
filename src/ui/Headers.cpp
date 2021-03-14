@@ -15,6 +15,7 @@
 #include "image/ImageTransformations.h"
 
 #include "logic/app/Data.h"
+#include "logic/camera/CameraHelpers.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -22,6 +23,7 @@
 #include <imgui/misc/cpp/imgui_stdlib.h>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_inverse.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #define GLM_ENABLE_EXPERIMENTAL
@@ -1717,7 +1719,7 @@ void renderAnnotationsHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& /*recenterAllViews*/ )
 {
     static const char* sk_saveAnnotButtonText( "Save annotation..." );
     static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
@@ -1908,14 +1910,44 @@ void renderAnnotationsHeader(
     if ( ImGui::Button( "Go to annotation" ) )
     {
         const glm::mat4& world_T_subject = image->transformations().worldDef_T_subject();
+        const glm::mat3 world_T_subject_invTranspose = glm::inverseTranspose( glm::mat3{ world_T_subject } );
 
         // Move crosshairs to the polygon centroid position:
         const glm::vec2& planePolyCentroid = activeAnnot->polygon().getCentroid();
         const glm::vec4 subjectPos{ activeAnnot->unprojectFromAnnotationPlaneToSubjectPoint( planePolyCentroid ), 1.0f };
         const glm::vec4 worldPos = world_T_subject * subjectPos;
+        const glm::vec3 worldNormal = glm::normalize( world_T_subject_invTranspose * glm::vec3{ annotPlaneEq } );
 
         setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
-        recenterAllViews( false, true );
+
+        const auto viewsWithNormal = appData.windowData().findCurrentViewsWithNormal( worldNormal );
+
+        // Does the current layout have a view with this orientaion?
+        if ( viewsWithNormal.empty() )
+        {
+            spdlog::trace( "did not find view with normal {}", glm::to_string(worldNormal) );
+
+            /// @todo Ask user to select view
+            const auto currentViewUid = appData.windowData().currentViewUids().front();
+            if ( View* view = appData.windowData().getCurrentView( currentViewUid ) )
+            {
+                /// @todo Set to A, C, or S if normal is A, C or S;
+                view->setCameraType( camera::CameraType::Oblique );
+
+                /// @todo Does not work properly yet
+                camera::orientCameraToWorldTargetNormalDirection( view->camera(), worldNormal );
+
+                spdlog::trace( "changed view {} normal to {}", currentViewUid,
+                               glm::to_string( camera::worldDirection( view->camera(), Directions::View::Back ) ) );
+            }
+        }
+        else
+        {
+            spdlog::trace( "found view {} with normal {}", viewsWithNormal[0], glm::to_string(worldNormal) );
+
+            /// @todo Need a version of this that does not re-orient views:
+//            recenterAllViews( false, true );
+        }
     }
     ImGui::Separator();
 

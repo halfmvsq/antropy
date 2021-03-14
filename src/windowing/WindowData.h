@@ -120,6 +120,10 @@ public:
     /// Apply a given view's shader type to all views of the current layout
     void applyViewShaderToAllCurrentViews( const uuids::uuid& referenceViewUid );
 
+    /// Find all views in the current layout with normal vector either parallel to or anti-parallel to
+    /// the given normal direction
+    std::vector<uuids::uuid> findCurrentViewsWithNormal( const glm::vec3& worldNormal ) const;
+
 
 private:
 

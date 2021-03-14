@@ -258,6 +258,10 @@ void positionCameraForWorldTarget(
         const glm::vec3& worldBoxSize,
         const glm::vec3& worldTarget );
 
+void orientCameraToWorldTargetNormalDirection(
+        Camera&,
+        const glm::vec3& targetWorldNormalDirection );
+
 std::pair<float, float> computePullbackAndFarDistances(
         const Camera&, const glm::vec3& worldBoxSize );
 

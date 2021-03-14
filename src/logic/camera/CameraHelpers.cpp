@@ -705,6 +705,15 @@ void positionCameraForWorldTarget(
 }
 
 
+void orientCameraToWorldTargetNormalDirection(
+        Camera& camera,
+        const glm::vec3& targetWorldNormalDirection )
+{
+    const glm::vec3 fromVector = worldDirection( camera, Directions::View::Back );
+    applyViewTransformation( camera, math::fromToRotation( fromVector, glm::normalize( targetWorldNormalDirection ) ) );
+}
+
+
 std::pair<float, float> computePullbackAndFarDistances(
         const Camera& camera, const glm::vec3& worldBoxSize )
 {
