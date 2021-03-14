@@ -40,13 +40,22 @@ class Annotation
 
 public:
 
-    explicit Annotation( const glm::vec4& subjectPlaneEquation );
+    explicit Annotation(
+            std::string displayName,
+            glm::vec3 color,
+            const glm::vec4& subjectPlaneEquation );
+
     ~Annotation() = default;
 
 
-    /// @brief Set/get the annotation name
-    //void setName( std::string name );
-    //const std::string& getName() const;
+    /// @brief Set/get the annotation display name
+    void setDisplayName( std::string displayName );
+    const std::string& getDisplayName() const;
+
+    /// @brief Set/get the annotation file name
+    void setFileName( std::string fileName );
+    const std::string& getFileName() const;
+
 
     /// @brief Get the annotation's polygon as a const/non-const reference
     AnnotPolygon<float, 2>& polygon();
@@ -121,8 +130,11 @@ private:
     /// @note Set using the function \c changeSlideAnnotationLayering
     void setMaxLayer( uint32_t maxLayer );
 
-    /// Annotation name
-    std::string m_name;
+    /// Annotation display name
+    std::string m_displayName;
+
+    /// Annotation file name
+    std::string m_fileName;
 
     /// Annotation polygon, which can include holes
     AnnotPolygon<float, 2> m_polygon;

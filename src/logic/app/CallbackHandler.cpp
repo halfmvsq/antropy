@@ -701,8 +701,12 @@ void CallbackHandler::doAnnotate(
         // Create new annotation for this image:
         try
         {
+            std::string name = std::string( "Annotation " ) +
+                    std::to_string( m_appData.annotationsForImage( *activeImageUid ).size() );
+
             annotUid = m_appData.addAnnotation(
-                        *activeImageUid, Annotation( subjectPlaneEquation ) );
+                        *activeImageUid,
+                        Annotation( name, activeImage->settings().borderColor(), subjectPlaneEquation ) );
 
             if ( ! annotUid )
             {

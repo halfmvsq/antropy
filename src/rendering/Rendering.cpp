@@ -1169,6 +1169,7 @@ void renderAnnotations(
     };
 
 
+    // Set line style
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
 
@@ -1190,8 +1191,7 @@ void renderAnnotations(
     {
         if ( ! imgSegPair.first )
         {
-            // Non-existent image
-            continue;
+            continue; // Non-existent image
         }
 
         const auto imgUid = *( imgSegPair.first );
@@ -1216,7 +1216,8 @@ void renderAnnotations(
         // Compute plane equation in image Subject space:
         /// @todo Pull this out into a MathHelper function
         const glm::mat4& subject_T_world = img->transformations().subject_T_worldDef();
-        const glm::mat3 subject_T_world_IT = glm::inverseTranspose( glm::mat3{ subject_T_world } );
+        const glm::mat4& world_T_subject = img->transformations().worldDef_T_subject();
+        const glm::mat3& subject_T_world_IT = img->transformations().subject_T_worldDef_invTransp();
 
         const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldViewNormal };
 
@@ -1241,6 +1242,9 @@ void renderAnnotations(
         const Annotation* annot = appData.annotation( annotUids[0] );
         if ( ! annot ) continue;
 
+        const bool visible = ( img->settings().visibility() && annot->getVisibility() );
+        if ( ! visible ) continue;
+
 //        spdlog::trace( "Found annotation {}", *annotUid );
 
         // Annotation vertices in Subject space:
@@ -1250,13 +1254,13 @@ void renderAnnotations(
 
         nvgStrokeWidth( nvg, appData.renderData().m_globalAnnotationParams.strokeWidth );
 
-        const glm::vec3 color = img->settings().borderColor();
-        const float opacity = static_cast<float>( img->settings().visibility() ) * img->settings().opacity();
+        const glm::vec3 color = annot->getColor();
+
+        /// @todo Should annotation opacity be modulated with image opacity?
+        /// Landmarks opacity is not.
+        const float opacity = annot->getOpacity() * img->settings().opacity();
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
-
-
-        const glm::mat4 world_T_subject = glm::inverse( subject_T_world );
 
         nvgBeginPath( nvg );
 

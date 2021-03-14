@@ -106,8 +106,7 @@ public:
      * @return If the image exists, return the annotation's newly generated unique identifier;
      * otherwise return nullopt.
      */
-    std::optional<uuids::uuid> addAnnotation(
-            const uuids::uuid& imageUid, Annotation annotation );
+    std::optional<uuids::uuid> addAnnotation( const uuids::uuid& imageUid, Annotation annotation );
 
 //    bool removeImage( const uuids::uuid& imageUid );
     bool removeSeg( const uuids::uuid& segUid );
@@ -170,6 +169,7 @@ public:
     size_t numImageColorMaps() const;
     size_t numLabelTables() const;
     size_t numLandmarkGroups() const;
+    size_t numAnnotations() const;
 
 
     uuid_range_t imageUidsOrdered() const;
@@ -209,6 +209,10 @@ public:
     /// Set/get the active landmark group for an image
     bool assignActiveLandmarkGroupUidToImage( const uuids::uuid& imageUid, const uuids::uuid& lmGroupUid );
     std::optional<uuids::uuid> imageToActiveLandmarkGroupUid( const uuids::uuid& imageUid ) const;
+
+    /// Set/get the active annotation for an image
+    bool assignActiveAnnotationUidToImage( const uuids::uuid& imageUid, const uuids::uuid& annotUid );
+    std::optional<uuids::uuid> imageToActiveAnnotationUid( const uuids::uuid& imageUid ) const;
 
 
     /**
@@ -306,6 +310,9 @@ private:
 
     /// Map of image to its annotations
     std::unordered_map< uuids::uuid, std::vector<uuids::uuid> > m_imageToAnnotations;
+
+    /// Map of image to its active annotation
+    std::unordered_map< uuids::uuid, uuids::uuid > m_imageToActiveAnnotation;
 
     /// Is an image being segmented (in addition to the active image)?
     std::unordered_set< uuids::uuid > m_imagesBeingSegmented;

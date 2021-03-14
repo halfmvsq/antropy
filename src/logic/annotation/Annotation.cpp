@@ -14,20 +14,23 @@ namespace
 {
 
 static constexpr float sk_defaultOpacity = 1.0f;
-static const glm::vec3 sk_defaultColor{ 0.5f, 0.5f, 0.5f };
 
 } // anonymous
 
 
-Annotation::Annotation( const glm::vec4& subjectPlaneEquation )
+Annotation::Annotation(
+        std::string name,
+        glm::vec3 color,
+        const glm::vec4& subjectPlaneEquation )
     :
-      m_name(),
+      m_displayName( std::move( name ) ),
+      m_fileName(),
       m_polygon(),
       m_layer( 0 ),
       m_maxLayer( 0 ),
       m_visibility( true ),
       m_opacity( sk_defaultOpacity ),
-      m_color{ sk_defaultColor },
+      m_color{ std::move( color ) },
 
       m_subjectPlaneEquation{ 1.0f, 0.0f, 0.0f, 0.0f },
       m_subjectPlaneOrigin{ 0.0f, 0.0f, 0.0f },
@@ -37,6 +40,27 @@ Annotation::Annotation( const glm::vec4& subjectPlaneEquation )
     {
         throw_debug( "Cannot construct Annotation with invalid plane" )
     }
+}
+
+
+void Annotation::setDisplayName( std::string displayName )
+{
+    m_displayName = std::move( displayName );
+}
+
+const std::string& Annotation::getDisplayName() const
+{
+    return m_displayName;
+}
+
+void Annotation::setFileName( std::string fileName )
+{
+    m_fileName = std::move( fileName );
+}
+
+const std::string& Annotation::getFileName() const
+{
+    return m_fileName;
 }
 
 bool Annotation::setSubjectPlane( const glm::vec4& subjectPlaneEquation )

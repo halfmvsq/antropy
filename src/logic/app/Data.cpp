@@ -71,7 +71,9 @@ AppData::AppData()
 
       m_imageToLandmarkGroups(),
       m_imageToActiveLandmarkGroup(),
+
       m_imageToAnnotations(),
+      m_imageToActiveAnnotation(),
 
       m_imagesBeingSegmented()
 {
@@ -281,6 +283,14 @@ std::optional<uuids::uuid> AppData::addAnnotation(
     auto annotUid = generateRandomUuid();
     m_annotations.emplace( annotUid, std::move(annotation) );
     m_imageToAnnotations[imageUid].emplace_back( annotUid );
+
+    // If this is the first annotation or there is no active annotation for the image,
+    // then make this the active annotation:
+    if ( 1 == m_imageToAnnotations[imageUid].size() ||
+         ! imageToActiveAnnotationUid( imageUid ) )
+    {
+        assignActiveAnnotationUidToImage( imageUid, annotUid );
+    }
 
     return annotUid;
 }
@@ -656,6 +666,7 @@ size_t AppData::numDefs() const { return m_defs.size(); }
 size_t AppData::numImageColorMaps() const { return m_imageColorMaps.size(); }
 size_t AppData::numLabelTables() const { return m_labelTables.size(); }
 size_t AppData::numLandmarkGroups() const { return m_landmarkGroups.size(); }
+size_t AppData::numAnnotations() const { return m_annotations.size(); }
 
 uuid_range_t AppData::imageUidsOrdered() const
 {
@@ -803,7 +814,6 @@ bool AppData::assignDefUidToImage( const uuids::uuid& imageUid, const uuids::uui
     return false;
 }
 
-
 const std::vector<uuids::uuid>&
 AppData::imageToLandmarkGroupUids( const uuids::uuid& imageUid ) const
 {
@@ -837,7 +847,8 @@ std::optional<uuids::uuid> AppData::imageToActiveLandmarkGroupUid(
     return std::nullopt;
 }
 
-bool AppData::assignLandmarkGroupUidToImage( const uuids::uuid& imageUid, uuids::uuid lmGroupUid )
+bool AppData::assignLandmarkGroupUidToImage(
+        const uuids::uuid& imageUid, uuids::uuid lmGroupUid )
 {
     if ( image( imageUid ) && landmarkGroup( lmGroupUid ) )
     {
@@ -846,14 +857,36 @@ bool AppData::assignLandmarkGroupUidToImage( const uuids::uuid& imageUid, uuids:
         // If this is the first landmark group for the image, or if the image has no active
         // landmark group, then make this the image's active landmark group:
         if ( 1 == m_imageToLandmarkGroups[imageUid].size() ||
-             0 == m_imageToActiveLandmarkGroup.count( imageUid ) )
+             ! imageToActiveLandmarkGroupUid( imageUid ) )
         {
-            m_imageToActiveLandmarkGroup[imageUid] = lmGroupUid;
+            assignActiveLandmarkGroupUidToImage( imageUid, lmGroupUid );
         }
 
         return true;
     }
     return false;
+}
+
+bool AppData::assignActiveAnnotationUidToImage(
+        const uuids::uuid& imageUid, const uuids::uuid& annotUid )
+{
+    if ( image( imageUid ) && annotation( annotUid ) )
+    {
+        m_imageToActiveAnnotation[imageUid] = annotUid;
+        return true;
+    }
+    return false;
+}
+
+std::optional<uuids::uuid> AppData::imageToActiveAnnotationUid(
+        const uuids::uuid& imageUid ) const
+{
+    auto it = m_imageToActiveAnnotation.find( imageUid );
+    if ( std::end( m_imageToActiveAnnotation ) != it )
+    {
+        return it->second;
+    }
+    return std::nullopt;
 }
 
 const std::vector<uuids::uuid>&

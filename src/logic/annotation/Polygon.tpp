@@ -45,7 +45,8 @@ public:
           m_vertices(),
           m_triangulation(),
           m_currentUid(),
-          m_aabb( std::nullopt )
+          m_aabb( std::nullopt ),
+          m_centroid( 0 )
     {}
 
     ~AnnotPolygon() = default;
@@ -60,6 +61,7 @@ public:
         m_currentUid = generateRandomUuid();
 
         computeAABBox();
+        computeCentroid();
     }
 
 
@@ -88,6 +90,7 @@ public:
         if ( 0 == boundary )
         {
             computeAABBox();
+            computeCentroid();
         }
 
         return true;
@@ -124,6 +127,7 @@ public:
         if ( 0 == boundary )
         {
             computeAABBox();
+            updateCentroid();
         }
 
         return true;
@@ -146,6 +150,7 @@ public:
         m_currentUid = generateRandomUuid();
 
         computeAABBox();
+        computeCentroid();
     }
 
 
@@ -165,6 +170,7 @@ public:
         m_currentUid = generateRandomUuid();
 
         computeAABBox();
+        updateCentroid();
     }
 
 
@@ -270,11 +276,19 @@ public:
     }
 
 
-    /// Get the 2D axis-aligned bounding box of the polygon.
+    /// Get the axis-aligned bounding box of the polygon.
     /// @returns Null optional if the polygon is empty
     std::optional< AABBoxType > getAABBox() const
     {
         return m_aabb;
+    }
+
+
+    /// Get the centroid of the polygon's outer boundary.
+    /// @returns Origin if the outer boundary has no points.
+    const PointType& getCentroid() const
+    {
+        return m_centroid;
     }
 
 
@@ -365,6 +379,63 @@ private:
     }
 
 
+    /// Update the centroid of the outer boundary with a new point.
+    /// Call this function AFTER adding the new point to the boundary.
+    void updateCentroid()
+    {
+        if ( m_vertices.size() < 0 )
+        {
+            // No outer boundary
+            m_centroid = PointType{ 0 };
+            return;
+        }
+
+        const auto& outerBoundary = m_vertices[0];
+        const size_t N = outerBoundary.size();
+
+        if ( N < 0 )
+        {
+            m_centroid = PointType{ 0 };
+            return;
+        }
+        else if ( 1 == N )
+        {
+            m_centroid = outerBoundary[0];
+            return;
+        }
+
+        m_centroid += ( outerBoundary[N-1] - m_centroid ) / static_cast<TComp>( N );
+    }
+
+
+    /// Compute the centroid of the outer boundary from scratch
+    void computeCentroid()
+    {
+        if ( m_vertices.size() < 0 )
+        {
+            // No outer boundary
+            m_centroid = PointType{ 0 };
+            return;
+        }
+
+        const auto& outerBoundary = m_vertices[0];
+        const size_t N = outerBoundary.size();
+
+        if ( N < 1 )
+        {
+            m_centroid = PointType{ 0 };
+            return;
+        }
+
+        for ( const auto& p : outerBoundary )
+        {
+            m_centroid += p;
+        }
+
+        m_centroid /= outerBoundary.size();
+    }
+
+
     /// Polygon stored as vector of vectors of points. The first vector defines the outer polygon
     /// boundary; subsequent vectors define holes in the main polygon. Any winding order for the
     /// outer boundary and holes is valid.
@@ -378,8 +449,11 @@ private:
     /// including vertices and triangulation.
     uuids::uuid m_currentUid;
 
-    /// 2D axis-aligned bounding box of the polygon; set to none if the polygon is empty.
+    /// Axis-aligned bounding box of the polygon; set to none if the polygon is empty.
     std::optional<AABBoxType> m_aabb;
+
+    /// Centroid of the polygon's outer boundary. Set to origin if the outer boundary is empty.
+    PointType m_centroid;
 };
 
 #endif // POLYGON_TPP

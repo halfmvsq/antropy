@@ -47,6 +47,27 @@ static const std::string sk_referenceImageMessage( "This is the reference image.
 static const std::string sk_activeImageMessage( "This is the active image." );
 static const std::string sk_nonActiveImageMessage( "This is not the active image." );
 
+static const ImGuiColorEditFlags sk_colorEditFlags =
+        ImGuiColorEditFlags_NoInputs |
+        ImGuiColorEditFlags_PickerHueBar |
+        ImGuiColorEditFlags_DisplayRGB |
+        ImGuiColorEditFlags_DisplayHSV |
+        ImGuiColorEditFlags_DisplayHex |
+        ImGuiColorEditFlags_Uint8 |
+        ImGuiColorEditFlags_InputRGB;
+
+std::pair< ImVec4, ImVec4 > computeHeaderBgAndTextColors( const glm::vec3& color )
+{
+    glm::vec3 darkerBorderColorHsv = glm::hsvColor( color );
+    darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
+    const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
+
+    const ImVec4 headerColor( darkerBorderColorRgb.r, darkerBorderColorRgb.g, darkerBorderColorRgb.b, 1.0f );
+    const ImVec4 headerTextColor = ( glm::luminosity( darkerBorderColorRgb ) < 0.75f ) ? sk_whiteText : sk_blackText;
+
+    return { headerColor, headerTextColor };
+}
+
 } // anonymous
 
 
@@ -298,15 +319,9 @@ void renderImageHeader(
             imgSettings.displayName() +
             "###" + std::to_string( imageIndex );
 
-    glm::vec3 darkerBorderColorHsv = glm::hsvColor( imgSettings.borderColor() );
-    darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
-    const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
-
-    const ImVec4 headerColor( darkerBorderColorRgb.r, darkerBorderColorRgb.g, darkerBorderColorRgb.b, 1.0f );
-    const ImVec4 headerTextColor = ( glm::luminosity( darkerBorderColorRgb ) < 0.75f ) ? sk_whiteText : sk_blackText;
-
-    ImGui::PushStyleColor( ImGuiCol_Header, headerColor );
-    ImGui::PushStyleColor( ImGuiCol_Text, headerTextColor );
+    const auto headerColors = computeHeaderBgAndTextColors( imgSettings.borderColor() );
+    ImGui::PushStyleColor( ImGuiCol_Header, headerColors.first );
+    ImGui::PushStyleColor( ImGuiCol_Text, headerColors.second );
 
     const bool clicked = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
 
@@ -717,11 +732,11 @@ void renderImageHeader(
 
         // Image colormap dialog:
         bool* showImageColormapWindow = &( guiData.m_showImageColormapWindow[imageUid] );
+        ImGui::Spacing();
         *showImageColormapWindow |= ImGui::Button( "Select colormap" );
 
-        bool invertedCmap = imgSettings.isColorMapInverted();
-
         ImGui::SameLine();
+        bool invertedCmap = imgSettings.isColorMapInverted();
         if ( ImGui::Checkbox( "Inverted", &invertedCmap ) )
         {
             imgSettings.setColorMapInverted( invertedCmap );
@@ -758,7 +773,6 @@ void renderImageHeader(
                 ImGui::SetTooltip( "%s", cmap->description().c_str() );
             }
         }
-
 
 //        ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
 
@@ -1124,15 +1138,9 @@ void renderSegmentationHeader(
             imgSettings.displayName() +
             "###" + std::to_string( imageIndex );
 
-    glm::vec3 darkerBorderColorHsv = glm::hsvColor( imgSettings.borderColor() );
-    darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
-    const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
-
-    const ImVec4 headerColor( darkerBorderColorRgb.r, darkerBorderColorRgb.g, darkerBorderColorRgb.b, 1.0f );
-    const ImVec4 headerTextColor = ( glm::luminosity( darkerBorderColorRgb ) < 0.75f ) ? sk_whiteText : sk_blackText;
-
-    ImGui::PushStyleColor( ImGuiCol_Header, headerColor );
-    ImGui::PushStyleColor( ImGuiCol_Text, headerTextColor );
+    const auto headerColors = computeHeaderBgAndTextColors( imgSettings.borderColor() );
+    ImGui::PushStyleColor( ImGuiCol_Header, headerColors.first );
+    ImGui::PushStyleColor( ImGuiCol_Text, headerColors.second );
 
     const bool open = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
 
@@ -1406,20 +1414,11 @@ void renderLandmarkGroupHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews )
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition )
 {
     static const char* sk_saveLmsButtonText( "Save landmarks..." );
-    static const char* sk_saveLmsDialogTitle( "Select Landmark Group" );
+    static const char* sk_saveLmsDialogTitle( "Save Landmark Group" );
     static const std::vector< const char* > sk_saveLmsDialogFilters{};
-
-    static const ImGuiColorEditFlags sk_colorEditFlags =
-            ImGuiColorEditFlags_NoInputs |
-            ImGuiColorEditFlags_PickerHueBar |
-            ImGuiColorEditFlags_DisplayRGB |
-            ImGuiColorEditFlags_DisplayHSV |
-            ImGuiColorEditFlags_DisplayHex |
-            ImGuiColorEditFlags_Uint8 |
-            ImGuiColorEditFlags_InputRGB;
 
     Image* image = appData.image( imageUid );
     if ( ! image ) return;
@@ -1443,15 +1442,9 @@ void renderLandmarkGroupHeader(
 
     const auto imgSettings = image->settings();
 
-    glm::vec3 darkerBorderColorHsv = glm::hsvColor( imgSettings.borderColor() );
-    darkerBorderColorHsv[2] = std::max( 0.5f * darkerBorderColorHsv[2], 0.0f );
-    const glm::vec3 darkerBorderColorRgb = glm::rgbColor( darkerBorderColorHsv );
-
-    const ImVec4 headerColor( darkerBorderColorRgb.r, darkerBorderColorRgb.g, darkerBorderColorRgb.b, 1.0f );
-    const ImVec4 headerTextColor = ( glm::luminosity( darkerBorderColorRgb ) < 0.75f ) ? sk_whiteText : sk_blackText;
-
-    ImGui::PushStyleColor( ImGuiCol_Header, headerColor );
-    ImGui::PushStyleColor( ImGuiCol_Text, headerTextColor );
+    const auto headerColors = computeHeaderBgAndTextColors( imgSettings.borderColor() );
+    ImGui::PushStyleColor( ImGuiCol_Header, headerColors.first );
+    ImGui::PushStyleColor( ImGuiCol_Text, headerColors.second );
 
     const bool open = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
 
@@ -1481,6 +1474,7 @@ void renderLandmarkGroupHeader(
             appData.setRainbowColorsForLandmarkGroups();
         }
 
+        ImGui::PopID(); // imageUid
         return;
     }
 
@@ -1501,6 +1495,7 @@ void renderLandmarkGroupHeader(
         {
             spdlog::error( "Unable to assign active landmark group {} to image {}",
                            lmGroupUids[0], imageUid );
+            ImGui::PopID(); // imageUid
             return;
         }
     }
@@ -1509,8 +1504,8 @@ void renderLandmarkGroupHeader(
 
     if ( ! activeLmGroup )
     {
-        spdlog::error( "Landmark group {} for image {} is null",
-                       *activeLmGroupUid, imageUid );
+        spdlog::error( "Landmark group {} for image {} is null", *activeLmGroupUid, imageUid );
+        ImGui::PopID(); // imageUid
         return;
     }
 
@@ -1551,15 +1546,9 @@ void renderLandmarkGroupHeader(
     if ( ! activeLmGroup )
     {
         spdlog::error( "Active landmark group for image {} is null", imageUid );
+        ImGui::PopID(); // imageUid
         return;
     }
-
-
-    // Landmark group file name:
-    std::string fileName = activeLmGroup->getFileName();
-    ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine(); helpMarker( "Comma-separated file with the landmarks" );
-    ImGui::Spacing();
 
 
     // Landmark group display name:
@@ -1569,6 +1558,12 @@ void renderLandmarkGroupHeader(
         activeLmGroup->setName( groupName );
     }
     ImGui::SameLine(); helpMarker( "Edit the name of the group of landmarks" );
+
+
+    // Landmark group file name:
+    std::string fileName = activeLmGroup->getFileName();
+    ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
+    ImGui::SameLine(); helpMarker( "Comma-separated file with the landmarks" );
     ImGui::Spacing();
 
 
@@ -1579,7 +1574,6 @@ void renderLandmarkGroupHeader(
         activeLmGroup->setVisibility( groupVisible );
     }
     ImGui::SameLine(); helpMarker( "Show/hide the landmarks" );
-    ImGui::Spacing();
 
 
     // Opacity slider:
@@ -1589,7 +1583,6 @@ void renderLandmarkGroupHeader(
         activeLmGroup->setOpacity( groupOpacity );
     }
     ImGui::SameLine(); helpMarker( "Landmark opacity" );
-    ImGui::Spacing();
 
 
     // Radius slider:
@@ -1609,7 +1602,6 @@ void renderLandmarkGroupHeader(
         activeLmGroup->setRenderLandmarkIndices( renderLandmarkIndices );
     }
     ImGui::SameLine(); helpMarker( "Show/hide the landmark indices" );
-    ImGui::Spacing();
 
 
     // Rendering of landmark indices:
@@ -1619,7 +1611,6 @@ void renderLandmarkGroupHeader(
         activeLmGroup->setRenderLandmarkNames( renderLandmarkNames );
     }
     ImGui::SameLine(); helpMarker( "Show/hide the landmark names" );
-    ImGui::Spacing();
 
 
     // Uniform color for all landmarks:
@@ -1662,7 +1653,7 @@ void renderLandmarkGroupHeader(
     ImGui::Text( "Landmark coordinate space:" );
     int inVoxelSpace = activeLmGroup->getInVoxelSpace() ? 1 : 0;
 
-    if ( ImGui::RadioButton( "Subject (physical/mm)", &inVoxelSpace, 0 ) )
+    if ( ImGui::RadioButton( "Physical subject (mm)", &inVoxelSpace, 0 ) )
     {
         activeLmGroup->setInVoxelSpace( ( 1 == inVoxelSpace ) ? true : false );
     }
@@ -1690,7 +1681,7 @@ void renderLandmarkGroupHeader(
                 activeLmGroup,
                 appData.state().worldCrosshairs().worldOrigin(),
                 setWorldCrosshairsPos,
-                recenterCurrentViews );
+                recenterAllViewsOnCurrentCrosshairsPosition );
 
 
     // Save landmarks to CSV and save settings to project file:
@@ -1722,10 +1713,218 @@ void renderLandmarkGroupHeader(
 
 
 void renderAnnotationsHeader(
-        AppData& /*appData*/,
-        const uuids::uuid& /*imageUid*/,
-        size_t /*imageIndex*/,
-        bool /*isActiveImage*/,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& /*recenterCurrentViews*/ )
+        AppData& appData,
+        const uuids::uuid& imageUid,
+        size_t imageIndex,
+        bool isActiveImage,
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& /*recenterAllViewsOnCurrentCrosshairsPosition*/ )
 {
+    static const char* sk_saveAnnotButtonText( "Save annotation..." );
+    static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
+    static const std::vector< const char* > sk_saveAnnotDialogFilters{};
+
+    Image* image = appData.image( imageUid );
+    if ( ! image ) return;
+
+    ImGuiTreeNodeFlags headerFlags = ImGuiTreeNodeFlags_CollapsingHeader;
+
+    /// @todo This annoyingly pops up the active header each time... not sure why
+    if ( isActiveImage )
+    {
+        headerFlags |= ImGuiTreeNodeFlags_DefaultOpen;
+    }
+
+    ImGui::PushID( uuids::to_string( imageUid ).c_str() ); /** PushID imageUid **/
+
+    // Header is ID'ed only by the image index.
+    // ### allows the header name to change without changing its ID.
+    const std::string headerName =
+            std::to_string( imageIndex ) + ") " +
+            image->settings().displayName() +
+            "###" + std::to_string( imageIndex );
+
+    const auto imgSettings = image->settings();
+
+    const auto headerColors = computeHeaderBgAndTextColors( imgSettings.borderColor() );
+    ImGui::PushStyleColor( ImGuiCol_Header, headerColors.first );
+    ImGui::PushStyleColor( ImGuiCol_Text, headerColors.second );
+
+    const bool open = ImGui::CollapsingHeader( headerName.c_str(), headerFlags );
+
+    ImGui::PopStyleColor( 2 ); // ImGuiCol_Header, ImGuiCol_Text
+
+    if ( ! open )
+    {
+        ImGui::PopID(); // imageUid
+        return;
+    }
+
+    ImGui::Spacing();
+
+    const auto annotUids = appData.annotationsForImage( imageUid );
+
+    if ( annotUids.empty() )
+    {
+        ImGui::Text( "This image has no annotations." );
+
+        if ( ImGui::Button( "Create new annotation" ) )
+        {
+
+        }
+
+        ImGui::PopID(); // imageUid
+        return;
+    }
+
+
+    std::optional<uuids::uuid> activeAnnotUid =
+            appData.imageToActiveAnnotationUid( imageUid );
+
+    // The default active annotation is at index 0
+    if ( ! activeAnnotUid )
+    {
+        if ( appData.assignActiveAnnotationUidToImage( imageUid, annotUids[0] ) )
+        {
+            activeAnnotUid = appData.imageToActiveAnnotationUid( imageUid );
+        }
+        else
+        {
+            spdlog::error( "Unable to assign active annotation {} to image {}",
+                           annotUids[0], imageUid );
+            ImGui::PopID(); // imageUid
+            return;
+        }
+    }
+
+    Annotation* activeAnnot = appData.annotation( *activeAnnotUid );
+
+    if ( ! activeAnnot )
+    {
+        spdlog::error( "Annotation {} for image {} is null", *activeAnnotUid, imageUid );
+        ImGui::PopID(); // imageUid
+        return;
+    }
+
+
+    if ( ImGui::BeginCombo( "Annotation", activeAnnot->getDisplayName().c_str() ) )
+    {
+        size_t annotIndex = 0;
+        for ( const auto& annotUid : annotUids )
+        {
+            ImGui::PushID( static_cast<int>( annotIndex++ ) );
+            {
+                if ( Annotation* annot = appData.annotation( annotUid ) )
+                {
+                    const bool isSelected = ( annotUid == *activeAnnotUid );
+
+                    if ( ImGui::Selectable( annot->getDisplayName().c_str(), isSelected) )
+                    {
+                        appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
+                        activeAnnot = appData.annotation( annotUid );
+                    }
+
+                    if ( isSelected ) ImGui::SetItemDefaultFocus();
+                }
+            }
+            ImGui::PopID(); // lmGroupIndex
+        }
+
+        ImGui::EndCombo();
+    }
+    ImGui::SameLine();
+    helpMarker( "Select the group of landmarks to view" );
+
+    if ( ! activeAnnot )
+    {
+        spdlog::error( "Active annotation for image {} is null", imageUid );
+        ImGui::PopID(); // imageUid
+        return;
+    }
+
+    ImGui::Separator();
+
+
+    // Annotation display name:
+    std::string displayName = activeAnnot->getDisplayName();
+    if ( ImGui::InputText( "Name", &displayName ) )
+    {
+        activeAnnot->setDisplayName( displayName );
+    }
+    ImGui::SameLine(); helpMarker( "Edit the name of the annotation" );
+
+
+    // Annotation file name:
+    std::string fileName = activeAnnot->getFileName();
+    ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
+    ImGui::SameLine(); helpMarker( "Scalar Vector Graphics (SVG) file storing the annotation" );
+    ImGui::Spacing();
+
+
+    // Visibility checkbox:
+    bool annotVisible = activeAnnot->getVisibility();
+    if ( ImGui::Checkbox( "Visible", &annotVisible ) )
+    {
+        activeAnnot->setVisibility( annotVisible );
+    }
+    ImGui::SameLine(); helpMarker( "Show/hide the annotation" );
+
+
+    // Opacity slider:
+    float annotOpacity = activeAnnot->getOpacity();
+    if ( mySliderF32( "Opacity", &annotOpacity, 0.0f, 1.0f ) )
+    {
+        activeAnnot->setOpacity( annotOpacity );
+    }
+    ImGui::SameLine(); helpMarker( "Annotation opacity" );
+
+
+    // Color:
+    glm::vec3 annotColor = activeAnnot->getColor();
+    if ( ImGui::ColorEdit3( "Color", glm::value_ptr( annotColor ), sk_colorEditFlags ) )
+    {
+        activeAnnot->setColor( annotColor );
+    }
+    ImGui::SameLine(); helpMarker( "Set the annotation color" );
+    ImGui::Spacing();
+
+
+    // Plane normal vector and offset:
+    ImGui::Text( "Annotation plane:" );
+    glm::vec4 annotPlaneEq = activeAnnot->getSubjectPlaneEquation();
+
+    ImGui::InputFloat3( "Normal vector", glm::value_ptr( annotPlaneEq ), "%0.3f" );
+    ImGui::SameLine(); helpMarker( "Annotation plane normal vector (x, y, z) in image Subject space" );
+
+    ImGui::InputFloat( "Offset (mm)", &annotPlaneEq[3], 0.0f, 0.0f, "%0.3f" );
+    ImGui::SameLine(); helpMarker( "Offset distance (mm) of annotation plane from the image Subject space origin" );
+
+    ImGui::Spacing();
+
+
+    // Save annotation SVG and save settings to project file:
+
+    const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
+                sk_saveAnnotButtonText, sk_saveAnnotDialogTitle, sk_saveAnnotDialogFilters );
+
+    ImGui::SameLine(); helpMarker( "Save the annotation to an SVG file" );
+
+//    if ( selectedFile )
+//    {
+//        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
+//        {
+//            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
+
+//            /// @todo How to handle changing the file name?
+//            activeAnnot->setFileName( *selectedFile );
+//        }
+//        else
+//        {
+//            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
+//        }
+//    }
+
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    ImGui::PopID(); /** PopID imageUid **/
 }

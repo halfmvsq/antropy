@@ -108,7 +108,7 @@ void renderLandmarkGroupHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews );
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition );
 
 
 void renderAnnotationsHeader(
@@ -116,7 +116,7 @@ void renderAnnotationsHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterCurrentViews );
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition );
 
 
 #endif // UI_HEADERS_H

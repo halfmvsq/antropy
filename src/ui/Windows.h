@@ -76,7 +76,7 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterViews );
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition );
 
 
 void renderAnnotationWindow(

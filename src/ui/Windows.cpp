@@ -540,7 +540,7 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterViews )
+        const std::function< void ( bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition )
 {
     if ( ImGui::Begin( "Landmarks",
                        &( appData.guiData().m_showLandmarksWindow ),
@@ -558,7 +558,7 @@ void renderLandmarkPropertiesWindow(
                         imageUid,
                         imageIndex++,
                         isActiveImage,
-                        recenterViews );
+                        recenterAllViewsOnCurrentCrosshairsPosition );
         }
 
         ImGui::End();
