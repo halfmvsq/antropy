@@ -385,7 +385,7 @@ std::vector< uuids::uuid > findAnnotationsForImage(
         const glm::vec4& querySubjectPlaneEquation,
         float planeDistanceThresh )
 {
-    static constexpr float k_normalAngleThresh = 1.0e-4f;
+    static constexpr float sk_dotProductThresh = 1.0e-4f;
 
     std::vector< uuids::uuid > annotUids;
 
@@ -396,15 +396,24 @@ std::vector< uuids::uuid > findAnnotationsForImage(
 
         const glm::vec4 testSubjectPlaneEquation = annot->getSubjectPlaneEquation();
 
-        // Compare angle between normal vectors and distances between plane offsets:
+        // Compare absolute values of dot product between normal vectors and
+        // distances between plane offsets:
         const glm::vec3 n1 = glm::normalize( glm::vec3{ testSubjectPlaneEquation } );
-        const glm::vec3 n2 = glm::normalize( glm::vec3{ querySubjectPlaneEquation } );
-
         const float d1 = testSubjectPlaneEquation[3];
-        const float d2 = querySubjectPlaneEquation[3];
 
-        if ( ( std::abs( glm::angle( n1, n2 ) ) < k_normalAngleThresh ) &&
-             std::abs( d1 - d2 ) < planeDistanceThresh )
+        glm::vec3 n2 = glm::normalize( glm::vec3{ querySubjectPlaneEquation } );
+        float d2 = querySubjectPlaneEquation[3];
+
+        if ( ( glm::dot( n1, n2 ) < 0.0f ) )
+        {
+            n2 = -n2;
+            d2 = -d2;
+        }
+
+        const bool normalMatch = ( ( glm::dot( n1, n2 ) - 1.0f ) < sk_dotProductThresh );
+        const bool offsetMatch = ( std::abs( d1 - d2 ) < planeDistanceThresh );
+
+        if ( normalMatch && offsetMatch )
         {
             // The plane of this annotation group matches the query plane:
             annotUids.push_back( annotUid );

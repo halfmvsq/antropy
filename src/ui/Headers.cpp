@@ -1971,7 +1971,7 @@ void renderAnnotationsHeader(
         {
             spdlog::trace( "found view {} with normal {}", viewsWithNormal[0], glm::to_string(worldNormal) );
 
-            /// @todo Need a version of this that does not re-orient views:
+            /// @todo Need a version of this that does not re-orient views!!!!
 //            recenterAllViews( false, true );
         }
     }

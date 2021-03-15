@@ -89,7 +89,7 @@ void moveCrosshairsOnViewSlice(
 
 /**
  * @brief Find annotation for a given image. The search is done by matching the
- * annotation plane equations.
+ * annotation plane equations. The orientation of the plane normal vector does not matter.
  *
  * @param appData Application data
  * @param imageUid UID of image to search

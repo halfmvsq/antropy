@@ -709,8 +709,13 @@ void orientCameraToWorldTargetNormalDirection(
         Camera& camera,
         const glm::vec3& targetWorldNormalDirection )
 {
-    const glm::vec3 fromVector = worldDirection( camera, Directions::View::Back );
-    applyViewTransformation( camera, math::fromToRotation( fromVector, glm::normalize( targetWorldNormalDirection ) ) );
+    static const glm::vec3 cameraToVector{ 0, 0, 1 };
+
+    const glm::vec3 cameraFromVector =
+            glm::inverseTranspose( glm::mat3{ camera.camera_T_world() } ) *
+            glm::normalize( targetWorldNormalDirection );
+
+    applyViewTransformation( camera, math::fromToRotation( cameraFromVector, cameraToVector ) );
 }
 
 

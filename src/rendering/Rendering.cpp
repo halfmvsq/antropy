@@ -1258,7 +1258,7 @@ void renderAnnotations(
 
         /// @todo Should annotation opacity be modulated with image opacity?
         /// Landmarks opacity is not.
-        const float opacity = annot->getOpacity() * img->settings().opacity();
+        const float opacity = annot->getOpacity() * static_cast<float>( img->settings().opacity() );
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
 
