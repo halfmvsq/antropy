@@ -43,6 +43,7 @@ void renderSegLabelsChildWindow(
  * @param recenterAllViews
  */
 void renderLandmarkChildWindow(
+        const AppData& appData,
         const ImageTransformations& imageTransformations,
         LandmarkGroup* activeLmGroup,
         const glm::vec3& worldCrosshairsPos,

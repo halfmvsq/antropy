@@ -640,7 +640,8 @@ void renderSettingsWindow(
 
         if ( ImGui::DragFloatRange2( "Window", &windowLow, &windowHigh, 0.01f,
                                      sk_windowMin, sk_windowMax,
-                                     "Min: %.2f", "Max: %.2f", ImGuiSliderFlags_AlwaysClamp ) )
+                                     "Min: %.2f", "Max: %.2f",
+                                     ImGuiSliderFlags_AlwaysClamp ) )
         {
             if ( ( windowHigh - windowLow ) < 0.01f )
             {
@@ -1030,30 +1031,45 @@ void renderSettingsWindow(
 
                 uint32_t valuePrecision = appData.guiData().m_imageValuePrecision;
                 uint32_t coordPrecision = appData.guiData().m_coordsPrecision;
+                uint32_t txPrecision = appData.guiData().m_txPrecision;
 
-                ImGui::Text( "Floating-point precision in Inspector:" );
+                ImGui::Text( "Floating-point precision:" );
 
-                if ( ImGui::InputScalar( "Image value precision", ImGuiDataType_U32,
+                if ( ImGui::InputScalar( "Image values", ImGuiDataType_U32,
                                          &valuePrecision, &sk_stepPrecision, &sk_stepPrecision, "%d" ) )
                 {
                     appData.guiData().m_imageValuePrecision = std::min( std::max( valuePrecision, sk_minPrecision ), sk_maxPrecision );
 
-                    appData.guiData().m_imageValuePrecisionFormat = std::string( "%0." ) +
+                    appData.guiData().m_imageValuePrecisionFormat =
+                            std::string( "%0." ) +
                             std::to_string( appData.guiData().m_imageValuePrecision ) +
                             std::string( "f" );
                 }
-                ImGui::SameLine(); helpMarker( "Floating-point precision of image values in Inspector window" );
+                ImGui::SameLine(); helpMarker( "Floating-point precision of image values (e.g. in Inspector window)" );
 
-                if ( ImGui::InputScalar( "Coordinate precision", ImGuiDataType_U32,
+                if ( ImGui::InputScalar( "Coordinates", ImGuiDataType_U32,
                                          &coordPrecision, &sk_stepPrecision, &sk_stepPrecision, "%d" ) )
                 {
                     appData.guiData().m_coordsPrecision = std::min( std::max( coordPrecision, sk_minPrecision ), sk_maxPrecision );
 
-                    appData.guiData().m_coordsPrecisionFormat = std::string( "%0." ) +
+                    appData.guiData().m_coordsPrecisionFormat =
+                            std::string( "%0." ) +
                             std::to_string( appData.guiData().m_coordsPrecision ) +
                             std::string( "f" );
                 }
-                ImGui::SameLine(); helpMarker( "Floating-point precision of image spatial coordinates in Inspector window" );
+                ImGui::SameLine(); helpMarker( "Floating-point precision of image spatial coordinates (e.g. in Inspector window)" );
+
+                if ( ImGui::InputScalar( "Transformations", ImGuiDataType_U32,
+                                         &txPrecision, &sk_stepPrecision, &sk_stepPrecision, "%d" ) )
+                {
+                    appData.guiData().m_txPrecision = std::min( std::max( txPrecision, sk_minPrecision ), sk_maxPrecision );
+
+                    appData.guiData().m_txPrecisionFormat =
+                            std::string( "%0." ) +
+                            std::to_string( appData.guiData().m_txPrecision ) +
+                            std::string( "f" );
+                }
+                ImGui::SameLine(); helpMarker( "Floating-point precision of image transformation parameters" );
 
                 ImGui::PopID(); /*** PopID other ***/
                 ImGui::EndTabItem();
@@ -1425,6 +1441,12 @@ void renderInspectionWindowWithTable(
                 const auto imageUid = appData.imageUid( imageIndex );
                 if ( ! imageUid ) continue;
 
+                auto it = s_showSubject.find( *imageUid );
+                if ( std::end( s_showSubject ) == it )
+                {
+                    s_showSubject.insert( { *imageUid, true } );
+                }
+
                 bool& visible = s_showSubject[*imageUid];
 
                 const auto names = getImageDisplayAndFileName( imageIndex );
@@ -1532,11 +1554,16 @@ void renderInspectionWindowWithTable(
             for ( size_t imageIndex = 0; imageIndex < appData.numImages(); ++imageIndex )
             {
                 const auto imageUid = appData.imageUid( imageIndex );
-                const Image* image = ( imageUid ? appData.image( *imageUid ) : nullptr );
+                Image* image = ( imageUid ? appData.image( *imageUid ) : nullptr );
                 if ( ! image ) continue;
 
-                const bool visible = s_showSubject[*imageUid];
-                if ( ! visible ) continue;
+                auto it = s_showSubject.find( *imageUid );
+                if ( std::end( s_showSubject ) == it )
+                {
+                    s_showSubject.insert( { *imageUid, true } );
+                }
+
+                if ( ! s_showSubject[*imageUid] ) continue;
 
                 ImGui::PushID( imageIndex ); /** PushID: imageIndex **/
 
@@ -1564,7 +1591,11 @@ void renderInspectionWindowWithTable(
                 ImGui::PushItemWidth( -1 );
                 {
                     std::string displayName = image->settings().displayName();
-                    ImGui::InputText( "", &displayName, ImGuiInputTextFlags_ReadOnly );
+
+                    if ( ImGui::InputText( "", &displayName ) )
+                    {
+                        image->settings().setDisplayName( displayName );
+                    }
                 }
                 ImGui::PopItemWidth();
                 ImGui::PopStyleColor( 2 ); // ImGuiCol_FrameBg, ImGuiCol_Text

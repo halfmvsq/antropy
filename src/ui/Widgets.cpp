@@ -262,6 +262,7 @@ void renderPaletteWindow(
 
 
 void renderLandmarkChildWindow(
+        const AppData& appData,
         const ImageTransformations& imageTransformations,
         LandmarkGroup* activeLmGroup,
         const glm::vec3& worldCrosshairsPos,
@@ -284,6 +285,8 @@ void renderLandmarkChildWindow(
     static const auto sk_hueMinMax = std::make_pair( 0.0f, 360.0f );
     static const auto sk_satMinMax = std::make_pair( 0.3f, 1.0f );
     static const auto sk_valMinMax = std::make_pair( 0.3f, 1.0f );
+
+    const char* coordFormat = appData.guiData().m_coordsPrecisionFormat.c_str();
 
     std::map< size_t, PointRecord<glm::vec3> >& points = activeLmGroup->getPoints();
 
@@ -447,7 +450,7 @@ void renderLandmarkChildWindow(
 
         ImGui::SameLine();
         ImGui::PushItemWidth( 250.0f );
-        if ( ImGui::InputFloat3( "##pointPos", glm::value_ptr( pointPos ), "%.3f", 0 ) )
+        if ( ImGui::InputFloat3( "##pointPos", glm::value_ptr( pointPos ), coordFormat, 0 ) )
         {
             point.setPosition( pointPos );
         }

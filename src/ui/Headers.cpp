@@ -74,9 +74,14 @@ std::pair< ImVec4, ImVec4 > computeHeaderBgAndTextColors( const glm::vec3& color
 
 
 void renderImageHeaderInformation(
+        const AppData& appData,
         const ImageHeader& imgHeader,
         const ImageTransformations& imgTx )
 {
+    const char* txFormat = appData.guiData().m_txPrecisionFormat.c_str();
+    const char* coordFormat = appData.guiData().m_coordsPrecisionFormat.c_str();
+
+
     // File name:
     std::string fileName = imgHeader.fileName();
     ImGui::InputText( "File name", &fileName, ImGuiInputTextFlags_ReadOnly );
@@ -97,7 +102,7 @@ void renderImageHeaderInformation(
     // Spacing:
     glm::vec3 spacing = imgHeader.spacing();
     ImGui::InputScalarN( "Spacing (mm)", ImGuiDataType_Float, glm::value_ptr( spacing ), 3,
-                         nullptr, nullptr, "%.6f", ImGuiInputTextFlags_ReadOnly );
+                         nullptr, nullptr, "%0.6f", ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Voxel spacing (mm)" );
     ImGui::Spacing();
 
@@ -105,7 +110,7 @@ void renderImageHeaderInformation(
     // Origin:
     glm::vec3 origin = imgHeader.origin();
     ImGui::InputScalarN( "Origin (mm)", ImGuiDataType_Float, glm::value_ptr( origin ), 3,
-                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
+                         nullptr, nullptr, coordFormat, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Image origin (mm): physical coordinates of voxel (0, 0, 0)" );
     ImGui::Spacing();
 
@@ -116,9 +121,9 @@ void renderImageHeaderInformation(
     ImGui::SameLine(); helpMarker( "Direction vectors in physical Subject space of the X, Y, Z image voxel axes. "
                                    "Also known as the voxel direction cosines matrix." );
 
-    ImGui::InputFloat3( "X", glm::value_ptr( directions[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat3( "Y", glm::value_ptr( directions[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat3( "Z", glm::value_ptr( directions[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat3( "X", glm::value_ptr( directions[0] ), coordFormat, ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat3( "Y", glm::value_ptr( directions[1] ), coordFormat, ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat3( "Z", glm::value_ptr( directions[2] ), coordFormat, ImGuiInputTextFlags_ReadOnly );
 
 
     // Closest orientation code:
@@ -171,10 +176,10 @@ void renderImageHeaderInformation(
     ImGui::SameLine(); helpMarker( "Transformation from Voxels to Subject (LPS) space" );
 
     glm::mat4 s_T_p = glm::transpose( imgTx.subject_T_pixel() );
-    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[0] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[1] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[2] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+    ImGui::InputFloat4( "", glm::value_ptr( s_T_p[3] ), txFormat, ImGuiInputTextFlags_ReadOnly );
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -199,14 +204,14 @@ void renderImageHeaderInformation(
 
     glm::vec3 boxCenter = imgHeader.subjectBBoxCenter();
     ImGui::InputScalarN( "Center (mm)", ImGuiDataType_Float, glm::value_ptr( boxCenter ), 3,
-                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
+                         nullptr, nullptr, coordFormat, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Bounding box center in Subject space (mm)" );
     ImGui::Spacing();
 
 
     glm::vec3 boxSize = imgHeader.subjectBBoxSize();
     ImGui::InputScalarN( "Size (mm)", ImGuiDataType_Float, glm::value_ptr( boxSize ), 3,
-                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
+                         nullptr, nullptr, coordFormat, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Bounding box size (mm)" );
 
     ImGui::Spacing();
@@ -287,6 +292,16 @@ void renderImageHeader(
             ImGuiColorEditFlags_AlphaPreviewHalf |
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
+
+    const std::string minValuesFormatString = std::string( "Min: " ) + appData.guiData().m_imageValuePrecisionFormat;
+    const std::string maxValuesFormatString = std::string( "Max: " ) + appData.guiData().m_imageValuePrecisionFormat;
+
+    const char* minValuesFormat = minValuesFormatString.c_str();
+    const char* maxValuesFormat = maxValuesFormatString.c_str();
+
+    const char* valuesFormat = appData.guiData().m_imageValuePrecisionFormat.c_str();
+    const char* txFormat = appData.guiData().m_txPrecisionFormat.c_str();
+
 
     if ( ! image ) return;
 
@@ -599,8 +614,10 @@ void renderImageHeader(
             float threshHigh = static_cast<float>( imgSettings.thresholdHigh() );
 
             /// @todo Change speed of range slider based on the image range. Right now set to 1.0
-            if ( ImGui::DragFloatRange2( "Threshold", &threshLow, &threshHigh, 0.1f, threshMin, threshMax,
-                                         "Min: %.2f", "Max: %.2f", ImGuiSliderFlags_AlwaysClamp ) )
+            if ( ImGui::DragFloatRange2( "Threshold", &threshLow, &threshHigh,
+                                         0.1f, threshMin, threshMax,
+                                         minValuesFormat, maxValuesFormat,
+                                         ImGuiSliderFlags_AlwaysClamp ) )
             {
                 imgSettings.setThresholdLow( static_cast<double>( threshLow ) );
                 imgSettings.setThresholdHigh( static_cast<double>( threshHigh ) );
@@ -626,8 +643,10 @@ void renderImageHeader(
             float windowLow = std::max( level - 0.5f * window, valueMin );
             float windowHigh = std::min( level + 0.5f * window, valueMax );
 
-            if ( ImGui::DragFloatRange2( "Window", &windowLow, &windowHigh, 0.1f, valueMin, valueMax,
-                                         "Min: %.2f", "Max: %.2f", ImGuiSliderFlags_AlwaysClamp ) )
+            if ( ImGui::DragFloatRange2( "Window", &windowLow, &windowHigh,
+                                         0.1f, valueMin, valueMax,
+                                         minValuesFormat, maxValuesFormat,
+                                         ImGuiSliderFlags_AlwaysClamp ) )
             {
                 const double newWindow = static_cast<double>( windowHigh - windowLow );
                 const double newLevel = static_cast<double>( 0.5f * ( windowLow + windowHigh ) );
@@ -638,14 +657,14 @@ void renderImageHeader(
             }
             ImGui::SameLine(); helpMarker( "Set the minimum and maximum of the window range" );
 
-            if ( mySliderF32( "Width", &window, windowMin, windowMax ) )
+            if ( mySliderF32( "Width", &window, windowMin, windowMax, valuesFormat ) )
             {
                 imgSettings.setWindow( static_cast<double>( window ) );
                 updateImageUniforms();
             }
             ImGui::SameLine(); helpMarker( "Window width" );
 
-            if ( mySliderF32( "Level", &level, levelMin, levelMax ) )
+            if ( mySliderF32( "Level", &level, levelMin, levelMax, valuesFormat ) )
             {
                 imgSettings.setLevel( static_cast<double>( level ) );
                 updateImageUniforms();
@@ -660,8 +679,10 @@ void renderImageHeader(
             int32_t threshLow = static_cast<int32_t>( imgSettings.thresholdLow() );
             int32_t threshHigh = static_cast<int32_t>( imgSettings.thresholdHigh() );
 
-            if ( ImGui::DragIntRange2( "Threshold", &threshLow, &threshHigh, 1.0f, threshMin, threshMax,
-                                       "Min: %d", "Max: %d", ImGuiSliderFlags_AlwaysClamp ) )
+            if ( ImGui::DragIntRange2( "Threshold", &threshLow, &threshHigh,
+                                       1.0f, threshMin, threshMax,
+                                       "Min: %d", "Max: %d",
+                                       ImGuiSliderFlags_AlwaysClamp ) )
             {
                 imgSettings.setThresholdLow( static_cast<double>( threshLow ) );
                 imgSettings.setThresholdHigh( static_cast<double>( threshHigh ) );
@@ -686,8 +707,10 @@ void renderImageHeader(
             int32_t windowLow = std::max( static_cast<int32_t>( level - 0.5 * window ), valueMin );
             int32_t windowHigh = std::min( static_cast<int32_t>( level + 0.5 * window ), valueMax );
 
-            if ( ImGui::DragIntRange2( "Window", &windowLow, &windowHigh, 1.0f, valueMin, valueMax,
-                                       "Min: %d", "Max: %d", ImGuiSliderFlags_AlwaysClamp ) )
+            if ( ImGui::DragIntRange2( "Window", &windowLow, &windowHigh,
+                                       1.0f, valueMin, valueMax,
+                                       "Min: %d", "Max: %d",
+                                       ImGuiSliderFlags_AlwaysClamp ) )
             {
                 const double newWindow = static_cast<double>( windowHigh - windowLow );
                 const double newLevel = static_cast<double>( 0.5 * ( windowLow + windowHigh ) );
@@ -949,10 +972,10 @@ void renderImageHeader(
             }
 
             glm::mat4 aff_T_sub = glm::transpose( imgTx.get_affine_T_subject() );
-            ImGui::InputFloat4( "Matrix", glm::value_ptr( aff_T_sub[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "Matrix", glm::value_ptr( aff_T_sub[0] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[1] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[2] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[3] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::Spacing();
         }
         ImGui::Separator();
@@ -981,7 +1004,7 @@ void renderImageHeader(
             float angle = glm::degrees( glm::angle( w_T_s_rotation ) );
             glm::vec3 axis = glm::normalize( glm::axis( w_T_s_rotation ) );
 
-            if ( ImGui::InputFloat3( "Translation", glm::value_ptr( w_T_s_trans ), "%.3f" ) )
+            if ( ImGui::InputFloat3( "Translation", glm::value_ptr( w_T_s_trans ), txFormat ) )
             {
                 imgTx.set_worldDef_T_affine_translation( w_T_s_trans );
                 updateImageUniforms();
@@ -989,7 +1012,7 @@ void renderImageHeader(
             ImGui::SameLine();
             helpMarker( "Image translation in x, y, z" );
 
-            if ( ImGui::InputFloat3( "Scale", glm::value_ptr( w_T_s_scale ), "%.3f" ) )
+            if ( ImGui::InputFloat3( "Scale", glm::value_ptr( w_T_s_scale ), txFormat ) )
             {
                 if ( glm::epsilonNotEqual( w_T_s_scale.x, 0.0f, glm::epsilon<float>() ) &&
                      glm::epsilonNotEqual( w_T_s_scale.y, 0.0f, glm::epsilon<float>() ) &&
@@ -1006,7 +1029,7 @@ void renderImageHeader(
             /// @see https://github.com/CedricGuillemet/ImGuizmo
 
             //            ImGui::Text( "Rotation" );
-            if ( ImGui::InputFloat( "Rotation angle", &angle, 0.01f, 0.1f, "%.3f" ) )
+            if ( ImGui::InputFloat( "Rotation angle", &angle, 0.01f, 0.1f, txFormat ) )
             {
                 //                const float n = glm::length( axis );
                 //                if ( n < 1e-6f )
@@ -1018,7 +1041,7 @@ void renderImageHeader(
             }
             ImGui::SameLine(); helpMarker( "Image rotation angle (degrees) [editing disabled]" );
 
-            if ( ImGui::InputFloat3( "Rotation axis", glm::value_ptr( axis ), "%.3f" ) )
+            if ( ImGui::InputFloat3( "Rotation axis", glm::value_ptr( axis ), txFormat ) )
             {
                 //                const float n = glm::length( axis );
                 //                if ( n < 1e-6f )
@@ -1041,10 +1064,10 @@ void renderImageHeader(
 
             ImGui::Spacing();
             glm::mat4 world_T_affine = glm::transpose( imgTx.get_worldDef_T_affine() );
-            ImGui::InputFloat4( "Matrix", glm::value_ptr( world_T_affine[0] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[1] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[2] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
-            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[3] ), "%.3f", ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "Matrix", glm::value_ptr( world_T_affine[0] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[1] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[2] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[3] ), txFormat, ImGuiInputTextFlags_ReadOnly );
 
 
             ImGui::Spacing();
@@ -1087,7 +1110,7 @@ void renderImageHeader(
 
     if ( ImGui::TreeNode( "Header Information" ) )
     {
-        renderImageHeaderInformation( imgHeader, imgTx );
+        renderImageHeaderInformation( appData, imgHeader, imgTx );
         ImGui::TreePop();
     }
 
@@ -1399,7 +1422,7 @@ void renderSegmentationHeader(
 
     if ( ImGui::TreeNode( "Header Information" ) )
     {
-        renderImageHeaderInformation( segHeader, segTx );
+        renderImageHeaderInformation( appData, segHeader, segTx );
 
         ImGui::Separator();
         ImGui::TreePop();
@@ -1679,6 +1702,7 @@ void renderLandmarkGroupHeader(
     };
 
     renderLandmarkChildWindow(
+                appData,
                 image->transformations(),
                 activeLmGroup,
                 appData.state().worldCrosshairs().worldOrigin(),
@@ -1724,6 +1748,8 @@ void renderAnnotationsHeader(
     static const char* sk_saveAnnotButtonText( "Save annotation..." );
     static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
+
+    const char* coordFormat = appData.guiData().m_coordsPrecisionFormat.c_str();
 
     auto setWorldCrosshairsPos = [&appData] ( const glm::vec3& worldCrosshairsPos )
     {
@@ -1900,10 +1926,10 @@ void renderAnnotationsHeader(
     ImGui::Text( "Annotation plane:" );
     glm::vec4 annotPlaneEq = activeAnnot->getSubjectPlaneEquation();
 
-    ImGui::InputFloat3( "Normal vector", glm::value_ptr( annotPlaneEq ), "%0.3f" );
+    ImGui::InputFloat3( "Normal vector", glm::value_ptr( annotPlaneEq ), coordFormat );
     ImGui::SameLine(); helpMarker( "Annotation plane normal vector (x, y, z) in image Subject space" );
 
-    ImGui::InputFloat( "Offset (mm)", &annotPlaneEq[3], 0.0f, 0.0f, "%0.3f" );
+    ImGui::InputFloat( "Offset (mm)", &annotPlaneEq[3], 0.0f, 0.0f, coordFormat );
     ImGui::SameLine(); helpMarker( "Offset distance (mm) of annotation plane from the image Subject space origin" );
     ImGui::Spacing();
 

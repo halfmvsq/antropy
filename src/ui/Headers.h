@@ -21,10 +21,12 @@ class ParcellationLabelTable;
  * @brief Render UI for image header information, including data for pixel and component types
  * and transformations.
  *
+ * @param[in] appData App data
  * @param[in] imgHeader Image header data
  * @param[in] imgTx Image transformation data
  */
 void renderImageHeaderInformation(
+        const AppData& appData,
         const ImageHeader& imgHeader,
         const ImageTransformations& imgTx );
 
