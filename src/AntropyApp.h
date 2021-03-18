@@ -109,6 +109,8 @@ private:
 
 //    void broadcastCrosshairsPosition();
 
+    void setCallbacks();
+
     bool loadSerializedImage( const serialize::Image& );
 
     /// Create a blank segmentation with the same header as the given image

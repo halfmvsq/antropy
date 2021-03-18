@@ -87,14 +87,14 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
 
     if ( io.WantCaptureMouse )
     {
-        // Poll events, so that the UI is responsive
+        // Poll events, so that the UI is responsive:
         app->glfw().setEventProcessingMode( EventProcessingMode::Poll );
         return; // ImGui has captured event
     }
     else if ( ! app->appData().state().animating() )
     {
-        // Mouse is not captured by the UI, and the app is not animating,
-        // so wait for events to save processing
+        // Mouse is not captured by the UI and the app is not animating,
+        // so wait for events to save processing power:
         app->glfw().setEventProcessingMode( EventProcessingMode::Wait );
     }
 

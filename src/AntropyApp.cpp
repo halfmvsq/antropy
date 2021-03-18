@@ -116,156 +116,7 @@ AntropyApp::AntropyApp()
 {   
     spdlog::debug( "Begin constructing application" );
 
-    m_glfw.setCallbacks(
-                [this](){ m_rendering.render(); },
-                [this](){ m_imgui.render(); } );
-
-    m_imgui.setCallbacks(
-            [this] ( const uuids::uuid& viewUid )
-            {
-                m_callbackHandler.recenterView( m_data.state().recenteringMode(), viewUid );
-            },
-
-            [this] ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation )
-            {
-                m_callbackHandler.recenterViews(
-                            m_data.state().recenteringMode(),
-                            recenterCrosshairs,
-                            recenterOnCurrentCrosshairsPosition,
-                            resetObliqueOrientation );
-            },
-
-            [this] () { return m_callbackHandler.showOverlays(); },
-
-            [this] ( bool show ) { m_callbackHandler.setShowOverlays( show ); },
-
-            [this] ( const uuids::uuid& imageUid ) {
-                m_rendering.updateImageUniforms( imageUid );
-            },
-
-            [this] ( const uuids::uuid& imageUid ) {
-                m_rendering.updateImageInterpolation( imageUid );
-            },
-
-            [this] ( size_t labelColorTableIndex )
-            {
-                m_rendering.updateLabelColorTableTexture( labelColorTableIndex );
-            },
-
-            [this] ()
-            {
-                m_rendering.updateMetricUniforms();
-            },
-
-            [this] ()
-            {
-                return m_data.state().worldCrosshairs().worldOrigin();
-            },
-
-            [this] ( size_t imageIndex ) -> std::optional<glm::vec3>
-            {
-                const auto imageUid = m_data.imageUid( imageIndex );
-                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
-                if ( ! image ) return std::nullopt;
-
-                const auto& tx = image->transformations();
-                const glm::vec4 subjectPos = tx.subject_T_worldDef() *
-                        glm::vec4{ m_data.state().worldCrosshairs().worldOrigin(), 1 };
-                return glm::vec3{ subjectPos / subjectPos.w };
-            },
-
-            [this] ( size_t imageIndex )
-            {
-                return data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex );
-            },
-
-            // Set subject position for image:
-            [this] ( size_t imageIndex, const glm::vec3& subjectPos )
-            {
-                const auto imageUid = m_data.imageUid( imageIndex );
-                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
-                if ( ! image ) return;
-
-                const glm::vec4 worldPos = image->transformations().worldDef_T_subject() * glm::vec4{ subjectPos, 1.0f };
-                m_data.state().setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
-            },
-
-            // Set voxel position for image:
-            [this] ( size_t imageIndex, const glm::ivec3& voxelPos )
-            {
-                const auto imageUid = m_data.imageUid( imageIndex );
-                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
-                if ( ! image ) return;
-
-                const glm::vec4 worldPos = image->transformations().worldDef_T_pixel() * glm::vec4{ voxelPos, 1.0f };
-                const glm::vec3 worldPosRounded = data::roundPointToNearestImageVoxelCenter( *image, glm::vec3{ worldPos / worldPos.w } );
-                m_data.state().setWorldCrosshairsPos( worldPosRounded );
-            },
-
-            [this] ( size_t imageIndex ) -> std::optional<double>
-            {
-                const auto imageUid = m_data.imageUid( imageIndex );
-                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
-                if ( ! image ) return std::nullopt;
-
-                if ( const std::optional<glm::ivec3> coords =
-                     data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex ) )
-                {
-                    const uint32_t activeComp = image->settings().activeComponent();
-                    return image->valueAsDouble( activeComp, coords->x, coords->y, coords->z );
-                }
-
-                return std::nullopt;
-            },
-
-            // This gets the active segmentation value:
-            [this] ( size_t imageIndex ) -> std::optional<int64_t>
-            {
-                const auto imageUid = m_data.imageUid( imageIndex );
-                if ( ! imageUid ) return std::nullopt;
-
-                const auto segUid = m_data.imageToActiveSegUid( *imageUid );
-                const Image* seg = segUid ? m_data.seg( *segUid ) : nullptr;
-                if ( ! seg ) return std::nullopt;
-
-                if ( const std::optional<glm::ivec3> coords =
-                     data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex ) )
-                {
-                    const uint32_t activeComp = seg->settings().activeComponent();
-                    return seg->valueAsInt64( activeComp, coords->x, coords->y, coords->z );
-                }
-
-                return std::nullopt;
-            },
-
-            [this] ( const uuids::uuid& matchingImageUid, const std::string& segDisplayName )
-            {
-                return createBlankSegWithColorTable( matchingImageUid, segDisplayName );
-            },
-
-            [this] ( const uuids::uuid& segUid ) -> bool
-            {
-                return m_callbackHandler.clearSegVoxels( segUid );
-            },
-
-            [this] ( const uuids::uuid& segUid ) -> bool
-            {
-                bool success = false;
-                success |= m_data.removeSeg( segUid );
-                success |= m_rendering.removeSegTexture( segUid );
-                return success;
-            },
-
-            [this] ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) -> bool
-            {
-                return m_callbackHandler.executeGridCutSegmentation( imageUid, seedSegUid, resultSegUid );
-            },
-
-            [this] ( const uuids::uuid& imageUid, bool locked ) -> bool
-            {
-                return m_callbackHandler.setLockManualImageTransformation( imageUid, locked );
-            }
-    );
+    setCallbacks();
 
     // Initialize the IPC handler
 //    m_IPCHandler.Attach( IPCHandler::GetUserPreferencesFileName().c_str(),
@@ -314,13 +165,15 @@ void AntropyApp::run()
 
         m_rendering.initTextures();
         m_rendering.updateImageUniforms( m_data.imageUidsOrdered() );
-//        m_rendering.setRenderImages( true );
+
+        spdlog::debug( "Textures and uniforms ready; rendering enabled" );
 
         m_glfw.setEventProcessingMode( EventProcessingMode::Wait ); // Render only on events
         m_glfw.setWindowTitleStatus( m_data.getAllImageDisplayNames() );
 
         m_data.guiData().m_renderUiWindows = true;
         m_data.guiData().m_renderUiOverlays = true;
+
         m_data.state().setAnimating( false );
         m_data.settings().setOverlays( true );
 
@@ -328,8 +181,6 @@ void AntropyApp::run()
         m_data.windowData().addLightboxLayoutForImage( refImg->header().pixelDimensions().z );
 
         m_data.windowData().setDefaultRenderedImagesForAllLayouts( m_data.imageUidsOrdered() );
-
-        m_imgui.render(); // Render one frame of the UI
 
         // Recenter the crosshairs, but don't recenter views on the crosshairs:
         static constexpr bool sk_recenterCrosshairs = true;
@@ -344,7 +195,12 @@ void AntropyApp::run()
 
         m_callbackHandler.setMouseMode( MouseMode::Pointer );
 
-        spdlog::debug( "Textures ready; rendering enabled" );
+        // Trigger two UI renders in order to freshen up its internal state.
+        // Without both render calls, the UI state is not correctly set up.
+        m_imgui.render();
+        m_imgui.render();
+
+        spdlog::debug( "Window state setup" );
     };
 
     m_glfw.renderLoop( m_imagesReady, m_imageLoadFailed, onImagesReady );
@@ -400,13 +256,13 @@ AntropyApp::loadImage( const std::string& fileName, bool ignoreIfAlreadyLoaded )
         // Has this image already been loaded? Search for its file name:
         for ( const auto& imageUid : m_data.imageUidsOrdered() )
         {
-            if ( const Image* image = m_data.image( imageUid ) )
+            const Image* image = m_data.image( imageUid );
+            if ( ! image ) continue;
+
+            if ( image->header().fileName() == fileName )
             {
-                if ( image->header().fileName() == fileName )
-                {
-                    spdlog::info( "Image {} has already been loaded as {}", fileName, imageUid );
-                    return { imageUid, false };
-                }
+                spdlog::info( "Image {} has already been loaded as {}", fileName, imageUid );
+                return { imageUid, false };
             }
         }
     }
@@ -439,14 +295,13 @@ AntropyApp::loadSegmentation(
     // Has this segmentation already been loaded? Search for its file name:
     for ( const auto& segUid : m_data.segUidsOrdered() )
     {
-        if ( const Image* seg = m_data.seg( segUid ) )
+        const Image* seg = m_data.seg( segUid );
+        if ( ! seg ) continue;
+
+        if ( seg->header().fileName() == fileName )
         {
-            if ( seg->header().fileName() == fileName )
-            {
-                spdlog::info( "Segmentation from file {} has already been loaded as {}",
-                              fileName, segUid );
-                return { segUid, false };
-            }
+            spdlog::info( "Segmentation from file {} has already been loaded as {}", fileName, segUid );
+            return { segUid, false };
         }
     }
 
@@ -548,8 +403,8 @@ AntropyApp::loadSegmentation(
 
     if ( ! isComponentUnsignedInt( seg.header().memoryComponentType() ) )
     {
-        spdlog::error( "The segmentation from {} does not have unsigned integer pixel component type "
-                       "and so will not be loaded.", fileName );
+        spdlog::error( "The segmentation from {} does not have unsigned integer pixel "
+                       "component type and so will not be loaded.", fileName );
         return sk_noSegLoaded;
     }
 
@@ -1265,6 +1120,132 @@ void AntropyApp::loadImagesFromParams( const InputParams& params )
                 m_data.project(), onProjectLoadingDone );
 
     spdlog::debug( "Done loading images from parameters" );
+}
+
+
+void AntropyApp::setCallbacks()
+{
+    m_glfw.setCallbacks(
+                [this](){ m_rendering.render(); },
+                [this](){ m_imgui.render(); } );
+
+    m_imgui.setCallbacks(
+            [this] ( const uuids::uuid& viewUid ) {
+                m_callbackHandler.recenterView( m_data.state().recenteringMode(), viewUid );
+            },
+
+            [this] ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation )
+            {
+                m_callbackHandler.recenterViews(
+                            m_data.state().recenteringMode(),
+                            recenterCrosshairs, recenterOnCurrentCrosshairsPosition, resetObliqueOrientation );
+            },
+
+            [this] () { return m_callbackHandler.showOverlays(); },
+            [this] ( bool show ) { m_callbackHandler.setShowOverlays( show ); },
+            [this] ( const uuids::uuid& imageUid ) { m_rendering.updateImageUniforms( imageUid ); },
+            [this] ( const uuids::uuid& imageUid ) { m_rendering.updateImageInterpolation( imageUid ); },
+            [this] ( size_t labelColorTableIndex ) { m_rendering.updateLabelColorTableTexture( labelColorTableIndex ); },
+            [this] () { m_rendering.updateMetricUniforms(); },
+            [this] () { return m_data.state().worldCrosshairs().worldOrigin(); },
+
+            [this] ( size_t imageIndex ) -> std::optional<glm::vec3>
+            {
+                const auto imageUid = m_data.imageUid( imageIndex );
+                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
+                if ( ! image ) return std::nullopt;
+
+                const glm::vec4 subjectPos = image->transformations().subject_T_worldDef() *
+                        glm::vec4{ m_data.state().worldCrosshairs().worldOrigin(), 1.0f };
+                return glm::vec3{ subjectPos / subjectPos.w };
+            },
+
+            [this] ( size_t imageIndex ) { return data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex ); },
+
+            // Set subject position for image:
+            [this] ( size_t imageIndex, const glm::vec3& subjectPos )
+            {
+                const auto imageUid = m_data.imageUid( imageIndex );
+                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
+                if ( ! image ) return;
+
+                const glm::vec4 worldPos = image->transformations().worldDef_T_subject() * glm::vec4{ subjectPos, 1.0f };
+                m_data.state().setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
+            },
+
+            // Set voxel position for image:
+            [this] ( size_t imageIndex, const glm::ivec3& voxelPos )
+            {
+                const auto imageUid = m_data.imageUid( imageIndex );
+                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
+                if ( ! image ) return;
+
+                const glm::vec4 worldPos = image->transformations().worldDef_T_pixel() * glm::vec4{ voxelPos, 1.0f };
+                const glm::vec3 worldPosRounded = data::roundPointToNearestImageVoxelCenter(
+                            *image, glm::vec3{ worldPos / worldPos.w } );
+                m_data.state().setWorldCrosshairsPos( worldPosRounded );
+            },
+
+            [this] ( size_t imageIndex ) -> std::optional<double>
+            {
+                const auto imageUid = m_data.imageUid( imageIndex );
+                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
+                if ( ! image ) return std::nullopt;
+
+                if ( const std::optional<glm::ivec3> coords =
+                     data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex ) )
+                {
+                    const uint32_t activeComp = image->settings().activeComponent();
+                    return image->valueAsDouble( activeComp, coords->x, coords->y, coords->z );
+                }
+
+                return std::nullopt;
+            },
+
+            // This gets the active segmentation value:
+            [this] ( size_t imageIndex ) -> std::optional<int64_t>
+            {
+                const auto imageUid = m_data.imageUid( imageIndex );
+                if ( ! imageUid ) return std::nullopt;
+
+                const auto segUid = m_data.imageToActiveSegUid( *imageUid );
+                const Image* seg = segUid ? m_data.seg( *segUid ) : nullptr;
+                if ( ! seg ) return std::nullopt;
+
+                if ( const std::optional<glm::ivec3> coords =
+                     data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex ) )
+                {
+                    const uint32_t activeComp = seg->settings().activeComponent();
+                    return seg->valueAsInt64( activeComp, coords->x, coords->y, coords->z );
+                }
+
+                return std::nullopt;
+            },
+
+            [this] ( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) {
+                return createBlankSegWithColorTable( matchingImageUid, segDisplayName );
+            },
+
+            [this] ( const uuids::uuid& segUid ) -> bool {
+                return m_callbackHandler.clearSegVoxels( segUid );
+            },
+
+            [this] ( const uuids::uuid& segUid ) -> bool
+            {
+                bool success = false;
+                success |= m_data.removeSeg( segUid );
+                success |= m_rendering.removeSegTexture( segUid );
+                return success;
+            },
+
+            [this] ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) -> bool {
+                return m_callbackHandler.executeGridCutSegmentation( imageUid, seedSegUid, resultSegUid );
+            },
+
+            [this] ( const uuids::uuid& imageUid, bool locked ) -> bool {
+                return m_callbackHandler.setLockManualImageTransformation( imageUid, locked );
+            }
+    );
 }
 
 
