@@ -126,12 +126,13 @@ AntropyApp::AntropyApp()
                 m_callbackHandler.recenterView( m_data.state().recenteringMode(), viewUid );
             },
 
-            [this] ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition )
+            [this] ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation )
             {
                 m_callbackHandler.recenterViews(
                             m_data.state().recenteringMode(),
                             recenterCrosshairs,
-                            recenterOnCurrentCrosshairsPosition );
+                            recenterOnCurrentCrosshairsPosition,
+                            resetObliqueOrientation );
             },
 
             [this] () { return m_callbackHandler.showOverlays(); },
@@ -176,6 +177,29 @@ AntropyApp::AntropyApp()
             [this] ( size_t imageIndex )
             {
                 return data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex );
+            },
+
+            // Set subject position for image:
+            [this] ( size_t imageIndex, const glm::vec3& subjectPos )
+            {
+                const auto imageUid = m_data.imageUid( imageIndex );
+                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
+                if ( ! image ) return;
+
+                const glm::vec4 worldPos = image->transformations().worldDef_T_subject() * glm::vec4{ subjectPos, 1.0f };
+                m_data.state().setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
+            },
+
+            // Set voxel position for image:
+            [this] ( size_t imageIndex, const glm::ivec3& voxelPos )
+            {
+                const auto imageUid = m_data.imageUid( imageIndex );
+                const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
+                if ( ! image ) return;
+
+                const glm::vec4 worldPos = image->transformations().worldDef_T_pixel() * glm::vec4{ voxelPos, 1.0f };
+                const glm::vec3 worldPosRounded = data::roundPointToNearestImageVoxelCenter( *image, glm::vec3{ worldPos / worldPos.w } );
+                m_data.state().setWorldCrosshairsPos( worldPosRounded );
             },
 
             [this] ( size_t imageIndex ) -> std::optional<double>
@@ -308,12 +332,15 @@ void AntropyApp::run()
         m_imgui.render(); // Render one frame of the UI
 
         // Recenter the crosshairs, but don't recenter views on the crosshairs:
-        static constexpr bool k_recenterCrosshairs = true;
-        static constexpr bool k_recenterOnCurrentCrosshairsPos = false;
+        static constexpr bool sk_recenterCrosshairs = true;
+        static constexpr bool sk_recenterOnCurrentCrosshairsPos = false;
+        static constexpr bool sk_resetObliqueOrientation = true;
 
-        m_callbackHandler.recenterViews( m_data.state().recenteringMode(),
-                                         k_recenterCrosshairs,
-                                         k_recenterOnCurrentCrosshairsPos );
+        m_callbackHandler.recenterViews(
+                    m_data.state().recenteringMode(),
+                    sk_recenterCrosshairs,
+                    sk_recenterOnCurrentCrosshairsPos,
+                    sk_resetObliqueOrientation );
 
         m_callbackHandler.setMouseMode( MouseMode::Pointer );
 

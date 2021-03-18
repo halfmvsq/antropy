@@ -58,7 +58,7 @@ void renderToolbar(
         AppData& appData,
         const std::function< MouseMode (void) >& getMouseMode,
         const std::function< void (MouseMode) >& setMouseMode,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews,
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews,
         const std::function< bool (void) >& getOverlayVisibility,
         const std::function< void (bool) >& setOverlayVisibility,
         const std::function< void (int step) >& cycleViews,
@@ -70,6 +70,7 @@ void renderToolbar(
 {
     static constexpr bool sk_recenterCrosshairs = true;
     static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;
+    static constexpr bool sk_doNotResetObliqueViews = false;
 
     // Always keep the toolbar open by setting this to null
     static bool* toolbarWindowOpen = nullptr;
@@ -363,7 +364,9 @@ void renderToolbar(
             {
                 if ( ImGui::Button( ICON_FK_CROSSHAIRS, sk_toolbarButtonSize) )
                 {
-                    recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
+                    recenterAllViews( sk_recenterCrosshairs,
+                                      sk_doNotRecenterOnCurrentCrosshairsPosition,
+                                      sk_doNotResetObliqueViews );
                 }
                 if ( ImGui::IsItemHovered() ) {
                     ImGui::SetTooltip( "%s", "Recenter views (C)" );
@@ -518,7 +521,9 @@ void renderToolbar(
                 openAddLayoutPopup,
                 [&recenterAllViews] ()
                 {
-                    recenterAllViews( true, sk_doNotRecenterOnCurrentCrosshairsPosition );
+                    recenterAllViews( true,
+                                      sk_doNotRecenterOnCurrentCrosshairsPosition,
+                                      sk_doNotResetObliqueViews );
                 } );
 }
 

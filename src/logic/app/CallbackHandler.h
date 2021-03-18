@@ -144,7 +144,8 @@ public:
     void recenterViews(
             const ImageSelection&,
             bool recenterCrosshairs,
-            bool recenterOnCurrentCrosshairsPos );
+            bool recenterOnCurrentCrosshairsPos,
+            bool resetObliqueOrientation );
 
     /// Recenter one view
     void recenterView(

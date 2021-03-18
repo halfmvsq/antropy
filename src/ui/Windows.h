@@ -129,7 +129,7 @@ void renderSegmentationPropertiesWindow(
  */
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews );
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
 
 
 /**
@@ -139,7 +139,7 @@ void renderLandmarkPropertiesWindow(
  */
 void renderAnnotationWindow(
         AppData& appData,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews );
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
 
 
 /**
@@ -155,7 +155,7 @@ void renderSettingsWindow(
         const std::function< size_t (void) >& getNumImageColorMaps,
         const std::function< const ImageColorMap* ( size_t cmapIndex ) >& getImageColorMap,
         const std::function< void(void) >& updateMetricUniforms,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews );
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
 
 
 /**
@@ -197,6 +197,8 @@ void renderInspectionWindowWithTable(
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< std::optional<glm::vec3> ( size_t imageIndex ) >& getSubjectPos,
         const std::function< std::optional<glm::ivec3> ( size_t imageIndex ) >& getVoxelPos,
+        const std::function< void ( size_t imageIndex, const glm::vec3& subjectPos ) > setSubjectPos,
+        const std::function< void ( size_t imageIndex, const glm::ivec3& voxelPos ) > setVoxelPos,
         const std::function< std::optional<double> ( size_t imageIndex ) >& getImageValue,
         const std::function< std::optional<int64_t> ( size_t imageIndex ) >& getSegLabel,
         const std::function< ParcellationLabelTable* ( size_t tableIndex ) >& getLabelTable );

@@ -19,6 +19,7 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/color_space.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
@@ -540,7 +541,7 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViewsOnCurrentCrosshairsPosition )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViewsOnCurrentCrosshairsPosition )
 {
     if ( ImGui::Begin( "Landmarks",
                        &( appData.guiData().m_showLandmarksWindow ),
@@ -568,7 +569,7 @@ void renderLandmarkPropertiesWindow(
 
 void renderAnnotationWindow(
         AppData& appData,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
 {
     if ( ImGui::Begin( "Annotations",
                        &( appData.guiData().m_showAnnotationsWindow ),
@@ -599,10 +600,11 @@ void renderSettingsWindow(
         const std::function< size_t (void) >& getNumImageColorMaps,
         const std::function< const ImageColorMap* ( size_t cmapIndex ) >& getImageColorMap,
         const std::function< void(void) >& updateMetricUniforms,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
 {
     static constexpr bool sk_recenterCrosshairs = true;
     static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;
+    static constexpr bool sk_doNotResetObliqueOrientation = false;
 
     static const float sk_windowMin = 0.0f;
     static const float sk_windowMax = 1.0f;
@@ -805,7 +807,10 @@ void renderSettingsWindow(
                              ImageSelection::ReferenceImage == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::ReferenceImage );
-                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
+
+                        recenterAllViews( sk_recenterCrosshairs,
+                                          sk_doNotRecenterOnCurrentCrosshairsPosition,
+                                          sk_doNotResetObliqueOrientation );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference image" );
 
@@ -814,7 +819,10 @@ void renderSettingsWindow(
                              ImageSelection::ActiveImage == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::ActiveImage );
-                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
+
+                        recenterAllViews( sk_recenterCrosshairs,
+                                          sk_doNotRecenterOnCurrentCrosshairsPosition,
+                                          sk_doNotResetObliqueOrientation );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the active image" );
 
@@ -823,7 +831,10 @@ void renderSettingsWindow(
                              ImageSelection::ReferenceAndActiveImages == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::ReferenceAndActiveImages );
-                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
+
+                        recenterAllViews( sk_recenterCrosshairs,
+                                          sk_doNotRecenterOnCurrentCrosshairsPosition,
+                                          sk_doNotResetObliqueOrientation );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference and active images" );
 
@@ -863,7 +874,10 @@ void renderSettingsWindow(
                              ImageSelection::AllLoadedImages == appData.state().recenteringMode() ) )
                     {
                         appData.state().setRecenteringMode( ImageSelection::AllLoadedImages );
-                        recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition );
+
+                        recenterAllViews( sk_recenterCrosshairs,
+                                          sk_doNotRecenterOnCurrentCrosshairsPosition,
+                                          sk_doNotResetObliqueOrientation);
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on all loaded images" );
 
@@ -1403,6 +1417,8 @@ void renderInspectionWindowWithTable(
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< std::optional<glm::vec3> ( size_t imageIndex ) >& getSubjectPos,
         const std::function< std::optional<glm::ivec3> ( size_t imageIndex ) >& getVoxelPos,
+        const std::function< void ( size_t imageIndex, const glm::vec3& subjectPos ) > setSubjectPos,
+        const std::function< void ( size_t imageIndex, const glm::ivec3& voxelPos ) > setVoxelPos,
         const std::function< std::optional<double> ( size_t imageIndex ) >& getImageValue,
         const std::function< std::optional<int64_t> ( size_t imageIndex ) >& getSegLabel,
         const std::function< ParcellationLabelTable* ( size_t tableIndex ) >& getLabelTable )
@@ -1565,7 +1581,7 @@ void renderInspectionWindowWithTable(
 
                 if ( ! s_showSubject[*imageUid] ) continue;
 
-                ImGui::PushID( imageIndex ); /** PushID: imageIndex **/
+                ImGui::PushID( static_cast<int>( imageIndex ) ); /** PushID: imageIndex **/
 
                 const auto segUid = appData.imageToActiveSegUid( *imageUid );
                 const Image* seg = ( segUid ? appData.seg( *segUid ) : nullptr );
@@ -1694,11 +1710,24 @@ void renderInspectionWindowWithTable(
                 {
                     ImGui::TableNextColumn(); // "Voxel"
 
-                    glm::ivec3 a = *voxelPos;
                     ImGui::PushItemWidth( -1 );
+
+                    static const glm::ivec3 sk_minDim{ 0 };
+                    const glm::ivec3 sk_maxDim = static_cast<glm::ivec3>( image->header().pixelDimensions() ) - glm::ivec3{ 1, 1, 1 };
+
+                    glm::ivec3 a = *voxelPos;
+                    if ( ImGui::DragScalarN( "##voxel", ImGuiDataType_S32, glm::value_ptr( a ), 3, 1.0f,
+                                             glm::value_ptr( sk_minDim ), glm::value_ptr( sk_maxDim ), "%d" ) )
                     {
-                        ImGui::InputInt3( "##voxel", glm::value_ptr( a ), ImGuiInputTextFlags_AllowTabInput );
+                        static const glm::ivec3 sk_zero{ 0 };
+
+                        if ( glm::all( glm::greaterThanEqual( a, sk_zero ) ) &&
+                             glm::all( glm::lessThan( a, glm::ivec3{ image->header().pixelDimensions() } ) ) )
+                        {
+                            setVoxelPos( imageIndex, a );
+                        }
                     }
+
                     ImGui::PopItemWidth();
 
                     if ( ImGui::IsItemHovered() )
@@ -1716,13 +1745,26 @@ void renderInspectionWindowWithTable(
                 {
                     ImGui::TableNextColumn(); // "Physical"
 
-                    glm::vec3 a = *subjectPos;
+                    // Step size is the  minimum voxel spacing
+                    const float stepSize = glm::compMin( image->header().spacing() );
+
                     ImGui::PushItemWidth( -1 );
+
+                    glm::vec3 a = *subjectPos;
+                    if ( ImGui::DragScalarN( "##physical", ImGuiDataType_Float, glm::value_ptr( a ), 3, stepSize,
+                                             nullptr, nullptr, appData.guiData().m_coordsPrecisionFormat.c_str() ) )
                     {
-                        ImGui::InputFloat3( "##physical", glm::value_ptr( a ),
-                                            appData.guiData().m_coordsPrecisionFormat.c_str(),
-                                            ImGuiInputTextFlags_AllowTabInput );
+                        setSubjectPos( imageIndex, a );
                     }
+
+//                    if ( ImGui::InputFloat3(
+//                             "##physical", glm::value_ptr( a ),
+//                             appData.guiData().m_coordsPrecisionFormat.c_str(),
+//                             ImGuiInputTextFlags_AllowTabInput ) )
+//                    {
+//                        setSubjectPos( imageIndex, a );
+//                    }
+
                     ImGui::PopItemWidth();
 
                     if ( ImGui::IsItemHovered() )

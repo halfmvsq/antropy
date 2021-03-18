@@ -48,7 +48,7 @@ void renderLandmarkChildWindow(
         LandmarkGroup* activeLmGroup,
         const glm::vec3& worldCrosshairsPos,
         const std::function< void ( const glm::vec3& worldCrosshairsPos ) >& setWorldCrosshairsPos,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews );
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
 
 
 /**

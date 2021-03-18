@@ -23,7 +23,7 @@ public:
 
     void setCallbacks(
             std::function< void ( const uuids::uuid& viewUid ) > recenterView,
-            std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) > recenterCurrentViews,
+            std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) > recenterCurrentViews,
             std::function< bool ( void ) > getOverlayVisibility,
             std::function< void ( bool ) > setOverlayVisibility,
             std::function< void ( const uuids::uuid& viewUid ) > updateImageUniforms,
@@ -33,6 +33,8 @@ public:
             std::function< glm::vec3 () > getWorldDeformedPos,
             std::function< std::optional<glm::vec3> ( size_t imageIndex ) > getSubjectPos,
             std::function< std::optional<glm::ivec3> ( size_t imageIndex ) > getVoxelPos,
+            std::function< void ( size_t imageIndex, const glm::vec3& subjectPos ) > setSubjectPos,
+            std::function< void ( size_t imageIndex, const glm::ivec3& voxelPos ) > setVoxelPos,
             std::function< std::optional<double> ( size_t imageIndex ) > getImageValue,
             std::function< std::optional<int64_t> ( size_t imageIndex ) > getSegLabel,
             std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) > createBlankSeg,
@@ -52,7 +54,7 @@ private:
 
     // Callbacks:
     std::function< void ( const uuids::uuid& viewUid ) > m_recenterView;
-    std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) > m_recenterAllViews;
+    std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) > m_recenterAllViews;
     std::function< bool ( void ) > m_getOverlayVisibility;
     std::function< void ( bool ) > m_setOverlayVisibility;
     std::function< void ( const uuids::uuid& viewUid ) > m_updateImageUniforms;
@@ -62,6 +64,8 @@ private:
     std::function< glm::vec3 () > m_getWorldDeformedPos;
     std::function< std::optional<glm::vec3> ( size_t imageIndex ) > m_getSubjectPos;
     std::function< std::optional<glm::ivec3> ( size_t imageIndex ) > m_getVoxelPos;
+    std::function< void ( size_t imageIndex, const glm::vec3& subjectPos ) > m_setSubjectPos;
+    std::function< void ( size_t imageIndex, const glm::ivec3& voxelPos ) > m_setVoxelPos;
     std::function< std::optional<double> ( size_t imageIndex ) > m_getImageValue;
     std::function< std::optional<int64_t> ( size_t imageIndex ) > m_getSegLabel;
     std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) > m_createBlankSeg;

@@ -51,8 +51,12 @@ struct GuiData
     uint32_t m_imageValuePrecision = 3;
 
     // Pointers to fonts allocated by ImGui
-    ImFont* m_cousineFont; //!< Main ImGui font
-    ImFont* m_forkAwesomeFont; //!< Icons font
+    ImFont* m_cousineFont = nullptr; //!< Main ImGui font
+    ImFont* m_forkAwesomeFont = nullptr; //!< Icons font
+
+    // Font data. Raw pointers used because ImGui takes ownership and deletes them.
+    char* m_cousineFontData = nullptr;
+    char* m_forkAwesomeFontData = nullptr;
 };
 
 #endif // GUI_DATA_H

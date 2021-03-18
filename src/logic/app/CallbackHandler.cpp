@@ -240,7 +240,8 @@ bool CallbackHandler::executeGridCutSegmentation(
 void CallbackHandler::recenterViews(
         const ImageSelection& imageSelection,
         bool recenterCrosshairs,
-        bool recenterOnCurrentCrosshairsPos )
+        bool recenterOnCurrentCrosshairsPos,
+        bool resetObliqueOrientation )
 {
     if ( 0 == m_appData.numImages() )
     {
@@ -267,26 +268,26 @@ void CallbackHandler::recenterViews(
     static constexpr bool k_doNotResetZoom = false;
     static constexpr bool k_resetZoom = true;
 
-    static constexpr bool k_resetObliqueOrientation = true;
-
     if ( recenterOnCurrentCrosshairsPos )
     {
         // Size the views based on the enclosing AABB;
-        // Position the views based on the curent crosshairs:
+        // Position the views based on the curent crosshairs.
+        // This is a "soft reset".
         m_appData.windowData().recenterAllViews(
                     m_appData.state().worldCrosshairs().worldOrigin(),
                     k_viewAABBoxScaleFactor * math::computeAABBoxSize( worldBox ),
                     k_doNotResetZoom,
-                    k_resetObliqueOrientation );
+                    resetObliqueOrientation );
     }
     else
     {
-        // Size and position the views based on the enclosing AABB:
+        // Size and position the views based on the enclosing AABB.
+        // This is a "hard reset".
         m_appData.windowData().recenterAllViews(
                     math::computeAABBoxCenter( worldBox ),
                     k_viewAABBoxScaleFactor * math::computeAABBoxSize( worldBox ),
                     k_resetZoom,
-                    k_resetObliqueOrientation );
+                    resetObliqueOrientation );
     }
 }
 

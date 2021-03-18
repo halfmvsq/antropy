@@ -1439,7 +1439,7 @@ void renderLandmarkGroupHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& recenterAllViews )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
 {
     static const char* sk_saveLmsButtonText( "Save landmarks..." );
     static const char* sk_saveLmsDialogTitle( "Save Landmark Group" );
@@ -1743,7 +1743,7 @@ void renderAnnotationsHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition ) >& /*recenterAllViews*/ )
+        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
 {
     static const char* sk_saveAnnotButtonText( "Save annotation..." );
     static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
@@ -1963,6 +1963,9 @@ void renderAnnotationsHeader(
                 /// @todo Does not work properly yet
                 camera::orientCameraToWorldTargetNormalDirection( view->camera(), worldNormal );
 
+                /// @todo Determine which view type is closet. (ASC): then...
+                /// @todo Also orient such that S is most superior (for coronal/sagittal-like views),
+                /// A is most suprior (for axial-like views).
                 spdlog::trace( "changed view {} normal to {}", currentViewUid,
                                glm::to_string( camera::worldDirection( view->camera(), Directions::View::Back ) ) );
             }
@@ -1970,10 +1973,10 @@ void renderAnnotationsHeader(
         else
         {
             spdlog::trace( "found view {} with normal {}", viewsWithNormal[0], glm::to_string(worldNormal) );
-
-            /// @todo Need a version of this that does not re-orient views!!!!
-//            recenterAllViews( false, true );
         }
+
+        /// @todo Need a version of this that does not re-orient views!!!!
+        recenterAllViews( false, true, false );
     }
     ImGui::Separator();
 

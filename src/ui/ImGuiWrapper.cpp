@@ -43,6 +43,8 @@ ImGuiWrapper::ImGuiWrapper( GLFWwindow* window, AppData& appData )
       m_getWorldDeformedPos( nullptr ),
       m_getSubjectPos( nullptr ),
       m_getVoxelPos( nullptr ),
+      m_setSubjectPos( nullptr ),
+      m_setVoxelPos( nullptr ),
       m_getImageValue( nullptr ),
       m_getSegLabel( nullptr ),
 
@@ -60,9 +62,6 @@ ImGuiWrapper::ImGuiWrapper( GLFWwindow* window, AppData& appData )
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = "antropy_ui.ini";
     io.LogFilename = "logs/antropy_ui.log";
-
-    // This is the standard ImGui dark style:
-//    ImGui::StyleColorsDark();
 
     // Apply a custom dark style:
     applyCustomDarkStyle();
@@ -90,7 +89,7 @@ ImGuiWrapper::~ImGuiWrapper()
 
 void ImGuiWrapper::setCallbacks(
         std::function< void ( const uuids::uuid& viewUid )> recenterView,
-        std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition )> recenterCurrentViews,
+        std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation )> recenterCurrentViews,
         std::function< bool ( void ) > getOverlayVisibility,
         std::function< void ( bool ) > setOverlayVisibility,
         std::function< void ( const uuids::uuid& viewUid )> updateImageUniforms,
@@ -100,6 +99,8 @@ void ImGuiWrapper::setCallbacks(
         std::function< glm::vec3 () > getWorldDeformedPos,
         std::function< std::optional<glm::vec3> ( size_t imageIndex ) > getSubjectPos,
         std::function< std::optional<glm::ivec3> ( size_t imageIndex ) > getVoxelPos,
+        std::function< void ( size_t imageIndex, const glm::vec3& subjectPos ) > setSubjectPos,
+        std::function< void ( size_t imageIndex, const glm::ivec3& voxelPos ) > setVoxelPos,
         std::function< std::optional<double> ( size_t imageIndex ) > getImageValue,
         std::function< std::optional<int64_t> ( size_t imageIndex ) > getSegLabel,
         std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) > createBlankSeg,
@@ -119,6 +120,8 @@ void ImGuiWrapper::setCallbacks(
     m_getWorldDeformedPos = getWorldDeformedPos;
     m_getSubjectPos = getSubjectPos;
     m_getVoxelPos = getVoxelPos;
+    m_setSubjectPos = setSubjectPos;
+    m_setVoxelPos = setVoxelPos;
     m_getImageValue = getImageValue;
     m_getSegLabel = getSegLabel;
     m_createBlankSeg = createBlankSeg;
@@ -130,127 +133,87 @@ void ImGuiWrapper::setCallbacks(
 
 
 void ImGuiWrapper::initializeData()
-{
+{   
+    static const std::string cousineFontPath( "resources/fonts/Cousine/Cousine-Regular.ttf" );
+    static const std::string forkAwesomeFontPath = std::string( "resources/fonts/ForkAwesome/" ) + FONT_ICON_FILE_NAME_FK;
+
+    static constexpr double sk_fontSize = 15.0;
+    static const ImWchar forkAwesomeIconGlyphRange[] = { ICON_MIN_FK, ICON_MAX_FK, 0 };
+
     ImGuiIO& io = ImGui::GetIO();
-    //    io.WantCaptureMouse = false;
-    //    io.WantCaptureKeyboard = true;
-    //    io.WantTextInput = true;
 
-    //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-//    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
-//    io.ConfigFlags |= ImGuiConfigFlags_NoMouse;
-
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return NULL. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Read 'docs/FONTS.md' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-//    io.Fonts->AddFontDefault();
+    // Load fonts: If no fonts are loaded, dear imgui will use the default font.
+    // You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
+    // AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the
+    // font among multiple. If the file cannot be loaded, the function will return NULL.
+    // Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
+    // The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when
+    // calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
 
 //    auto font_default = io.Fonts->AddFontDefault();
 
-//    m_guiData.font_cousine = io.Fonts->AddFontFromFileTTF( "../externals/imgui/misc/fonts/Cousine-Regular.ttf", 15.0f);
-//    m_guiData.font_karla   = io.Fonts->AddFontFromFileTTF( "../externals/imgui/misc/fonts/Karla-Regular.ttf", 18.0f);
+    auto filesystem = cmrc::fonts::get_filesystem();
 
+    /// @see For details about Fork Awesome fonts: https://forkaweso.me/Fork-Awesome/icons/
+
+    cmrc::file cousineFontFile = filesystem.open( cousineFontPath );
+    cmrc::file forkAwesomeWebFontFile = filesystem.open( forkAwesomeFontPath );
+
+    // ImGui will take ownership of the font, so make a copy:
+    m_appData.guiData().m_cousineFontData = new char[cousineFontFile.size()];
+    m_appData.guiData().m_forkAwesomeFontData = new char[forkAwesomeWebFontFile.size()];
+
+    for ( size_t i = 0; i < cousineFontFile.size(); ++i )
     {
-        auto filesystem = cmrc::fonts::get_filesystem();
-
-        cmrc::file cousineFont = filesystem.open( "resources/fonts/Cousine/Cousine-Regular.ttf" );
-
-        // ImGui will take ownership of the font, so make a copy.
-        char* fontCousineCopy = new char[cousineFont.size()];
-        for ( size_t i = 0; i < cousineFont.size(); ++i )
-        {
-            fontCousineCopy[i] = cousineFont.begin()[i];
-        }
-
-        /// @see For details about Fork Awesome fonts:
-        /// https://forkaweso.me/Fork-Awesome/icons/
-#if 0
-        std::ostringstream ssFontsAwesomePath;
-        ssFontsAwesomePath << "resources/fonts/FontAwesome/" << FONT_ICON_FILE_NAME_FAS; // FAR
-        cmrc::file fontAwesomeSolid = filesystem.open( ssFontsAwesomePath.str() );
-
-        char* fontAwesomeCopy = new char[fontAwesomeSolid.size()];
-        for ( size_t i = 0; i < fontAwesomeSolid.size(); ++i )
-        {
-            fontAwesomeCopy[i] = fontAwesomeSolid.begin()[i];
-        }
-#endif
-
-        std::ostringstream ssForkAwesomePath;
-        ssForkAwesomePath << "resources/fonts/ForkAwesome/" << FONT_ICON_FILE_NAME_FK;
-        cmrc::file forkAwesomeWeb = filesystem.open( ssForkAwesomePath.str() );
-
-        char* forkAwesomeCopy = new char[forkAwesomeWeb.size()];
-        for ( size_t i = 0; i < forkAwesomeWeb.size(); ++i )
-        {
-            forkAwesomeCopy[i] = forkAwesomeWeb.begin()[i];
-        }
-
-        static ImFontConfig cousineFontConfig;
-        myImFormatString( cousineFontConfig.Name, IM_ARRAYSIZE(cousineFontConfig.Name), "%s, %.0fpx", "Cousine", 15.0 );
-
-//         NB: Transfer ownership of 'ttf_data' to ImFontAtlas, unless font_cfg_template->FontDataOwnedByAtlas == false.
-//         Owned TTF buffer will be deleted after Build().
-
-//        spdlog::critical( "name = {}", cousineFontConfig.Name );
-
-        m_appData.guiData().m_cousineFont = io.Fonts->AddFontFromMemoryTTF(
-                    static_cast<void*>( fontCousineCopy ),
-                    static_cast<int32_t>( cousineFont.size() ),
-                    15.0f, &cousineFontConfig );
-
-//        if ( m_appData.guiData().cousineFont )
-//        {
-//            spdlog::info( "Loaded cousineFont: {}", m_appData.guiData().cousineFont->IsLoaded() );
-//        }
-//        else
-//        {
-//            spdlog::warn( "Did not load cousineFont" );
-//        }
-
-#if 0
-        // merge in icons from Font Awesome
-        static const ImWchar fontsAwesomeIconRange[] = { ICON_MIN_FA, ICON_MAX_FA, 0 };
-        ImFontConfig fontsAwesomeConfig;
-        fontsAwesomeConfig.MergeMode = true;
-        fontsAwesomeConfig.PixelSnapH = true;
-        MyImFormatString( fontsAwesomeConfig.Name, IM_ARRAYSIZE(fontsAwesomeConfig.Name), "%s, %.0fpx", "Font Awesome 5 Solid", 15.0 );
-
-        io.Fonts->AddFontFromMemoryTTF(
-                    static_cast<void*>( fontAwesomeCopy ),
-                    static_cast<int32_t>( fontAwesomeSolid.size() ),
-                    15.0f, &fontsAwesomeConfig, fontsAwesomeIconRange );
-#endif
-
-        // merge in icons from Fork Awesome
-        static const ImWchar forkAwesomeIconRange[] = { ICON_MIN_FK, ICON_MAX_FK, 0 };
-        ImFontConfig forkAwesomeConfig;
-        forkAwesomeConfig.MergeMode = true;
-        forkAwesomeConfig.PixelSnapH = true;
-        myImFormatString( forkAwesomeConfig.Name, IM_ARRAYSIZE(forkAwesomeConfig.Name), "%s, %.0fpx", "Fork Awesome", 15.0 );
-
-        m_appData.guiData().m_forkAwesomeFont =
-                io.Fonts->AddFontFromMemoryTTF(
-                    static_cast<void*>( forkAwesomeCopy ),
-                    static_cast<int32_t>( forkAwesomeWeb.size() ),
-                    15.0f, &forkAwesomeConfig, forkAwesomeIconRange );
+        m_appData.guiData().m_cousineFontData[i] = cousineFontFile.cbegin()[i];
     }
 
-//    if ( m_appData.guiData().forkAwesomeFont )
-//    {
-//        spdlog::info( "Loaded forkAwesomeFont: {}", m_appData.guiData().forkAwesomeFont->IsLoaded() );
-//    }
-//    else
-//    {
-//        spdlog::warn( "Did not load forkAwesomeFont" );
-//    }
+    for ( size_t i = 0; i < forkAwesomeWebFontFile.size(); ++i )
+    {
+        m_appData.guiData().m_forkAwesomeFontData[i] = forkAwesomeWebFontFile.cbegin()[i];
+    }
 
-    //    std::cout << font_cousine->IsLoaded() << std::endl;
-    //    std::cout << font_karla->IsLoaded() << std::endl;
+    ImFontConfig cousineFontConfig;
+
+    ImFontConfig forkAwesomeConfig;
+    forkAwesomeConfig.MergeMode = true;
+    forkAwesomeConfig.PixelSnapH = true;
+
+    myImFormatString( cousineFontConfig.Name, IM_ARRAYSIZE(cousineFontConfig.Name),
+                      "%s, %.0fpx", "Cousine", sk_fontSize );
+
+    myImFormatString( forkAwesomeConfig.Name, IM_ARRAYSIZE(forkAwesomeConfig.Name),
+                      "%s, %.0fpx", "Fork Awesome", sk_fontSize );
+
+    m_appData.guiData().m_cousineFont = io.Fonts->AddFontFromMemoryTTF(
+                static_cast<void*>( m_appData.guiData().m_cousineFontData ),
+                static_cast<int32_t>( cousineFontFile.size() ),
+                static_cast<float>( sk_fontSize ), &cousineFontConfig );
+
+    // Merge in icons from Fork Awesome:
+    m_appData.guiData().m_forkAwesomeFont = io.Fonts->AddFontFromMemoryTTF(
+                static_cast<void*>( m_appData.guiData().m_forkAwesomeFontData ),
+                static_cast<int32_t>( forkAwesomeWebFontFile.size() ),
+                static_cast<float>( sk_fontSize ), &forkAwesomeConfig,
+                forkAwesomeIconGlyphRange );
+
+    if ( m_appData.guiData().m_cousineFont )
+    {
+        spdlog::debug( "Loaded font {}", cousineFontPath );
+    }
+    else
+    {
+        spdlog::error( "Could not load font {}", cousineFontPath );
+    }
+
+    if ( m_appData.guiData().m_forkAwesomeFont )
+    {
+        spdlog::debug( "Loaded font {}", forkAwesomeFontPath );
+    }
+    else
+    {
+        spdlog::error( "Could not load font {}", forkAwesomeFontPath );
+    }
 
     spdlog::debug( "Initialized ImGui data" );
 }
@@ -347,13 +310,6 @@ void ImGuiWrapper::render()
     auto setMouseMode = [this] ( MouseMode mouseMode )
     {
         m_appData.state().setMouseMode( mouseMode );
-    };
-
-    auto recenterAllViews = [this] (
-            bool recenterCrosshairs,
-            bool recenterOnCurrentCrosshairsPosition )
-    {
-        m_recenterAllViews( recenterCrosshairs, recenterOnCurrentCrosshairsPosition );
     };
 
     auto cycleViewLayout = [this] ( int step )
@@ -460,7 +416,7 @@ void ImGuiWrapper::render()
                         getNumImageColorMaps,
                         getImageColorMap,
                         m_updateMetricUniforms,
-                        recenterAllViews );
+                        m_recenterAllViews );
         }
 
         if ( m_appData.guiData().m_showInspectionWindow )
@@ -470,6 +426,8 @@ void ImGuiWrapper::render()
                         getImageDisplayAndFileNames,
                         m_getSubjectPos,
                         m_getVoxelPos,
+                        m_setSubjectPos,
+                        m_setVoxelPos,
                         m_getImageValue,
                         m_getSegLabel,
                         getLabelTable );
@@ -510,14 +468,14 @@ void ImGuiWrapper::render()
         {
             renderLandmarkPropertiesWindow(
                         m_appData,
-                        recenterAllViews );
+                        m_recenterAllViews );
         }
 
         if ( m_appData.guiData().m_showAnnotationsWindow )
         {
             renderAnnotationWindow(
                         m_appData,
-                        recenterAllViews );
+                        m_recenterAllViews );
         }
 
         if ( m_appData.guiData().m_showOpacityBlenderWindow )
@@ -529,7 +487,7 @@ void ImGuiWrapper::render()
                     m_appData,
                     getMouseMode,
                     setMouseMode,
-                    recenterAllViews,
+                    m_recenterAllViews,
                     m_getOverlayVisibility,
                     m_setOverlayVisibility,
                     cycleViewLayout,
@@ -559,8 +517,9 @@ void ImGuiWrapper::render()
     {
         // Per-layout UI controls:
 
-        static constexpr bool s_recenterCrosshairs = false;
-        static constexpr bool s_recenterOnCurrentCrosshairsPosition = false;
+        static constexpr bool sk_recenterCrosshairs = false;
+        static constexpr bool sk_recenterOnCurrentCrosshairsPosition = false;
+        static constexpr bool sk_resetObliqueOrientation = false;
 
         renderViewSettingsComboWindow(
                     currentLayout.uid(),
@@ -584,7 +543,7 @@ void ImGuiWrapper::render()
                     [&currentLayout] ( const camera::CameraType& cameraType ) { return currentLayout.setCameraType( cameraType ); },
                     [&currentLayout] ( const camera::ViewRenderMode& shaderType ) { return currentLayout.setRenderMode( shaderType ); },
 
-                    [this]() { m_recenterAllViews( s_recenterCrosshairs, s_recenterOnCurrentCrosshairsPosition ); },
+                    [this]() { m_recenterAllViews( sk_recenterCrosshairs, sk_recenterOnCurrentCrosshairsPosition, sk_resetObliqueOrientation ); },
                     nullptr );
     }
     else if ( m_appData.guiData().m_renderUiOverlays && ! currentLayout.isLightbox() )
@@ -637,23 +596,6 @@ void ImGuiWrapper::render()
                         applyImageSelectionAndShaderToAllViews );
         }
     }
-
-
-    /// @todo Add "Simple overlay" from Examples menu. Use it to show mouse position, image value, seg value etc.
-
-    // 4 Render a texture
-    //        ImGui::Begin("GameWindow");
-    //        {
-    //          // Using a Child allow to fill all the space of the window.
-    //          // It also alows customization
-    //          ImGui::BeginChild("GameRender");
-    //          // Get the size of the child (i.e. the whole draw size of the windows).
-    //          ImVec2 wsize = ImGui::GetWindowSize();
-    //          // Because I use the texture from OpenGL, I need to invert the V from the UV.
-    //          ImGui::Image((ImTextureID)tex, wsize, ImVec2(0, 1), ImVec2(1, 0));
-    //          ImGui::EndChild();
-    //        }
-    //        ImGui::End();
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
