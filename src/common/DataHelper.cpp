@@ -72,6 +72,14 @@ std::vector<uuids::uuid> selectImages(
 
         break;
     }
+    case ImageSelection::AllLoadedImages:
+    {
+        for ( const auto& imageUid : data.imageUidsOrdered() )
+        {
+            imageUids.push_back( imageUid );
+        }
+        break;
+    }
     case ImageSelection::VisibleImagesInView:
     {
         if ( view )
@@ -128,14 +136,6 @@ std::vector<uuids::uuid> selectImages(
                 }
                 ++index;
             }
-        }
-        break;
-    }
-    case ImageSelection::AllLoadedImages:
-    {
-        for ( const auto& imageUid : data.imageUidsOrdered() )
-        {
-            imageUids.push_back( imageUid );
         }
         break;
     }
@@ -242,26 +242,47 @@ glm::vec2 sliceMoveDistance(
 
 
 AABB<float> computeWorldAABBoxEnclosingImages(
-        const AppData& data,
+        const AppData& appData,
         const ImageSelection& imageSelection )
 {
-    static const AABB<float> sk_defaultBox{ {-1, -1, -1}, {1, 1, 1} };
+    static const AABB<float> sk_defaultAABB{ {-1, -1, -1}, {1, 1, 1} };
+
+    switch ( imageSelection )
+    {
+    case ImageSelection::VisibleImagesInView:
+    case ImageSelection::FixedImageInView:
+    case ImageSelection::MovingImageInView:
+    case ImageSelection::FixedAndMovingImagesInView:
+    {
+        // These image selection modes are dependent on a specific view.
+        // Since we want an AABB that applies to all views, just return the default AABB:
+        return sk_defaultAABB;
+    }
+
+    case ImageSelection::ReferenceImage:
+    case ImageSelection::ActiveImage:
+    case ImageSelection::ReferenceAndActiveImages:
+    case ImageSelection::AllLoadedImages:
+    {
+        break;
+    }
+    }
 
     std::vector< glm::vec3 > corners;
     bool anyImagesUsed = false;
 
-    for ( const auto& imageUid : selectImages( data, imageSelection, nullptr ) )
+    for ( const auto& imageUid : selectImages( appData, imageSelection, nullptr ) )
     {
-        const auto* img = data.image( imageUid );
+        const auto* img = appData.image( imageUid );
         if ( ! img ) continue;
 
         anyImagesUsed = true;
 
-        const auto world_T_subject = img->transformations().worldDef_T_subject();
-        const auto subjectCorners = img->header().subjectAABboxMinMaxCorners();
+        const auto& world_T_subject = img->transformations().worldDef_T_subject();
+        const auto& subjectCorners = img->header().subjectAABboxMinMaxCorners();
 
-        glm::vec4 corner1 = world_T_subject * glm::vec4{ subjectCorners.first, 1.0f };
-        glm::vec4 corner2 = world_T_subject * glm::vec4{ subjectCorners.second, 1.0f };
+        const glm::vec4 corner1 = world_T_subject * glm::vec4{ subjectCorners.first, 1.0f };
+        const glm::vec4 corner2 = world_T_subject * glm::vec4{ subjectCorners.second, 1.0f };
 
         corners.push_back( glm::vec3{ corner1 / corner1.w } );
         corners.push_back( glm::vec3{ corner2 / corner2.w } );
@@ -269,7 +290,7 @@ AABB<float> computeWorldAABBoxEnclosingImages(
 
     if ( ! anyImagesUsed )
     {
-        return sk_defaultBox;
+        return sk_defaultAABB;
     }
 
     return math::computeAABBox<float>( corners );

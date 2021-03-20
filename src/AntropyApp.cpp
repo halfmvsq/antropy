@@ -107,11 +107,9 @@ AntropyApp::AntropyApp()
       m_glfw( this, GL_VERSION_MAJOR, GL_VERSION_MINOR ),
 
       m_data(), // Requires OpenGL context
-      m_imgui( m_glfw.window(), m_data ), // Requires OpenGL context
       m_rendering( m_data ), // Requires OpenGL context
-
-      m_callbackHandler( m_data, m_rendering )
-
+      m_callbackHandler( m_data, m_rendering ),
+      m_imgui( m_glfw.window(), m_data, m_callbackHandler ) // Requires OpenGL context
 //      m_IPCHandler()
 {   
     spdlog::debug( "Begin constructing application" );

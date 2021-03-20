@@ -4,8 +4,7 @@
 #include "logic/camera/CameraTypes.h"
 #include "ui/UiControls.h"
 
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
+#include <glm/fwd.hpp>
 
 #include <uuid.h>
 
@@ -66,6 +65,16 @@ void renderViewSettingsComboWindow(
         const std::function< void () >& recenter,
 
         const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews );
+
+
+void renderViewOrientationToolWindow(
+        const uuids::uuid& viewOrLayoutUid,
+        const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
+        const UiControls& uiControls,
+        bool hasFrameAndBackground,
+        const camera::CameraType& cameraType,
+        const std::function< glm::quat () >& getViewCameraRotation,
+        const std::function< void ( const glm::quat& camera_T_world_rotationDelta ) >& setViewCameraRotation );
 
 
 /**

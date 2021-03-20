@@ -21,17 +21,20 @@ namespace camera
  *
  * clip_T_world = clip_T_camera * camera_T_world,
  *
- * where camera_T_world is further decomposed as
- * camera_T_world = camera_T_anatomy * anatomy_T_start * start_T_world.
- *
- * 1) camera_T_world is a rigid-body matrix, sometimes referred to as the View transformation that
+ * where clip_T_camera is a projection transformation, either orthogonal or perpspective,
+ * and camera_T_world is a rigid-body matrix, sometimes referred to as the View transformation that
  * maps World to Camera space. Its parts are
  *
- *    i) start_T_world: User manipulations applied to the camera BEFORE the anatomical transformation
- *    ii) anatomy_T_start: Anatomical starting frame of reference that is linked to an external callback
- *    iii) camera_T_anatomy: User manipulations applied to the camera AFTER the anatomical transformation
+ * camera_T_world = camera_T_anatomy * anatomy_T_start * start_T_world,
+ * where:
  *
- * 2) clip_T_camera is a projection transformation, either orthogonal or perpspective.
+ *    i) start_T_world: User manipulations applied to the camera BEFORE the anatomical transformation.
+ *
+ *    ii) anatomy_T_start: Anatomical starting frame of reference that is linked to an external callback.
+ *        This is where axial, coronal, sagittal, and crosshairs-Z/Y/X view orientations are set.
+ *
+ *    iii) camera_T_anatomy: User manipulations applied to the camera AFTER the anatomical transformation.
+ *         This is used for manual user view manipulations (e.g. translation, rotation).
  *
  * Definitions of coordinate spaces:
  * Clip -- Standard OpenGL Clip space (normalized to [-1, 1]^3)

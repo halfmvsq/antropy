@@ -820,6 +820,7 @@ void CallbackHandler::doOpacity(
 
     const View* view = m_appData.windowData().getCurrentView( *viewUid );
     if ( ! view ) return;
+
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
@@ -868,31 +869,32 @@ void CallbackHandler::doCameraTranslate2d(
 
     View* view = windowData.getCurrentView( *viewUid );
     if ( ! view ) return;
+
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto& windowVP = windowData.viewport();
 
-    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ), view->clipPlaneDepth(), 1 };
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
 
-    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
+    const glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
 
-    glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
-    glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
-
-    glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
-    glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
+    const glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
+    const glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
 
     if ( const auto transGroupUid = view->cameraTranslationSyncGroupUid() )
     {
         for ( const auto& uid : windowData.cameraTranslationGroupViewUids( *transGroupUid ) )
         {
-            if ( View* v = windowData.getCurrentView( uid ) )
-            {
-                panRelativeToWorldPosition( v->camera(), lastViewNdcPos, currViewNdcPos,
-                                            m_appData.state().worldCrosshairs().worldOrigin() );
-            }
+            View* syncedView = windowData.getCurrentView( uid );
+            if ( ! syncedView ) continue;
+
+            // Only synchronize translations if the view camera types are the same:
+            if ( syncedView->cameraType() != view->cameraType() ) continue;
+
+            panRelativeToWorldPosition( syncedView->camera(), lastViewNdcPos, currViewNdcPos,
+                                        m_appData.state().worldCrosshairs().worldOrigin() );
         }
     }
     else
@@ -916,32 +918,53 @@ void CallbackHandler::doCameraRotate2d(
 
     View* view = windowData.getCurrentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     // Only allow rotation of oblique views (and later 3D views, too)
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
     if ( camera::CameraType::Oblique != view->cameraType() ) return;
 
     const auto& windowVP = windowData.viewport();
 
-    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ), view->clipPlaneDepth(), 1 };
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
 
-    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
+    const glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
 
-    glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
-    glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
-
-    glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
-    glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
+    const glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
+    const glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
 
     /// @todo Different behavior for rotation 3D view types!
 
-    const glm::vec4 clipRotationCenterPos = camera::clip_T_world( view->camera() ) *
+    glm::vec4 clipRotationCenterPos = camera::clip_T_world( view->camera() ) *
             glm::vec4{ m_appData.state().worldCrosshairs().worldOrigin(), 1.0f };
 
-    camera::rotateInPlane( view->camera(), lastViewNdcPos, currViewNdcPos,
-                           glm::vec2{ clipRotationCenterPos / clipRotationCenterPos.w } );
+    clipRotationCenterPos /= clipRotationCenterPos.w;
+
+    if ( const auto rotGroupUid = view->cameraRotationSyncGroupUid() )
+    {
+        for ( const auto& uid : windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
+        {
+            View* syncedView = windowData.getCurrentView( uid );
+            if ( ! syncedView ) continue;
+
+            // Only synchronize rotations if the view camera types are the same:
+            if ( syncedView->cameraType() != view->cameraType() ) continue;
+
+            // Rotations only synchronize if the view normals are the same:
+            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
+            const glm::vec3 n2 = camera::worldDirection( view->camera(), Directions::View::Back );
+            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-4f ) continue;
+
+            camera::rotateInPlane( syncedView->camera(), lastViewNdcPos, currViewNdcPos,
+                                   glm::vec2{ clipRotationCenterPos } );
+        }
+    }
+    else
+    {
+        camera::rotateInPlane( view->camera(), lastViewNdcPos, currViewNdcPos,
+                               glm::vec2{ clipRotationCenterPos } );
+    }
 }
 
 
@@ -958,29 +981,93 @@ void CallbackHandler::doCameraRotate3d(
 
     View* view = windowData.getCurrentView( *viewUid );
     if ( ! view ) return;
-    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     // Only allow rotation of oblique views (and later 3D views, too)
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
     if ( camera::CameraType::Oblique != view->cameraType() ) return;
 
     const auto& windowVP = windowData.viewport();
 
-    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ), view->clipPlaneDepth(), 1 };
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
 
-    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
+    const glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
 
-    glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
-    glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
-
-    glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
-    glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
+    const glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
+    const glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
 
     /// @todo Different behavior for rotation 3D view types!
 
-    camera::rotateAboutWorldPoint( view->camera(), lastViewNdcPos, currViewNdcPos,
-                                   m_appData.state().worldCrosshairs().worldOrigin() );
+    if ( const auto rotGroupUid = view->cameraRotationSyncGroupUid() )
+    {
+        for ( const auto& uid : windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
+        {
+            View* syncedView = windowData.getCurrentView( uid );
+            if( ! syncedView ) continue;
+
+            // Only synchronize rotations if the view camera types are the same:
+            if ( syncedView->cameraType() != view->cameraType() ) continue;
+
+            // Rotations only synchronize if the view normals are the same:
+            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
+            const glm::vec3 n2 = camera::worldDirection( view->camera(), Directions::View::Back );
+            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-2f ) continue;
+
+            camera::rotateAboutWorldPoint( syncedView->camera(), lastViewNdcPos, currViewNdcPos,
+                                           m_appData.state().worldCrosshairs().worldOrigin() );
+        }
+    }
+    else
+    {
+        camera::rotateAboutWorldPoint( view->camera(), lastViewNdcPos, currViewNdcPos,
+                                       m_appData.state().worldCrosshairs().worldOrigin() );
+    }
+}
+
+
+void CallbackHandler::doCameraRotate3d(
+        const uuids::uuid& viewUid,
+        const glm::quat& camera_T_world_rotationDelta )
+{
+    auto& windowData = m_appData.windowData();
+
+    View* view = windowData.getView( viewUid );
+    if ( ! view ) return;
+
+    // Only allow rotation of oblique views (and later 3D views, too)
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
+    if ( camera::CameraType::Oblique != view->cameraType() ) return;
+
+    if ( const auto rotGroupUid = view->cameraRotationSyncGroupUid() )
+    {
+        for ( const auto& uid : windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
+        {
+            View* syncedView = windowData.getCurrentView( uid );
+            if( ! syncedView ) continue;
+
+            // Only synchronize rotations if the view camera types are the same:
+            if ( syncedView->cameraType() != view->cameraType() ) continue;
+
+            // Rotations only synchronize if the view normals are the same:
+            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
+            const glm::vec3 n2 = camera::worldDirection( view->camera(), Directions::View::Back );
+
+            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-2f ) continue;
+
+            camera::applyViewRotationAboutWorldPoint(
+                        syncedView->camera(),
+                        camera_T_world_rotationDelta,
+                        m_appData.state().worldCrosshairs().worldOrigin() );
+        }
+    }
+    else
+    {
+        camera::applyViewRotationAboutWorldPoint(
+                    view->camera(),
+                    camera_T_world_rotationDelta,
+                    m_appData.state().worldCrosshairs().worldOrigin() );
+    }
 }
 
 
@@ -1008,9 +1095,7 @@ void CallbackHandler::doCameraZoomDrag(
     const glm::vec2 currWinClipPos = camera::ndc2d_T_view( windowVP, currWindowPos );
     const float factor = 2.0f * ( currWinClipPos.y - lastWinClipPos.y ) / 2.0f + 1.0f;
 
-    const glm::vec4 startWinClipPos{ camera::ndc2d_T_view( windowVP, startWindowPos ),
-                currView->clipPlaneDepth(), 1 };
-
+    const glm::vec4 startWinClipPos{ camera::ndc2d_T_view( windowVP, startWindowPos ), currView->clipPlaneDepth(), 1 };
     const glm::vec4 startViewClipPos = currView->viewClip_T_winClip() * startWinClipPos;
     const glm::vec4 startWorldPos = camera::world_T_clip( currView->camera() ) * startViewClipPos;
 
@@ -1047,9 +1132,9 @@ void CallbackHandler::doCameraZoomDrag(
     {
         for ( const auto& viewUid : m_appData.windowData().currentViewUids() )
         {
-            if ( View* v = m_appData.windowData().getCurrentView( viewUid ) )
+            if ( View* syncedView = m_appData.windowData().getCurrentView( viewUid ) )
             {
-                camera::zoomNdc( v->camera(), factor, getCenterViewClipPos( v ) );
+                camera::zoomNdc( syncedView->camera(), factor, getCenterViewClipPos( syncedView ) );
             }
         }
     }
@@ -1059,9 +1144,9 @@ void CallbackHandler::doCameraZoomDrag(
         {
             for ( const auto& viewUid : m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
             {
-                if ( View* v = m_appData.windowData().getCurrentView( viewUid ) )
+                if ( View* syncedView = m_appData.windowData().getCurrentView( viewUid ) )
                 {
-                    camera::zoomNdc( v->camera(), factor, getCenterViewClipPos( v ) );
+                    camera::zoomNdc( syncedView->camera(), factor, getCenterViewClipPos( syncedView ) );
                 }
             }
         }
@@ -1101,9 +1186,7 @@ void CallbackHandler::doCameraZoomScroll(
 
     const auto& windowVP = m_appData.windowData().viewport();
 
-    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                currView->clipPlaneDepth(), 1 };
-
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), currView->clipPlaneDepth(), 1 };
     const glm::vec4 currViewClipPos = currView->viewClip_T_winClip() * currWinClipPos;
     const glm::vec4 currWorldPos = camera::world_T_clip( currView->camera() ) * currViewClipPos;
 
@@ -1143,9 +1226,9 @@ void CallbackHandler::doCameraZoomScroll(
     {
         for ( const auto& viewUid : m_appData.windowData().currentViewUids() )
         {
-            if ( View* v = m_appData.windowData().getCurrentView( viewUid ) )
+            if ( View* syncedView = m_appData.windowData().getCurrentView( viewUid ) )
             {
-                camera::zoomNdc( v->camera(), factor, getCenterViewClipPos( v ) );
+                camera::zoomNdc( syncedView->camera(), factor, getCenterViewClipPos( syncedView ) );
             }
         }
     }
@@ -1155,9 +1238,9 @@ void CallbackHandler::doCameraZoomScroll(
         {
             for ( const auto& viewUid : m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
             {
-                if ( View* v = m_appData.windowData().getCurrentView( viewUid ) )
+                if ( View* syncedView = m_appData.windowData().getCurrentView( viewUid ) )
                 {
-                    camera::zoomNdc( v->camera(), factor, getCenterViewClipPos( v ) );
+                    camera::zoomNdc( syncedView->camera(), factor, getCenterViewClipPos( syncedView ) );
                 }
             }
         }
@@ -1198,11 +1281,8 @@ void CallbackHandler::doImageTranslate(
 
     const auto& windowVP = m_appData.windowData().viewport();
 
-    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ),
-                view->clipPlaneDepth(), 1 };
-
-    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ), view->clipPlaneDepth(), 1 };
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
 
     const glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
     const glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
@@ -1280,11 +1360,8 @@ void CallbackHandler::doImageRotate(
 
     const auto& windowVP = m_appData.windowData().viewport();
 
-    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ),
-                view->clipPlaneDepth(), 1 };
-
-    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ), view->clipPlaneDepth(), 1 };
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
 
     const glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
     const glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
@@ -1373,11 +1450,8 @@ void CallbackHandler::doImageScale(
 
     const auto& windowVP = m_appData.windowData().viewport();
 
-    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ),
-                view->clipPlaneDepth(), 1 };
-
-    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                view->clipPlaneDepth(), 1 };
+    const glm::vec4 lastWinClipPos{ camera::ndc2d_T_view( windowVP, lastWindowPos ), view->clipPlaneDepth(), 1 };
+    const glm::vec4 currWinClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
 
     const glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
     const glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;

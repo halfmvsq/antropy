@@ -91,7 +91,7 @@ inline std::array<ViewRenderMode, 2> const AllNonMetricRenderModes = {
  * @param cameraType
  * @return
  */
-std::string typeString( const CameraType& cameraType );
+std::string typeString( const CameraType& cameraType, bool crosshairsRotated = false );
 
 /**
  * @brief Get the string of a view rendering mode

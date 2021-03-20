@@ -32,6 +32,7 @@ Layout createFourUpLayout()
     const int32_t numOffsets = 0;
     const UiControls uiControls( true );
 
+    const auto noRotationSyncGroup = std::nullopt;
     const auto noTranslationSyncGroup = std::nullopt;
     const auto noZoomSyncGroup = std::nullopt;
 
@@ -47,7 +48,7 @@ Layout createFourUpLayout()
                     Viewport{ 0.0f, 0.0f, 1.0f, 1.0f }, numOffsets,
                     CameraType::Coronal, ViewRenderMode::Image,
                     uiControls,
-                    noTranslationSyncGroup, zoomSyncGroupUid );
+                    noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
         const auto viewUid = generateRandomUuid();
         layout.views().emplace( viewUid, std::move( view ) );
@@ -59,7 +60,7 @@ Layout createFourUpLayout()
                     Viewport{ -1.0f, 0.0f, 1.0f, 1.0f }, numOffsets,
                     CameraType::Sagittal, ViewRenderMode::Image,
                     uiControls,
-                    noTranslationSyncGroup, zoomSyncGroupUid );
+                    noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
         const auto viewUid = generateRandomUuid();
         layout.views().emplace( viewUid, std::move( view ) );
@@ -71,7 +72,7 @@ Layout createFourUpLayout()
                     Viewport{ -1.0f, -1.0f, 1.0f, 1.0f }, numOffsets,
                     CameraType::ThreeD, ViewRenderMode::Disabled,
                     uiControls,
-                    noTranslationSyncGroup, noZoomSyncGroup );
+                    noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
 
         const auto viewUid = generateRandomUuid();
         layout.views().emplace( viewUid, std::move( view ) );
@@ -83,7 +84,7 @@ Layout createFourUpLayout()
                     Viewport{ 0.0f, -1.0f, 1.0f, 1.0f }, numOffsets,
                     CameraType::Axial, ViewRenderMode::Image,
                     uiControls,
-                    noTranslationSyncGroup, zoomSyncGroupUid );
+                    noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
         const auto viewUid = generateRandomUuid();
         layout.views().emplace( viewUid, std::move( view ) );
@@ -101,6 +102,7 @@ Layout createTriLayout()
     const int32_t numOffsets = 0;
     const UiControls uiControls( true );
 
+    const auto noRotationSyncGroup = std::nullopt;
     const auto noTranslationSyncGroup = std::nullopt;
     const auto noZoomSyncGroup = std::nullopt;
     const auto zoomSyncGroupUid = generateRandomUuid();
@@ -115,7 +117,7 @@ Layout createTriLayout()
                     Viewport{ -1.0f, -1.0f, 1.5f, 2.0f }, numOffsets,
                     CameraType::Axial, ViewRenderMode::Image,
                     uiControls,
-                    noTranslationSyncGroup, noZoomSyncGroup );
+                    noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
 
         const auto viewUid = generateRandomUuid();
         layout.views().emplace( viewUid, std::move( view ) );
@@ -126,7 +128,7 @@ Layout createTriLayout()
                     Viewport{ 0.5f, -1.0f, 0.5f, 1.0f }, numOffsets,
                     CameraType::Coronal, ViewRenderMode::Image,
                     uiControls,
-                    noTranslationSyncGroup, zoomSyncGroupUid );
+                    noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
         const auto viewUid = generateRandomUuid();
         layout.views().emplace( viewUid, std::move( view ) );
@@ -138,7 +140,7 @@ Layout createTriLayout()
                     Viewport{ 0.5f, 0.0f, 0.5f, 1.0f }, numOffsets,
                     CameraType::Sagittal, ViewRenderMode::Image,
                     uiControls,
-                    noTranslationSyncGroup, zoomSyncGroupUid );
+                    noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
         const auto viewUid = generateRandomUuid();
         layout.views().emplace( viewUid, std::move( view ) );
@@ -156,6 +158,10 @@ Layout createTriTopBottomLayout( size_t numRows )
     const int32_t numOffsets = 0;
     const UiControls uiControls( true );
 
+    const auto axiRotationSyncGroupUid = generateRandomUuid();
+    const auto corRotationSyncGroupUid = generateRandomUuid();
+    const auto sagRotationSyncGroupUid = generateRandomUuid();
+
     const auto axiTranslationSyncGroupUid = generateRandomUuid();
     const auto corTranslationSyncGroupUid = generateRandomUuid();
     const auto sagTranslationSyncGroupUid = generateRandomUuid();
@@ -165,6 +171,10 @@ Layout createTriTopBottomLayout( size_t numRows )
     const auto sagZoomSyncGroupUid = generateRandomUuid();
 
     Layout layout( false );
+
+    auto axiRotGroup = layout.cameraRotationSyncGroups().try_emplace( axiRotationSyncGroupUid ).first;
+    auto corRotGroup = layout.cameraRotationSyncGroups().try_emplace( corRotationSyncGroupUid ).first;
+    auto sagRotGroup = layout.cameraRotationSyncGroups().try_emplace( sagRotationSyncGroupUid ).first;
 
     auto axiTransGroup = layout.cameraTranslationSyncGroups().try_emplace( axiTranslationSyncGroupUid ).first;
     auto corTransGroup = layout.cameraTranslationSyncGroups().try_emplace( corTranslationSyncGroupUid ).first;
@@ -186,13 +196,14 @@ Layout createTriTopBottomLayout( size_t numRows )
                         Viewport{ -1.0f, bottom, 2.0f/3.0f, height }, numOffsets,
                         CameraType::Axial, ViewRenderMode::Image,
                         uiControls,
-                        axiTranslationSyncGroupUid, axiZoomSyncGroupUid );
+                        axiRotationSyncGroupUid, axiTranslationSyncGroupUid, axiZoomSyncGroupUid );
 
             view->setPreferredDefaultRenderedImages( { r } );
 
             const auto viewUid = generateRandomUuid();
             layout.views().emplace( viewUid, std::move( view ) );
 
+            axiRotGroup->second.push_back( viewUid );
             axiTransGroup->second.push_back( viewUid );
             axiZoomGroup->second.push_back( viewUid );
         }
@@ -203,13 +214,14 @@ Layout createTriTopBottomLayout( size_t numRows )
                         Viewport{ -1.0f/3.0f, bottom, 2.0f/3.0f, height }, numOffsets,
                         CameraType::Coronal, ViewRenderMode::Image,
                         uiControls,
-                        corTranslationSyncGroupUid, corZoomSyncGroupUid );
+                        corRotationSyncGroupUid, corTranslationSyncGroupUid, corZoomSyncGroupUid );
 
             view->setPreferredDefaultRenderedImages( { r } );
 
             const auto viewUid = generateRandomUuid();
             layout.views().emplace( viewUid, std::move( view ) );
 
+            corRotGroup->second.push_back( viewUid );
             corTransGroup->second.push_back( viewUid );
             corZoomGroup->second.push_back( viewUid );
         }
@@ -219,13 +231,14 @@ Layout createTriTopBottomLayout( size_t numRows )
                         Viewport{ 1.0f/3.0f, bottom, 2.0f/3.0f, height }, numOffsets,
                         CameraType::Sagittal, ViewRenderMode::Image,
                         uiControls,
-                        sagTranslationSyncGroupUid, sagZoomSyncGroupUid );
+                        sagRotationSyncGroupUid, sagTranslationSyncGroupUid, sagZoomSyncGroupUid );
 
             view->setPreferredDefaultRenderedImages( { r } );
 
             const auto viewUid = generateRandomUuid();
             layout.views().emplace( viewUid, std::move( view ) );
 
+            sagRotGroup->second.push_back( viewUid );
             sagTransGroup->second.push_back( viewUid );
             sagZoomGroup->second.push_back( viewUid );
         }
@@ -255,11 +268,12 @@ Layout createGridLayout(
         layout.setPreferredDefaultRenderedImages( { 0 } );
     }
 
+    const auto rotationSyncGroupUid = generateRandomUuid();
     const auto translationSyncGroupUid = generateRandomUuid();
-    auto transGroup = layout.cameraTranslationSyncGroups().try_emplace(
-                translationSyncGroupUid ).first;
-
     const auto zoomSyncGroupUid = generateRandomUuid();
+
+    auto rotGroup = layout.cameraRotationSyncGroups().try_emplace( rotationSyncGroupUid ).first;
+    auto transGroup = layout.cameraTranslationSyncGroups().try_emplace( translationSyncGroupUid ).first;
     auto zoomGroup = layout.cameraZoomSyncGroups().try_emplace( zoomSyncGroupUid ).first;
 
     const float w = 2.0f / static_cast<float>( width );
@@ -283,6 +297,7 @@ Layout createGridLayout(
                         cameraType,
                         s_shaderType,
                         UiControls( ! isLightbox ),
+                        rotationSyncGroupUid,
                         translationSyncGroupUid,
                         zoomSyncGroupUid );
 
@@ -295,7 +310,8 @@ Layout createGridLayout(
             const auto viewUid = generateRandomUuid();
             layout.views().emplace( viewUid, std::move( view ) );
 
-            // Synchronize translations and zooms for all views in the layout:
+            // Synchronize rotations, translations, and zooms for all views in the layout:
+            rotGroup->second.push_back( viewUid );
             transGroup->second.push_back( viewUid );
             zoomGroup->second.push_back( viewUid );
 
@@ -666,6 +682,15 @@ void WindowData::setDeviceScaleRatio( const glm::vec2& scale )
     spdlog::trace( "Setting device scale ratio to {}x{}", scale.x, scale.y );
     m_viewport.setDevicePixelRatio( scale );
     updateAllViews();
+}
+
+uuid_range_t WindowData::cameraRotationGroupViewUids(
+        const uuids::uuid& syncGroupUid ) const
+{
+    const auto& currentLayout = m_layouts.at( m_currentLayout );
+    const auto it = currentLayout.cameraRotationSyncGroups().find( syncGroupUid );
+    if ( std::end( currentLayout.cameraRotationSyncGroups() ) != it ) return it->second;
+    return {};
 }
 
 uuid_range_t WindowData::cameraTranslationGroupViewUids(

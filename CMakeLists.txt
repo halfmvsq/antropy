@@ -143,6 +143,18 @@ target_include_directories( imgui PRIVATE ${IMGUI_SRC_DIR} )
 
 
 #--------------------------------------------------------------------------------
+# imGuIZMO.quat (included as Git submodule):
+# A ImGui widget: like a trackball it provides a way to rotate models, lights,
+# or objects with mouse, and graphically visualize their position in space.
+#--------------------------------------------------------------------------------
+
+# Note: Due to warnings in these sources, they modified and included in our local
+# source source folder ui/imgui/imGuIZMO.quat
+
+# set( IMGUIZMO_INCLUDE_DIR ${EXT_DIR}/imGuIZMO.quat )
+
+
+#--------------------------------------------------------------------------------
 # "NanoVG" (included as a Git submodule):
 # A small antialiased vector graphics rendering library for OpenGL.
 # It has lean API modeled after HTML5 canvas API. It is aimed to be a practical
@@ -316,6 +328,8 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/ui/Toolbars.cpp
     ${SRC_DIR}/ui/Widgets.cpp
     ${SRC_DIR}/ui/Windows.cpp
+
+    ${SRC_DIR}/ui/imgui/imGuIZMO.quat/imGuIZMOquat.cpp
 
     ${SRC_DIR}/windowing/GlfwCallbacks.cpp
     ${SRC_DIR}/windowing/GlfwWrapper.cpp

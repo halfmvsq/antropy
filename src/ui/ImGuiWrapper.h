@@ -8,6 +8,7 @@
 #include <functional>
 
 class AppData;
+class CallbackHandler;
 struct GLFWwindow;
 
 
@@ -18,7 +19,7 @@ class ImGuiWrapper
 {
 public:
 
-    ImGuiWrapper( GLFWwindow* window, AppData& appData );
+    ImGuiWrapper( GLFWwindow* window, AppData& appData, CallbackHandler& callbackHandler );
     ~ImGuiWrapper();
 
     void setCallbacks(
@@ -51,6 +52,7 @@ private:
     void initializeData();
 
     AppData& m_appData;
+    CallbackHandler& m_callbackHandler;
 
     // Callbacks:
     std::function< void ( const uuids::uuid& viewUid ) > m_recenterView;

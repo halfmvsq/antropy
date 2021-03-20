@@ -79,8 +79,9 @@ View::View( Viewport winClipViewport,
             camera::CameraType cameraType,
             camera::ViewRenderMode shaderType,
             UiControls uiControls,
-            std::optional<uuids::uuid> translationSyncGroup,
-            std::optional<uuids::uuid> zoomSyncGroup )
+            std::optional<uuids::uuid> cameraRotationSyncGroupUid,
+            std::optional<uuids::uuid> cameraTranslationSyncGroup,
+            std::optional<uuids::uuid> cameraZoomSyncGroup )
     :
       m_winClipViewport( std::move( winClipViewport ) ),
       m_winClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport.getAsVec4() ) ),
@@ -101,8 +102,9 @@ View::View( Viewport winClipViewport,
 
       m_uiControls( std::move( uiControls ) ),
 
-      m_cameraTranslationSyncGroupUid( translationSyncGroup ),
-      m_cameraZoomSyncGroupUid( zoomSyncGroup ),
+      m_cameraRotationSyncGroupUid( cameraRotationSyncGroupUid ),
+      m_cameraTranslationSyncGroupUid( cameraTranslationSyncGroup ),
+      m_cameraZoomSyncGroupUid( cameraZoomSyncGroup ),
 
       m_clipPlaneDepth( 0.0f ),
       m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } ),
@@ -480,6 +482,7 @@ void View::updateImageOrdering( uuid_range_t orderedImageUids )
     m_metricImageUids = newMetricImageUids;
 }
 
+std::optional<uuids::uuid> View::cameraRotationSyncGroupUid() const { return m_cameraRotationSyncGroupUid; }
 std::optional<uuids::uuid> View::cameraTranslationSyncGroupUid() const { return m_cameraTranslationSyncGroupUid; }
 std::optional<uuids::uuid> View::cameraZoomSyncGroupUid() const { return m_cameraZoomSyncGroupUid; }
 

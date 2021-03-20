@@ -133,10 +133,9 @@ private:
 
     GlfwWrapper m_glfw;
     AppData m_data;
-    ImGuiWrapper m_imgui;
     Rendering m_rendering;
-
     CallbackHandler m_callbackHandler;
+    ImGuiWrapper m_imgui;
 };
 
 #endif // ANTROPY_APP_H

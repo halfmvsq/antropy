@@ -68,11 +68,15 @@ public:
     void recenter();
 
     std::unordered_map< uuids::uuid, std::shared_ptr<View> >& views();
-    std::unordered_map< uuids::uuid, std::list<uuids::uuid> >& cameraTranslationSyncGroups();
-    std::unordered_map< uuids::uuid, std::list<uuids::uuid> >& cameraZoomSyncGroups();
-
     const std::unordered_map< uuids::uuid, std::shared_ptr<View> >& views() const;
+
+    std::unordered_map< uuids::uuid, std::list<uuids::uuid> >& cameraRotationSyncGroups();
+    const std::unordered_map< uuids::uuid, std::list<uuids::uuid> >& cameraRotationSyncGroups() const;
+
+    std::unordered_map< uuids::uuid, std::list<uuids::uuid> >& cameraTranslationSyncGroups();
     const std::unordered_map< uuids::uuid, std::list<uuids::uuid> >& cameraTranslationSyncGroups() const;
+
+    std::unordered_map< uuids::uuid, std::list<uuids::uuid> >& cameraZoomSyncGroups();
     const std::unordered_map< uuids::uuid, std::list<uuids::uuid> >& cameraZoomSyncGroups() const;
 
 
@@ -85,10 +89,9 @@ private:
     // Views of the layout, keyed by their UID
     std::unordered_map< uuids::uuid, std::shared_ptr<View> > m_views;
 
-    // Map of camera translation synchronization group UID to the list of view UIDs in the group
+    // For each synchronization type, a map of synchronization group UID to the list of view UIDs in the group
+    std::unordered_map< uuids::uuid, std::list<uuids::uuid> > m_cameraRotationSyncGroups;
     std::unordered_map< uuids::uuid, std::list<uuids::uuid> > m_cameraTranslationSyncGroups;
-
-    // Map of camera zoom synchronization group UID to the list of view UIDs in the group
     std::unordered_map< uuids::uuid, std::list<uuids::uuid> > m_cameraZoomSyncGroups;
 
     // If true, then this layout has UI controls that affect all of its views,

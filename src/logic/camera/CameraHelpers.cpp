@@ -104,6 +104,12 @@ glm::vec3 cameraDirectionOfAnatomy( const Camera& camera, const Directions::Anat
     return glm::normalize( M * Directions::get( dir ) );
 }
 
+glm::vec3 cameraDirectionOfWorld( const Camera& camera, const Directions::Cartesian& dir )
+{
+    const glm::mat3 M = glm::inverseTranspose( glm::mat3{ camera.camera_T_world() } );
+    return glm::normalize( M * Directions::get( dir ) );
+}
+
 glm::vec3 world_T_ndc( const Camera& camera, const glm::vec3& ndcPos )
 {
     const glm::vec4 worldPos = world_T_clip( camera ) * glm::vec4{ ndcPos, 1.0f };
@@ -168,6 +174,20 @@ float ndcZOfCameraDistance( const Camera& camera, const float cameraDistance )
 void applyViewTransformation( Camera& camera, const glm::mat4& m )
 {
     camera.set_camera_T_anatomy( m * camera.camera_T_anatomy() );
+}
+
+
+void applyViewRotationAboutWorldPoint(
+        Camera& camera,
+        const glm::quat& rotation,
+        const glm::vec3& worldRotationPos )
+{
+    const glm::vec3 cameraRotationCenter =
+            glm::vec3{ camera.camera_T_world() * glm::vec4{ worldRotationPos, 1.0f } };
+
+    translateAboutCamera( camera, cameraRotationCenter );
+    applyViewTransformation( camera, glm::toMat4( rotation ) );
+    translateAboutCamera( camera, -cameraRotationCenter );
 }
 
 void resetViewTransformation( Camera& camera )
@@ -876,6 +896,17 @@ glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& clipVP )
     const glm::vec3 T{ clipVP[0] + 0.5f * clipVP[2], clipVP[1] + 0.5f * clipVP[3], 0.0f };
     const glm::vec3 S{ 0.5f * clipVP[2], 0.5f * clipVP[3], 1.0f };
     return glm::translate( T ) * glm::scale( S );
+}
+
+
+glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera )
+{
+    const glm::vec3 x = cameraDirectionOfWorld( camera, Directions::Cartesian::X );
+    const glm::vec3 y = cameraDirectionOfWorld( camera, Directions::Cartesian::Y );
+    const glm::vec3 z = cameraDirectionOfWorld( camera, Directions::Cartesian::Z );
+
+    const glm::mat3 rotation_camera_T_world{ x, y, z };
+    return glm::quat_cast( rotation_camera_T_world );
 }
 
 } // namespace camera

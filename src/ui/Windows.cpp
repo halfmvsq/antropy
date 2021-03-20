@@ -4,6 +4,7 @@
 #include "ui/ImGuiCustomControls.h"
 #include "ui/Popups.h"
 #include "ui/Widgets.h"
+#include "ui/imgui/imGuIZMO.quat/imGuIZMOquat.h"
 
 #include "common/MathFuncs.h"
 #include "image/Image.h"
@@ -185,12 +186,6 @@ void renderViewSettingsComboWindow(
                             ImGui::PopID(); /*** ID = i ***/
                         }
 
-                        //                            ImGui::Separator();
-                        //                            if ( ImGui::MenuItem( "Apply to all views" ) )
-                        //                            {
-
-                        //                            }
-
                         ImGui::EndPopup();
                     }
                 }
@@ -247,12 +242,6 @@ void renderViewSettingsComboWindow(
                             ImGui::PopID();  /*** ID = i ***/
                         }
 
-                        //                            ImGui::Separator();
-                        //                            if ( ImGui::MenuItem( "Apply to all views" ) )
-                        //                            {
-
-                        //                            }
-
                         ImGui::EndPopup();
                     }
                 }
@@ -304,12 +293,6 @@ void renderViewSettingsComboWindow(
                         }
                     }
 
-                    //                        ImGui::Separator();
-                    //                        if ( ImGui::Selectable( "Apply to all views", false ) )
-                    //                        {
-
-                    //                        }
-
                     ImGui::EndCombo();
                 }
                 ImGui::PopItemWidth();
@@ -342,7 +325,7 @@ void renderViewSettingsComboWindow(
             if ( uiControls.m_hasCameraTypeComboBox )
             {
                 ImGui::SameLine();
-                ImGui::PushItemWidth( 90.0f + 2.0f * ImGui::GetStyle().FramePadding.x );
+                ImGui::PushItemWidth( 120.0f + 2.0f * ImGui::GetStyle().FramePadding.x );
                 if ( ImGui::BeginCombo( "##cameraTypeCombo", camera::typeString( cameraType ).c_str() ) )
                 {
                     for ( const auto& ct : camera::AllCameraTypes )
@@ -366,15 +349,8 @@ void renderViewSettingsComboWindow(
             }
 
 
-            // View rotation button for Oblique view types:
-//            if ( camera::CameraType::Oblique == cameraType )
-//            {
-
-//            }
-
-
             // Text label of visible images:
-            /// @todo Replace this with NanoVG text?
+            /// @todo Replace this with NanoVG text
             {
                 std::string imageNamesText;
 
@@ -419,6 +395,87 @@ void renderViewSettingsComboWindow(
 
         ImGui::PopID(); /*** ID = uidString.c_str() ***/
     }
+
+    // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_WindowRounding
+    ImGui::PopStyleVar( 3 );
+}
+
+
+void renderViewOrientationToolWindow(
+        const uuids::uuid& viewOrLayoutUid,
+        const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
+        const UiControls& /*uiControls*/,
+        bool hasFrameAndBackground,
+        const camera::CameraType& cameraType,
+        const std::function< glm::quat () >& getViewCameraRotation,
+        const std::function< void ( const glm::quat& camera_T_world_rotationDelta ) >& setViewCameraRotation )
+{
+    static const glm::vec2 sk_framePad{ 4.0f, 4.0f };
+    static const ImVec2 sk_windowPadding( 0.0f, 0.0f );
+    static const float sk_windowRounding( 0.0f );
+    static const ImVec2 sk_itemSpacing( 4.0f, 4.0f );
+
+    static const ImGuiWindowFlags sk_defaultWindowFlags =
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_NoFocusOnAppearing |
+            ImGuiWindowFlags_NoBringToFrontOnFocus;
+
+    static constexpr int sk_corner = 2;
+
+    if ( camera::CameraType::Oblique != cameraType )
+    {
+        return;
+    }
+
+    const std::string uidString = std::string( "OrientationTool##" ) + uuids::to_string( viewOrLayoutUid );
+
+    bool windowOpen = false;
+
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, sk_itemSpacing );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, sk_windowRounding );
+
+    ImGuiWindowFlags windowFlags = sk_defaultWindowFlags;
+
+    if ( ! hasFrameAndBackground )
+    {
+        windowFlags |= ImGuiWindowFlags_NoBackground;
+    }
+
+    const glm::vec2 bottomLeft(
+                winMouseMinMaxCoords.first.x + sk_framePad.x,
+                winMouseMinMaxCoords.second.y - sk_framePad.y );
+
+    const ImVec2 windowPosPivot(
+                ( sk_corner & 1 ) ? 1.0f : 0.0f,
+                ( sk_corner & 2 ) ? 1.0f : 0.0f );
+
+    ImGui::SetNextWindowPos( ImVec2( bottomLeft.x, bottomLeft.y ), ImGuiCond_Always, windowPosPivot );
+
+    ImGui::SetNextWindowBgAlpha( 0.3f );
+
+    ImGui::PushID( uidString.c_str() ); /*** ID = uidString ***/
+
+    if ( ImGui::Begin( uidString.c_str(), &windowOpen, windowFlags ) )
+    {
+        static constexpr float sk_size = 96.0f;
+        static constexpr int sk_mode = ( imguiGizmo::mode3Axes | imguiGizmo::cubeAtOrigin );
+
+        const glm::quat oldQuat = getViewCameraRotation();
+        glm::quat newQuat = oldQuat;
+
+        if ( ImGui::gizmo3D( "", newQuat, sk_size, sk_mode ) )
+        {
+            setViewCameraRotation( newQuat * glm::inverse( oldQuat ) );
+        }
+
+        ImGui::End();
+    }
+
+    ImGui::PopID(); /*** ID = uidString.c_str() ***/
 
     // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_WindowRounding
     ImGui::PopStyleVar( 3 );
@@ -1430,6 +1487,9 @@ void renderInspectionWindowWithTable(
 
 //    bool selectionButtonShown = false;
 
+    static const ImVec2 sk_windowPadding( 0.0f, 0.0f );
+    static const float sk_windowRounding( 0.0f );
+
     static const ImVec4 buttonColor( 0.0f, 0.0f, 0.0f, 0.0f );
     static const ImVec4 blueColor( 0.0f, 0.5f, 1.0f, 1.0f );
 
@@ -1501,20 +1561,20 @@ void renderInspectionWindowWithTable(
     };
 
 
-//    auto showSelectionButton = [] ()
-//    {
-//        ImGui::PushStyleColor( ImGuiCol_Button, buttonColor );
-//        if ( ImGui::Button( "..." ) )
-//        {
-//            ImGui::OpenPopup( "selectionPopup" );
-//        }
-//        ImGui::PopStyleColor( 1 );
+    auto showSelectionButton = [] ()
+    {
+        ImGui::PushStyleColor( ImGuiCol_Button, buttonColor );
+        if ( ImGui::Button( "..." ) )
+        {
+            ImGui::OpenPopup( "selectionPopup" );
+        }
+        ImGui::PopStyleColor( 1 );
 
-//        if ( ImGui::IsItemHovered() )
-//        {
-//            ImGui::SetTooltip( "Select image(s) to inspect" );
-//        }
-//    };
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Select image(s) to inspect" );
+        }
+    };
 
 
     ImGuiIO& io = ImGui::GetIO();
@@ -1529,25 +1589,34 @@ void renderInspectionWindowWithTable(
             ImGuiTableFlags_ScrollY;
 
     ImGuiWindowFlags windowFlags =
-            ImGuiWindowFlags_NoDecoration |
+//            ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoFocusOnAppearing |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoBackground |
             ImGuiWindowFlags_NoNav;
 
     if ( corner != -1 )
     {
         windowFlags |= ImGuiWindowFlags_NoMove;
 
-        const ImVec2 windowPos = ImVec2( ( corner & 1 ) ? io.DisplaySize.x - sk_pad : sk_pad,
-                                         ( corner & 2 ) ? io.DisplaySize.y - sk_pad : sk_pad );
+        const ImVec2 windowPos{
+                    ( corner & 1 ) ? io.DisplaySize.x - sk_pad : sk_pad,
+                    ( corner & 2 ) ? io.DisplaySize.y - sk_pad : sk_pad };
 
-        const ImVec2 windowPosPivot = ImVec2( ( corner & 1 ) ? 1.0f : 0.0f,
-                                              ( corner & 2 ) ? 1.0f : 0.0f );
+        const ImVec2 windowPosPivot{
+                    ( corner & 1 ) ? 1.0f : 0.0f,
+                    ( corner & 2 ) ? 1.0f : 0.0f };
 
         ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
     }
 
-    ImGui::SetNextWindowBgAlpha( 0.35f ); // Transparent background
+    ImGui::SetNextWindowBgAlpha( 0.0f ); // Transparent background
+
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, sk_windowRounding );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
 
     if ( ImGui::Begin( "##InspectionWindow", &( appData.guiData().m_showInspectionWindow ), windowFlags ) )
     {       
@@ -1607,7 +1676,6 @@ void renderInspectionWindowWithTable(
                 ImGui::PushItemWidth( -1 );
                 {
                     std::string displayName = image->settings().displayName();
-
                     if ( ImGui::InputText( "", &displayName ) )
                     {
                         image->settings().setDisplayName( displayName );
@@ -1621,7 +1689,7 @@ void renderInspectionWindowWithTable(
                     ImGui::SetTooltip( "%s", image->header().fileName().c_str() );
                 }
 
-//                ImGui::SameLine(); showSelectionButton();
+                ImGui::SameLine(); showSelectionButton();
 
 
                 ImGui::TableNextColumn(); // "Value"
@@ -1632,10 +1700,8 @@ void renderInspectionWindowWithTable(
                     {
                         double a = *imageValue;
                         ImGui::PushItemWidth( -1 );
-                        {
-                            ImGui::InputScalar( "##imageValue", ImGuiDataType_Double, &a, nullptr, nullptr,
-                                                appData.guiData().m_imageValuePrecisionFormat.c_str() );
-                        }
+                        ImGui::InputScalar( "##imageValue", ImGuiDataType_Double, &a, nullptr, nullptr,
+                                            appData.guiData().m_imageValuePrecisionFormat.c_str() );
                         ImGui::PopItemWidth();
 
                         if ( image->header().numComponentsPerPixel() > 1 )
@@ -1650,9 +1716,7 @@ void renderInspectionWindowWithTable(
                     {
                         int64_t a = static_cast<int64_t>( *imageValue );
                         ImGui::PushItemWidth( -1 );
-                        {
-                            ImGui::InputScalar( "##imageValue", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
-                        }
+                        ImGui::InputScalar( "##imageValue", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
                         ImGui::PopItemWidth();
 
                         if ( image->header().numComponentsPerPixel() > 1 )
@@ -1677,9 +1741,7 @@ void renderInspectionWindowWithTable(
 
                     int64_t a = static_cast<int64_t>( *segLabel );
                     ImGui::PushItemWidth( -1 );
-                    {
-                        ImGui::InputScalar( "##segLabel", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
-                    }
+                    ImGui::InputScalar( "##segLabel", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
                     ImGui::PopItemWidth();
 
                     if ( table )
@@ -1708,26 +1770,24 @@ void renderInspectionWindowWithTable(
 
                 if ( voxelPos )
                 {
+                    static const glm::ivec3 sk_zero{ 0 };
+                    static const glm::ivec3 sk_minDim{ 0 };
+
                     ImGui::TableNextColumn(); // "Voxel"
 
-                    ImGui::PushItemWidth( -1 );
-
-                    static const glm::ivec3 sk_minDim{ 0 };
                     const glm::ivec3 sk_maxDim = static_cast<glm::ivec3>( image->header().pixelDimensions() ) - glm::ivec3{ 1, 1, 1 };
 
                     glm::ivec3 a = *voxelPos;
+                    ImGui::PushItemWidth( -1 );
                     if ( ImGui::DragScalarN( "##voxel", ImGuiDataType_S32, glm::value_ptr( a ), 3, 1.0f,
                                              glm::value_ptr( sk_minDim ), glm::value_ptr( sk_maxDim ), "%d" ) )
                     {
-                        static const glm::ivec3 sk_zero{ 0 };
-
                         if ( glm::all( glm::greaterThanEqual( a, sk_zero ) ) &&
                              glm::all( glm::lessThan( a, glm::ivec3{ image->header().pixelDimensions() } ) ) )
                         {
                             setVoxelPos( imageIndex, a );
                         }
                     }
-
                     ImGui::PopItemWidth();
 
                     if ( ImGui::IsItemHovered() )
@@ -1747,24 +1807,14 @@ void renderInspectionWindowWithTable(
 
                     // Step size is the  minimum voxel spacing
                     const float stepSize = glm::compMin( image->header().spacing() );
+                    glm::vec3 a = *subjectPos;
 
                     ImGui::PushItemWidth( -1 );
-
-                    glm::vec3 a = *subjectPos;
                     if ( ImGui::DragScalarN( "##physical", ImGuiDataType_Float, glm::value_ptr( a ), 3, stepSize,
                                              nullptr, nullptr, appData.guiData().m_coordsPrecisionFormat.c_str() ) )
                     {
                         setSubjectPos( imageIndex, a );
                     }
-
-//                    if ( ImGui::InputFloat3(
-//                             "##physical", glm::value_ptr( a ),
-//                             appData.guiData().m_coordsPrecisionFormat.c_str(),
-//                             ImGuiInputTextFlags_AllowTabInput ) )
-//                    {
-//                        setSubjectPos( imageIndex, a );
-//                    }
-
                     ImGui::PopItemWidth();
 
                     if ( ImGui::IsItemHovered() )
@@ -1797,6 +1847,9 @@ void renderInspectionWindowWithTable(
 
         ImGui::End();
     }
+
+    // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize
+    ImGui::PopStyleVar( 3 );
 }
 
 

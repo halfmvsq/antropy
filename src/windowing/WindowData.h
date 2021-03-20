@@ -108,6 +108,9 @@ public:
     /// Set ratio of framebuffer to window unit coordinates
     void setDeviceScaleRatio( const glm::vec2& ratio );
 
+    /// Get view UIDs in a camera rotation synchronization group
+    uuid_range_t cameraRotationGroupViewUids( const uuids::uuid& syncGroupUid ) const;
+
     /// Get view UIDs in a camera translation synchronization group
     uuid_range_t cameraTranslationGroupViewUids( const uuids::uuid& syncGroupUid ) const;
 

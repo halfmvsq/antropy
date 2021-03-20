@@ -64,6 +64,11 @@ glm::vec3 worldDirection( const CoordinateFrame&, const Directions::Cartesian& d
 glm::vec3 cameraDirectionOfAnatomy( const Camera& camera, const Directions::Anatomy& dir );
 
 /**
+ * @brief Return the normalized Camera-space vector of a World direction.
+ */
+glm::vec3 cameraDirectionOfWorld( const Camera& camera, const Directions::Cartesian& dir );
+
+/**
  * @brief World-space position of NDC point.
  * @param ndcPos NDC of point
  */
@@ -105,6 +110,11 @@ glm::vec3 cameraRayDirection( const Camera&, const glm::vec2& ndcRay );
  * @brief Apply a transformation to the camera relative to its start frame
  */
 void applyViewTransformation( Camera&, const glm::mat4& m );
+
+/**
+ * @brief Apply a rotation to the camera relative to its start frame
+ */
+void applyViewRotationAboutWorldPoint( Camera&, const glm::quat& rotation, const glm::vec3& worldRotationPos );
 
 /**
  * @brief Reset the camera to its start frame orientation
@@ -326,6 +336,9 @@ float computeSmallestWorldDepthOffset( const camera::Camera& camera, const glm::
  * @return Transformation
  */
 glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& clipVP );
+
+
+glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera );
 
 } // namespace camera
 

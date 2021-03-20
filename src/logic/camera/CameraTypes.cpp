@@ -6,8 +6,9 @@
 namespace camera
 {
 
-std::string typeString( const CameraType& type )
+std::string typeString( const CameraType& type, bool crosshairsRotated )
 {
+    // View camera type names when the crosshairs are NOT rotated:
     static const std::unordered_map< CameraType, std::string > s_typeToStringMap
     {
         { CameraType::Axial, "Axial" },
@@ -17,7 +18,17 @@ std::string typeString( const CameraType& type )
         { CameraType::Oblique, "Oblique" }
     };
 
-    return s_typeToStringMap.at( type );
+    // View camera type names when the crosshairs are ARE rotated:
+    static const std::unordered_map< CameraType, std::string > s_rotatedTypeToStringMap
+    {
+        { CameraType::Axial, "Crosshairs Z" },
+        { CameraType::Coronal, "Crosshairs Y" },
+        { CameraType::Sagittal, "Crosshairs X" },
+        { CameraType::ThreeD, "3D" },
+        { CameraType::Oblique, "Oblique" }
+    };
+
+    return ( crosshairsRotated ? s_rotatedTypeToStringMap.at( type ) : s_typeToStringMap.at( type ) );
 }
 
 std::string typeString( const ViewRenderMode& mode )

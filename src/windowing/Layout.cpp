@@ -2,10 +2,12 @@
 #include "common/UuidUtility.h"
 #include "logic/app/Data.h"
 
+
 Layout::Layout( bool isLightbox )
     :
       m_uid( generateRandomUuid() ),
       m_views(),
+      m_cameraRotationSyncGroups(),
       m_cameraTranslationSyncGroups(),
       m_cameraZoomSyncGroups(),
       m_isLightbox( isLightbox ),
@@ -298,6 +300,9 @@ std::unordered_map< uuids::uuid, std::shared_ptr<View> >&
 Layout::views() { return m_views; }
 
 std::unordered_map< uuids::uuid, std::list<uuids::uuid> >&
+Layout::cameraRotationSyncGroups() { return m_cameraRotationSyncGroups; }
+
+std::unordered_map< uuids::uuid, std::list<uuids::uuid> >&
 Layout::cameraTranslationSyncGroups() { return m_cameraTranslationSyncGroups; }
 
 std::unordered_map< uuids::uuid, std::list<uuids::uuid> >&
@@ -305,6 +310,9 @@ Layout::cameraZoomSyncGroups() { return m_cameraZoomSyncGroups; }
 
 const std::unordered_map< uuids::uuid, std::shared_ptr<View> >&
 Layout::views() const { return m_views; }
+
+const std::unordered_map< uuids::uuid, std::list<uuids::uuid> >&
+Layout::cameraRotationSyncGroups() const { return m_cameraRotationSyncGroups; }
 
 const std::unordered_map< uuids::uuid, std::list<uuids::uuid> >&
 Layout::cameraTranslationSyncGroups() const { return m_cameraTranslationSyncGroups; }

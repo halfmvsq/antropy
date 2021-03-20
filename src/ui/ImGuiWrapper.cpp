@@ -6,7 +6,9 @@
 #include "ui/Widgets.h"
 #include "ui/Windows.h"
 
+#include "logic/app/CallbackHandler.h"
 #include "logic/app/Data.h"
+#include "logic/camera/CameraHelpers.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -26,9 +28,21 @@
 CMRC_DECLARE(fonts);
 
 
-ImGuiWrapper::ImGuiWrapper( GLFWwindow* window, AppData& appData )
+namespace
+{
+
+static const glm::quat sk_identityRotation{ 1.0f, 0.0f, 0.0f, 0.0f };
+
+}
+
+
+ImGuiWrapper::ImGuiWrapper(
+        GLFWwindow* window,
+        AppData& appData,
+        CallbackHandler& callbackHandler )
     :
       m_appData( appData ),
+      m_callbackHandler( callbackHandler ),
 
       m_recenterView( nullptr ),
       m_recenterAllViews( nullptr ),
@@ -399,6 +413,27 @@ void ImGuiWrapper::render()
         m_appData.windowData().applyViewShaderToAllCurrentViews( viewUid );
     };
 
+    auto getViewCameraRotation = [this] ( const uuids::uuid& viewUid ) -> glm::quat
+    {
+        const View* view = m_appData.windowData().getCurrentView( viewUid );
+        if ( ! view ) return sk_identityRotation;
+
+        return camera::computeCameraRotationRelativeToWorld( view->camera() );
+    };
+
+    auto setViewCameraRotation = [this] ( const uuids::uuid& viewUid, const glm::quat& camera_T_world_rotationDelta )
+    {
+//        View* view = m_appData.windowData().getCurrentView( viewUid );
+//        if ( ! view ) return;
+
+//        camera::applyViewRotationAboutWorldPoint(
+//                    view->camera(),
+//                    camera_T_world_rotation,
+//                    m_appData.state().worldCrosshairs().worldOrigin() );
+
+        m_callbackHandler.doCameraRotate3d( viewUid, camera_T_world_rotationDelta );
+    };
+
 
     ImGui::NewFrame();
 
@@ -545,6 +580,15 @@ void ImGuiWrapper::render()
 
                     [this]() { m_recenterAllViews( sk_recenterCrosshairs, sk_recenterOnCurrentCrosshairsPosition, sk_resetObliqueOrientation ); },
                     nullptr );
+
+        renderViewOrientationToolWindow(
+                    currentLayout.uid(),
+                    currentLayout.winMouseMinMaxCoords(),
+                    currentLayout.uiControls(),
+                    true,
+                    currentLayout.cameraType(),
+                    [&getViewCameraRotation, &currentLayout] () { return getViewCameraRotation( currentLayout.uid() ); },
+                    [&setViewCameraRotation, &currentLayout] ( const glm::quat& q ) { return setViewCameraRotation( currentLayout.uid(), q ); } );
     }
     else if ( m_appData.guiData().m_renderUiOverlays && ! currentLayout.isLightbox() )
     {
@@ -594,6 +638,15 @@ void ImGuiWrapper::render()
 
                         recenter,
                         applyImageSelectionAndShaderToAllViews );
+
+            renderViewOrientationToolWindow(
+                    viewUid,
+                    view->winMouseMinMaxCoords(),
+                    view->uiControls(),
+                    false,
+                    view->cameraType(),
+                    [&getViewCameraRotation, &viewUid] () { return getViewCameraRotation( viewUid ); },
+                    [&setViewCameraRotation, &viewUid] ( const glm::quat& q ) { return setViewCameraRotation( viewUid, q ); } );
         }
     }
 

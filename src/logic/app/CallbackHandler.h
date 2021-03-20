@@ -5,7 +5,7 @@
 
 #include <uuid.h>
 
-#include <glm/vec2.hpp>
+#include <glm/fwd.hpp>
 
 
 class AppData;
@@ -77,6 +77,11 @@ public:
             const glm::vec2& lastWindowPos,
             const glm::vec2& currWindowPos,
             const glm::vec2& startWindowPos );
+
+    /// 3d rotation of the camera
+    void doCameraRotate3d(
+            const uuids::uuid& viewUid,
+            const glm::quat& camera_T_world_rotationDelta );
 
     /// 2D zoom of the camera
     void doCameraZoomDrag(

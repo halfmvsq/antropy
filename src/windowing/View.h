@@ -38,14 +38,19 @@ public:
      * @param[in] numOffsets Number of scroll offsets from the crosshairs at which to render this view's plane
      * @param[in] cameraType Camera type of the view
      * @param[in] shaderType Shader type of the view
+     *
+     * @todo Make two offset modes:
+     * 1) integer offset number of slices relative to reference image
+     * 2) absolute mm offset
      */
     View( Viewport winClipViewport,
           int32_t numOffsets,
           camera::CameraType cameraType,
           camera::ViewRenderMode shaderType,
           UiControls uiControls,
-          std::optional<uuids::uuid> translationSyncGroup = std::nullopt,
-          std::optional<uuids::uuid> zoomSyncGroup = std::nullopt );
+          std::optional<uuids::uuid> cameraRotationSyncGroupUid,
+          std::optional<uuids::uuid> translationSyncGroup,
+          std::optional<uuids::uuid> zoomSyncGroup );
 
     /// Update the view's camera based on the crosshairs World-space position.
     /// @return True iff successful view update
@@ -66,6 +71,7 @@ public:
     void setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners );
     const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords() const;
 
+    std::optional<uuids::uuid> cameraRotationSyncGroupUid() const;
     std::optional<uuids::uuid> cameraTranslationSyncGroupUid() const;
     std::optional<uuids::uuid> cameraZoomSyncGroupUid() const;
 
@@ -144,10 +150,9 @@ private:
     /**** END COMMON FUNCTIONALITY WITH LAYOUT ****/
 
 
-    // ID of the camera translation synchronization group to which this view belongs
+    // ID of the camera synchronization groups to which this view belongs
+    std::optional<uuids::uuid> m_cameraRotationSyncGroupUid;
     std::optional<uuids::uuid> m_cameraTranslationSyncGroupUid;
-
-    // ID of the camera zoom synchronization group to which this view belongs
     std::optional<uuids::uuid> m_cameraZoomSyncGroupUid;
 
     // Depth (z component) of any point on the image plane to be rendered (defined in Clip space)
