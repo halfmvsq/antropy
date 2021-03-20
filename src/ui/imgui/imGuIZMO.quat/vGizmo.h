@@ -88,7 +88,7 @@ public:
         if( glm::all( glm::epsilonEqual( delta, glm::vec2{0.0f}, glm::vec2{ glm::epsilon<float>() } ) )) update();
         delta.x = delta.y = 0;
     }
-    void inline testRotModifier(int x, int y, vgModifiers mod) { }
+    void inline testRotModifier(int /*x*/, int /*y*/, vgModifiers /*mod*/) { }
     
     //    Call on mouse button event
     //      button:  your mouse button
@@ -391,11 +391,12 @@ public:
     }
 
     //////////////////////////////////////////////////////////////////
-    void motion( int x, int y, T z=T(0)) { motion( T(x), T(y), z); }
-    void motion( T x, T y, T z=T(0)) {
-        povPanDollyFactor = z;
-        if( this->tbActive || dollyActive || panActive) VGIZMO_BASE_CLASS::motion(x,y);
-    }
+//    void motion( int x, int y, T z=T(0)) { motion( T(x), T(y), z); }
+
+//    void motion( T x, T y, T z=T(0)) {
+//        povPanDollyFactor = z;
+//        if( this->tbActive || dollyActive || panActive) VGIZMO_BASE_CLASS::motion(x,y);
+//    }
 
     //////////////////////////////////////////////////////////////////
     void updatePan() {

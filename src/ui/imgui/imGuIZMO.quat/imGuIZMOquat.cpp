@@ -258,7 +258,7 @@ bool gizmo3D(const char* label, vec3& vPanDolly, vec4& axis_angle, float size, c
 bool gizmo3D(const char* label, vec3& vPanDolly, vec3& dir, float size, const int mode)
 {
     imguiGizmo g;
-    g.modeSettings( ( mode & ((imguiGizmo::modeDirection | imguiGizmo::modeDirPlane) ? mode : imguiGizmo::modeDirection) )  | g.modePanDolly);
+    g.modeSettings( ( mode & ( mode ) )  | g.modePanDolly);
     g.posPanDolly = vPanDolly;
 
     bool ret = g.getTransforms(g.qtV, label, dir, size);
