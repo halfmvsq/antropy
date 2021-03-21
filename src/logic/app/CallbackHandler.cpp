@@ -971,7 +971,8 @@ void CallbackHandler::doCameraRotate2d(
 void CallbackHandler::doCameraRotate3d(
         const glm::vec2& lastWindowPos,
         const glm::vec2& currWindowPos,
-        const glm::vec2& startWindowPos )
+        const glm::vec2& startWindowPos,
+        const std::optional<AxisConstraint>& constraint )
 {
     auto& windowData = m_appData.windowData();
 
@@ -994,8 +995,28 @@ void CallbackHandler::doCameraRotate3d(
     const glm::vec4 lastViewClipPos = view->viewClip_T_winClip() * lastWinClipPos;
     const glm::vec4 currViewClipPos = view->viewClip_T_winClip() * currWinClipPos;
 
-    const glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
-    const glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
+    glm::vec2 lastViewNdcPos = glm::vec2{ lastViewClipPos / lastViewClipPos.w };
+    glm::vec2 currViewNdcPos = glm::vec2{ currViewClipPos / currViewClipPos.w };
+
+    if ( constraint )
+    {
+        switch ( *constraint )
+        {
+        case AxisConstraint::X :
+        {
+            lastViewNdcPos.x = 0.0f;
+            currViewNdcPos.x = 0.0f;
+            break;
+        }
+        case AxisConstraint::Y :
+        {
+            lastViewNdcPos.y = 0.0f;
+            currViewNdcPos.y = 0.0f;
+            break;
+        }
+        default: break;
+        }
+    }
 
     /// @todo Different behavior for rotation 3D view types!
 
@@ -1009,7 +1030,8 @@ void CallbackHandler::doCameraRotate3d(
             // Only synchronize rotations if the view camera types are the same:
             if ( syncedView->cameraType() != view->cameraType() ) continue;
 
-            // Rotations only synchronize if the view normals are the same:
+            // Rotations only synchronize if the view normals are close:
+            /// @todo Check angle instead of dot product using acos
             const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
             const glm::vec3 n2 = camera::worldDirection( view->camera(), Directions::View::Back );
             if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-2f ) continue;

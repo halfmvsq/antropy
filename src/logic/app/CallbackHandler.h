@@ -18,6 +18,14 @@ class CallbackHandler
 {
 public:
 
+    enum class AxisConstraint
+    {
+        X,
+        Y,
+        Z
+    };
+
+
     CallbackHandler( AppData&, Rendering& );
     ~CallbackHandler() = default;
 
@@ -76,7 +84,8 @@ public:
     void doCameraRotate3d(
             const glm::vec2& lastWindowPos,
             const glm::vec2& currWindowPos,
-            const glm::vec2& startWindowPos );
+            const glm::vec2& startWindowPos,
+            const std::optional<AxisConstraint>& constraint );
 
     /// 3d rotation of the camera
     void doCameraRotate3d(

@@ -408,7 +408,8 @@ void renderViewOrientationToolWindow(
         bool hasFrameAndBackground,
         const camera::CameraType& cameraType,
         const std::function< glm::quat () >& getViewCameraRotation,
-        const std::function< void ( const glm::quat& camera_T_world_rotationDelta ) >& setViewCameraRotation )
+        const std::function< void ( const glm::quat& camera_T_world_rotationDelta ) >& setViewCameraRotation,
+        const std::function< glm::vec3 () >& getViewNormal )
 {
     static const glm::vec2 sk_framePad{ 4.0f, 4.0f };
     static const ImVec2 sk_windowPadding( 0.0f, 0.0f );
@@ -470,6 +471,12 @@ void renderViewOrientationToolWindow(
         if ( ImGui::gizmo3D( "", newQuat, sk_size, sk_mode ) )
         {
             setViewCameraRotation( newQuat * glm::inverse( oldQuat ) );
+        }
+
+        if ( ImGui::IsItemHovered() )
+        {
+            const glm::vec3 n = getViewNormal();
+            ImGui::SetTooltip( "View normal: (%0.3f, %0.3f, %0.3f)\n", n.x, n.y, n.z );
         }
 
         ImGui::End();
@@ -795,18 +802,6 @@ void renderSettingsWindow(
         {
             if ( ImGui::BeginTabItem( "Views" ) )
             {
-                ImGui::ColorEdit3( "Background color",
-                                   glm::value_ptr( appData.renderData().m_backgroundColor ),
-                                   sk_colorEditFlags );
-
-                ImGui::ColorEdit4( "Crosshairs color",
-                                   glm::value_ptr( appData.renderData().m_crosshairsColor ),
-                                   sk_colorAlphaEditFlags );
-
-                ImGui::ColorEdit4( "Anatomical label color",
-                                   glm::value_ptr( appData.renderData().m_anatomicalLabelColor ),
-                                   sk_colorAlphaEditFlags );
-
                 // Show image-view intersection border
                 ImGui::Checkbox( "Show image borders",
                                  &( appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections ) );
@@ -848,8 +843,29 @@ void renderSettingsWindow(
                 ImGui::Dummy( ImVec2( 0.0f, 1.0f ) );
 
 
-                // View centering:
+                // Colors:
+                ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
 
+                if ( ImGui::TreeNode( "Colors" ) )
+                {
+                    ImGui::ColorEdit3( "Background",
+                                       glm::value_ptr( appData.renderData().m_backgroundColor ),
+                                       sk_colorEditFlags );
+
+                    ImGui::ColorEdit4( "Crosshairs",
+                                       glm::value_ptr( appData.renderData().m_crosshairsColor ),
+                                       sk_colorAlphaEditFlags );
+
+                    ImGui::ColorEdit4( "Anatomical labels",
+                                       glm::value_ptr( appData.renderData().m_anatomicalLabelColor ),
+                                       sk_colorAlphaEditFlags );
+
+                    ImGui::Spacing();
+                    ImGui::TreePop();
+                }
+
+
+                // View centering:
                 ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
 
                 if ( ImGui::TreeNode( "View Recentering" ) )
@@ -939,7 +955,6 @@ void renderSettingsWindow(
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on all loaded images" );
 
                     ImGui::Spacing();
-
                     ImGui::TreePop();
                 }
 
@@ -1493,6 +1508,25 @@ void renderInspectionWindowWithTable(
     static const ImVec4 buttonColor( 0.0f, 0.0f, 0.0f, 0.0f );
     static const ImVec4 blueColor( 0.0f, 0.5f, 1.0f, 1.0f );
 
+    static const ImGuiTableFlags sk_tableFlags =
+            ImGuiTableFlags_Resizable |
+            ImGuiTableFlags_Reorderable |
+            ImGuiTableFlags_Hideable |
+            ImGuiTableFlags_Borders |
+            ImGuiTableFlags_SizingFixedFit |
+            ImGuiTableFlags_ScrollX |
+            ImGuiTableFlags_ScrollY;
+
+    static const ImGuiWindowFlags sk_windowFlags =
+            ImGuiWindowFlags_NoDecoration |
+            ImGuiWindowFlags_MenuBar |
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoFocusOnAppearing |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_NoScrollbar |
+            ImGuiWindowFlags_NoBackground |
+            ImGuiWindowFlags_NoNav;
+
     // For which images to show coordinates?
     static std::unordered_map<uuids::uuid, bool> s_showSubject;
 
@@ -1524,7 +1558,6 @@ void renderInspectionWindowWithTable(
                 }
 
                 bool& visible = s_showSubject[*imageUid];
-
                 const auto names = getImageDisplayAndFileName( imageIndex );
 
                 if ( ImGui::MenuItem( names.first, nullptr, visible ) )
@@ -1557,7 +1590,7 @@ void renderInspectionWindowWithTable(
             appData.guiData().m_showInspectionWindow = false;
         }
 
-        ImGui::EndPopup();
+//        ImGui::EndPopup();
     };
 
 
@@ -1577,40 +1610,28 @@ void renderInspectionWindowWithTable(
     };
 
 
-    ImGuiIO& io = ImGui::GetIO();
-
-    static const ImGuiTableFlags sk_tableFlags =
-            ImGuiTableFlags_Resizable |
-            ImGuiTableFlags_Reorderable |
-            ImGuiTableFlags_Hideable |
-            ImGuiTableFlags_Borders |
-            ImGuiTableFlags_SizingFixedFit |
-            ImGuiTableFlags_ScrollX |
-            ImGuiTableFlags_ScrollY;
-
-    ImGuiWindowFlags windowFlags =
-//            ImGuiWindowFlags_NoDecoration |
-            ImGuiWindowFlags_AlwaysAutoResize |
-            ImGuiWindowFlags_NoFocusOnAppearing |
-            ImGuiWindowFlags_NoResize |
-            ImGuiWindowFlags_NoScrollbar |
-            ImGuiWindowFlags_NoBackground |
-            ImGuiWindowFlags_NoNav;
+    ImGuiWindowFlags windowFlags = sk_windowFlags;
 
     if ( corner != -1 )
     {
         windowFlags |= ImGuiWindowFlags_NoMove;
 
-        const ImVec2 windowPos{
-                    ( corner & 1 ) ? io.DisplaySize.x - sk_pad : sk_pad,
-                    ( corner & 2 ) ? io.DisplaySize.y - sk_pad : sk_pad };
+        ImGuiIO& io = ImGui::GetIO();
 
-        const ImVec2 windowPosPivot{
+        const ImVec2 windowPos(
+                    ( corner & 1 ) ? io.DisplaySize.x - sk_pad : sk_pad,
+                    ( corner & 2 ) ? io.DisplaySize.y - sk_pad : sk_pad );
+
+        const ImVec2 windowPosPivot(
                     ( corner & 1 ) ? 1.0f : 0.0f,
-                    ( corner & 2 ) ? 1.0f : 0.0f };
+                    ( corner & 2 ) ? 1.0f : 0.0f );
 
         ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
     }
+
+    const ImVec4* colors = ImGui::GetStyle().Colors;
+    ImVec4 menuBarBgColor = colors[ImGuiCol_MenuBarBg];
+    menuBarBgColor.w /= 2.0f;
 
     ImGui::SetNextWindowBgAlpha( 0.0f ); // Transparent background
 
@@ -1619,7 +1640,16 @@ void renderInspectionWindowWithTable(
     ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
 
     if ( ImGui::Begin( "##InspectionWindow", &( appData.guiData().m_showInspectionWindow ), windowFlags ) )
-    {       
+    {
+        ImGui::PushStyleColor( ImGuiCol_MenuBarBg, menuBarBgColor );
+        if ( ImGui::BeginMenuBar() )
+        {
+            contextMenu();
+            ImGui::EndMenuBar();
+        }
+        ImGui::PopStyleColor( 1 ); // ImGuiCol_MenuBarBg
+
+
         if ( ImGui::BeginTable( "Image Information", 6, sk_tableFlags ) )
         {
             ImGui::TableSetupScrollFreeze( 1, 1 );

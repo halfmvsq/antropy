@@ -32,6 +32,7 @@ namespace
 {
 
 static const glm::quat sk_identityRotation{ 1.0f, 0.0f, 0.0f, 0.0f };
+static const glm::vec3 sk_zeroVec{ 0.0f, 0.0f, 0.0f };
 
 }
 
@@ -434,6 +435,13 @@ void ImGuiWrapper::render()
         m_callbackHandler.doCameraRotate3d( viewUid, camera_T_world_rotationDelta );
     };
 
+    auto getViewNormal = [this] ( const uuids::uuid& viewUid )
+    {
+        View* view = m_appData.windowData().getCurrentView( viewUid );
+        if ( ! view ) return sk_zeroVec;
+        return camera::worldDirection( view->camera(), Directions::View::Back );
+    };
+
 
     ImGui::NewFrame();
 
@@ -588,7 +596,8 @@ void ImGuiWrapper::render()
                     true,
                     currentLayout.cameraType(),
                     [&getViewCameraRotation, &currentLayout] () { return getViewCameraRotation( currentLayout.uid() ); },
-                    [&setViewCameraRotation, &currentLayout] ( const glm::quat& q ) { return setViewCameraRotation( currentLayout.uid(), q ); } );
+                    [&setViewCameraRotation, &currentLayout] ( const glm::quat& q ) { return setViewCameraRotation( currentLayout.uid(), q ); },
+                    [&getViewNormal, &currentLayout] () { return getViewNormal( currentLayout.uid() ); } );
     }
     else if ( m_appData.guiData().m_renderUiOverlays && ! currentLayout.isLightbox() )
     {
@@ -646,7 +655,8 @@ void ImGuiWrapper::render()
                     false,
                     view->cameraType(),
                     [&getViewCameraRotation, &viewUid] () { return getViewCameraRotation( viewUid ); },
-                    [&setViewCameraRotation, &viewUid] ( const glm::quat& q ) { return setViewCameraRotation( viewUid, q ); } );
+                    [&setViewCameraRotation, &viewUid] ( const glm::quat& q ) { return setViewCameraRotation( viewUid, q ); },
+                    [&getViewNormal, &viewUid] () { return getViewNormal( viewUid ); } );
         }
     }
 

@@ -96,7 +96,7 @@ enum class MouseMode
     WindowLevel, //!< Adjust window and level of the active image
     Segment, //!< Segment the active image
     Annotate, //!< Annotate the active image
-    CameraTranslate2D, //!< Translate the view camera in plane
+    CameraTranslate, //!< Translate the view camera in plane
     CameraRotate, //!< Rotate the view camera in plane and out of plane
     CameraZoom, //!< Zoom the view camera
     ImageTranslate, //!< Translate the active image in 2D and 3D
@@ -108,7 +108,7 @@ enum class MouseMode
 inline std::array<MouseMode, 9> const AllMouseModes = {
     MouseMode::Pointer,
     MouseMode::WindowLevel,
-    MouseMode::CameraTranslate2D,
+    MouseMode::CameraTranslate,
     MouseMode::CameraRotate,
     MouseMode::CameraZoom,
     MouseMode::Segment,

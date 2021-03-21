@@ -74,7 +74,8 @@ void renderViewOrientationToolWindow(
         bool hasFrameAndBackground,
         const camera::CameraType& cameraType,
         const std::function< glm::quat () >& getViewCameraRotation,
-        const std::function< void ( const glm::quat& camera_T_world_rotationDelta ) >& setViewCameraRotation );
+        const std::function< void ( const glm::quat& camera_T_world_rotationDelta ) >& setViewCameraRotation,
+        const std::function< glm::vec3 () >& getViewNormal );
 
 
 /**

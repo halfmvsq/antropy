@@ -203,7 +203,7 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
         }
         break;
     }
-    case MouseMode::CameraTranslate2D:
+    case MouseMode::CameraTranslate:
     {
         if ( s_mouseButtonState.left )
         {
@@ -219,7 +219,13 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
         }
         else if ( s_mouseButtonState.right )
         {
-            handler.doCameraRotate3d( *s_lastWinPos, currWinPos, *s_startWinPos );
+            std::optional<CallbackHandler::AxisConstraint> constraint;
+
+            if ( s_modifierState.shift ) constraint = CallbackHandler::AxisConstraint::X;
+            else if ( s_modifierState.control ) constraint = CallbackHandler::AxisConstraint::Y;
+            else if ( s_modifierState.alt ) constraint = CallbackHandler::AxisConstraint::Z;
+
+            handler.doCameraRotate3d( *s_lastWinPos, currWinPos, *s_startWinPos, constraint );
         }
         break;
     }
@@ -324,7 +330,7 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     {
     case MouseMode::Pointer:
     case MouseMode::Segment:
-    case MouseMode::CameraTranslate2D:
+    case MouseMode::CameraTranslate:
     case MouseMode::CameraRotate:
     case MouseMode::ImageRotate:
     case MouseMode::ImageTranslate:
@@ -405,7 +411,7 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
 //    case GLFW_KEY_Y: handler.setMouseMode( MouseMode::ImageScale ); break;
 
     case GLFW_KEY_Z: handler.setMouseMode( MouseMode::CameraZoom ); break;
-    case GLFW_KEY_X: handler.setMouseMode( MouseMode::CameraTranslate2D ); break;
+    case GLFW_KEY_X: handler.setMouseMode( MouseMode::CameraTranslate ); break;
 
     case GLFW_KEY_A: handler.decreaseSegOpacity(); break;
     case GLFW_KEY_S: handler.toggleSegVisibility(); break;
