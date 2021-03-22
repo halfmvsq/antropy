@@ -1496,7 +1496,7 @@ void renderLandmarkGroupHeader(
 
             const auto newLmGroupUid = appData.addLandmarkGroup( std::move( newGroup ) );
             appData.assignLandmarkGroupUidToImage( imageUid, newLmGroupUid );
-            appData.setRainbowColorsForLandmarkGroups();
+            appData.setRainbowColorsForAllLandmarkGroups();
         }
 
         ImGui::PopID(); // imageUid

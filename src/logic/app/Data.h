@@ -148,11 +148,11 @@ public:
     std::optional<uuids::uuid> activeImageUid() const;
 
     /// Set rainbow colors for the image border and edges
-    void setRainbowColorsForImage();
+    void setRainbowColorsForAllImages();
 
     /// Set rainbow colors for all of the landmark groups.
     /// Copy the image edge color
-    void setRainbowColorsForLandmarkGroups();
+    void setRainbowColorsForAllLandmarkGroups();
 
     /// Move the image backward/forward in layers (decrease/increase its layer order)
     bool moveImageBackwards( const uuids::uuid imageUid );

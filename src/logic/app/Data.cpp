@@ -15,6 +15,7 @@
 #include <spdlog/fmt/ostr.h>
 
 #include <algorithm>
+#include <cmath>
 #include <sstream>
 #include <vector>
 
@@ -550,15 +551,15 @@ bool AppData::setActiveImageUid( const uuids::uuid& uid )
     return false;
 }
 
-void AppData::setRainbowColorsForImage()
+void AppData::setRainbowColorsForAllImages()
 {
     static constexpr float sat = 0.80f;
     static constexpr float val = 0.90f;
 
-    const float N = static_cast<float>(
-                ( m_imageUidsOrdered.size() <= 2 )
-                ? m_imageUidsOrdered.size()
-                : ( m_imageUidsOrdered.size() - 1 ) );
+    const float N = static_cast<float>( m_imageUidsOrdered.size() );
+
+    static constexpr float sk_start = 0.0f;
+    static constexpr float sk_dir = 1.0f;
 
     for ( size_t i = 0; i < m_imageUidsOrdered.size(); ++i )
     {
@@ -566,7 +567,12 @@ void AppData::setRainbowColorsForImage()
 
         if ( Image* img = image( imageUid ) )
         {
-            const float hue = 255.0f * static_cast<float>( i ) / N;
+            const float a = ( 1.0f + sk_start + sk_dir * static_cast<float>( i ) / N );
+
+            float fractPart, intPart;
+            fractPart = std::modf( a , &intPart );
+
+            const float hue = 360.0f * fractPart;
             const glm::vec3 color = glm::rgbColor( glm::vec3{ hue, sat, val } );
 
             // Set the border color
@@ -581,7 +587,7 @@ void AppData::setRainbowColorsForImage()
     }
 }
 
-void AppData::setRainbowColorsForLandmarkGroups()
+void AppData::setRainbowColorsForAllLandmarkGroups()
 {
     for ( const auto imageUid : m_imageUidsOrdered )
     {

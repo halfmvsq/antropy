@@ -1076,8 +1076,8 @@ void AntropyApp::loadImagesFromParams( const InputParams& params )
 
 
         // Assign nice rainbow colors
-        m_data.setRainbowColorsForImage();
-        m_data.setRainbowColorsForLandmarkGroups();
+        m_data.setRainbowColorsForAllImages();
+        m_data.setRainbowColorsForAllLandmarkGroups();
 
         // If there is only one image, show the tri-view layout:
         if ( 1 == m_data.numImages() )
