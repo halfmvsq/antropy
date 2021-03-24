@@ -553,13 +553,13 @@ bool AppData::setActiveImageUid( const uuids::uuid& uid )
 
 void AppData::setRainbowColorsForAllImages()
 {
-    static constexpr float sat = 0.80f;
-    static constexpr float val = 0.90f;
+    static constexpr float sk_colorSat = 0.80f;
+    static constexpr float sk_colorVal = 0.90f;
+
+    // Starting color hue, where hues repeat cyclically over range [0.0, 1.0]
+    static constexpr float sk_startHue = -1.0f / 48.0f;
 
     const float N = static_cast<float>( m_imageUidsOrdered.size() );
-
-    static constexpr float sk_start = 0.0f;
-    static constexpr float sk_dir = 1.0f;
 
     for ( size_t i = 0; i < m_imageUidsOrdered.size(); ++i )
     {
@@ -567,16 +567,15 @@ void AppData::setRainbowColorsForAllImages()
 
         if ( Image* img = image( imageUid ) )
         {
-            const float a = ( 1.0f + sk_start + sk_dir * static_cast<float>( i ) / N );
+            const float a = ( 1.0f + sk_startHue + static_cast<float>( i ) / N );
 
             float fractPart, intPart;
             fractPart = std::modf( a , &intPart );
 
             const float hue = 360.0f * fractPart;
-            const glm::vec3 color = glm::rgbColor( glm::vec3{ hue, sat, val } );
+            const glm::vec3 color = glm::rgbColor( glm::vec3{ hue, sk_colorSat, sk_colorVal } );
 
-            // Set the border color
-            img->settings().setBorderColor( color );
+           img->settings().setBorderColor( color );
 
             // All image components get the same edge color
             for ( uint32_t c = 0; c < img->header().numComponentsPerPixel(); ++c )
@@ -589,6 +588,7 @@ void AppData::setRainbowColorsForAllImages()
 
 void AppData::setRainbowColorsForAllLandmarkGroups()
 {
+    // Landmark group color is set to image border color
     for ( const auto imageUid : m_imageUidsOrdered )
     {
         const Image* img = image( imageUid );

@@ -105,7 +105,9 @@ RenderData::RenderData()
       m_overlayMagentaCyan( true ),
       m_quadrants( true, true ),
       m_useSquare( true ),
-      m_flashlightRadius( 0.15f )
+
+      m_flashlightRadius( 0.15f ),
+      m_flashlightOverlays( true )
 {
 }
 

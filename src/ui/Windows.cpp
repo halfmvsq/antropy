@@ -37,6 +37,8 @@ static const ImVec4 sk_blackText( 0, 0, 0, 1 );
 static const ImVec2 sk_toolbarButtonSize( 32, 32 );
 static const ImVec2 sk_smallToolbarButtonSize( 24, 24 );
 
+static const std::string sk_NA( "<N/A>" );
+
 } // anonymous
 
 
@@ -970,77 +972,7 @@ void renderSettingsWindow(
             {
                 ImGui::PushID( "metrics" ); /*** PushID metrics ***/
 
-                if ( ImGui::TreeNode( "General" ) )
-                {
-                    // Overlay style:
-                    if ( ImGui::RadioButton( "Magenta/cyan", true == appData.renderData().m_overlayMagentaCyan ) )
-                    {
-                        appData.renderData().m_overlayMagentaCyan = true;
-                    }
-
-                    ImGui::SameLine();
-                    if ( ImGui::RadioButton( "Red/green overlay", false == appData.renderData().m_overlayMagentaCyan ) )
-                    {
-                        appData.renderData().m_overlayMagentaCyan = false;
-                    }
-                    ImGui::SameLine();
-                    helpMarker( "Color style for 'overlay' views" );
-
-
-                    // Quadrants style:
-                    const glm::bvec2 Q = appData.renderData().m_quadrants;
-
-                    if ( ImGui::RadioButton( "X", true == ( Q.x && ! Q.y ) ) )
-                    {
-                        appData.renderData().m_quadrants = glm::bvec2{ true, false };
-                    }
-
-                    ImGui::SameLine();
-                    if ( ImGui::RadioButton( "Y", true == ( ! Q.x && Q.y ) ) )
-                    {
-                        appData.renderData().m_quadrants = glm::bvec2{ false, true };
-                    }
-
-                    ImGui::SameLine();
-                    if ( ImGui::RadioButton( "X and Y comparison", true == ( Q.x && Q.y ) ) )
-                    {
-                        appData.renderData().m_quadrants = glm::bvec2{ true, true };
-                    }
-
-                    ImGui::SameLine();
-                    helpMarker( "Comparison directions in 'quadrant' views" );
-
-
-                    // Checkerboard squares
-                    int numSquares = appData.renderData().m_numCheckerboardSquares;
-                    if ( ImGui::InputInt( "Checkerboard size", &numSquares ) )
-                    {
-                        if ( 2 <= numSquares && numSquares <= 2048 )
-                        {
-                            appData.renderData().m_numCheckerboardSquares = numSquares;
-                        }
-                    }
-                    ImGui::SameLine(); helpMarker( "Number of squares in 'checkerboard' views" );
-
-
-                    // Flashlight radius
-                    const float radius = appData.renderData().m_flashlightRadius;
-                    int radiusPercent = static_cast<int>( 100 * radius );
-                    constexpr int k_minRadius = 1;
-                    constexpr int k_maxRadius = 100;
-
-                    if ( ImGui::SliderScalar( "Flashlight size", ImGuiDataType_S32, &radiusPercent, &k_minRadius, &k_maxRadius, "%d" ) )
-                    {
-                        appData.renderData().m_flashlightRadius = static_cast<float>( radiusPercent ) / 100.0f;
-                    }
-                    ImGui::SameLine();
-                    helpMarker( "Circle size for 'flashlight' views, as a percentage of the view size" );
-
-                    ImGui::Separator();
-                    ImGui::TreePop();
-                }
-
-
+                ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
                 if ( ImGui::TreeNode( "Difference" ) )
                 {
                     ImGui::PushID( "diff" );
@@ -1070,6 +1002,7 @@ void renderSettingsWindow(
                 }
 
 
+                ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
                 if ( ImGui::TreeNode( "Cross-correlation" ) )
                 {
                     ImGui::PushID( "crosscorr" );
@@ -1079,8 +1012,6 @@ void renderSettingsWindow(
                                                  "crosscorr" );
                     }
                     ImGui::PopID(); // "crosscorr"
-
-                    ImGui::Separator();
                     ImGui::TreePop();
                 }
 
@@ -1088,6 +1019,118 @@ void renderSettingsWindow(
                 ImGui::PopID(); /*** PopID metrics ***/
                 ImGui::EndTabItem();
             }
+
+
+            if ( ImGui::BeginTabItem( "Comparison modes" ) )
+            {
+                ImGui::PushID( "comparison" ); /*** PushID metrics ***/
+
+//                if ( ImGui::TreeNode( "Comparison comparison" ) )
+//                {
+                    // Overlap style:
+                    ImGui::Text( "Overlap:" );
+
+                    if ( ImGui::RadioButton( "Magenta/cyan", true == appData.renderData().m_overlayMagentaCyan ) )
+                    {
+                        appData.renderData().m_overlayMagentaCyan = true;
+                    }
+
+                    ImGui::SameLine();
+                    if ( ImGui::RadioButton( "Red/green overlay", false == appData.renderData().m_overlayMagentaCyan ) )
+                    {
+                        appData.renderData().m_overlayMagentaCyan = false;
+                    }
+                    ImGui::SameLine();
+                    helpMarker( "Color style for 'overlay' views" );
+                    ImGui::Spacing();
+                    ImGui::Separator();
+
+
+                    // Quadrants style:
+                    ImGui::Text( "Quadrants:" );
+
+                    const glm::bvec2 Q = appData.renderData().m_quadrants;
+
+                    if ( ImGui::RadioButton( "X", true == ( Q.x && ! Q.y ) ) )
+                    {
+                        appData.renderData().m_quadrants = glm::bvec2{ true, false };
+                    }
+
+                    ImGui::SameLine();
+                    if ( ImGui::RadioButton( "Y", true == ( ! Q.x && Q.y ) ) )
+                    {
+                        appData.renderData().m_quadrants = glm::bvec2{ false, true };
+                    }
+
+                    ImGui::SameLine();
+                    if ( ImGui::RadioButton( "X and Y comparison", true == ( Q.x && Q.y ) ) )
+                    {
+                        appData.renderData().m_quadrants = glm::bvec2{ true, true };
+                    }
+
+                    ImGui::SameLine();
+                    helpMarker( "Comparison directions in 'quadrant' views" );
+                    ImGui::Spacing();
+                    ImGui::Separator();
+
+
+                    // Checkerboard squares
+                    ImGui::Text( "Checkerboard:" );
+
+                    int numSquares = appData.renderData().m_numCheckerboardSquares;
+                    if ( ImGui::InputInt( "Number of checkers", &numSquares ) )
+                    {
+                        if ( 2 <= numSquares && numSquares <= 2048 )
+                        {
+                            appData.renderData().m_numCheckerboardSquares = numSquares;
+                        }
+                    }
+                    ImGui::SameLine(); helpMarker( "Number of squares in Checkerboard mode" );
+                    ImGui::Spacing();
+                    ImGui::Separator();
+
+
+                    // Flashlight
+                    ImGui::Text( "Flashlight:" );
+
+                    // Flashlight radius
+                    const float radius = appData.renderData().m_flashlightRadius;
+                    int radiusPercent = static_cast<int>( 100 * radius );
+                    constexpr int k_minRadius = 1;
+                    constexpr int k_maxRadius = 100;
+
+                    if ( ImGui::SliderScalar( "Circle size", ImGuiDataType_S32,
+                                              &radiusPercent, &k_minRadius, &k_maxRadius, "%d" ) )
+                    {
+                        appData.renderData().m_flashlightRadius = static_cast<float>( radiusPercent ) / 100.0f;
+                    }
+                    ImGui::SameLine();
+                    helpMarker( "Circle size (as a percentage of the view size) for Flashlight rendering" );
+
+
+                    ImGui::Spacing();
+                    if ( ImGui::RadioButton( "Overlay moving image atop fixed image",
+                                             true == appData.renderData().m_flashlightOverlays ) )
+                    {
+                        appData.renderData().m_flashlightOverlays = true;
+                    }
+
+                    if ( ImGui::RadioButton( "Replace fixed image with moving image",
+                                             false == appData.renderData().m_flashlightOverlays ) )
+                    {
+                        appData.renderData().m_flashlightOverlays = false;
+                    }
+                    ImGui::SameLine();
+                    helpMarker( "Mode for Flashlight rendering: overlay or replacement" );
+
+//                    ImGui::Separator();
+//                    ImGui::TreePop();
+//                }
+
+                ImGui::PopID(); /*** PopID comparison ***/
+                ImGui::EndTabItem();
+            }
+
 
 
             if ( ImGui::BeginTabItem( "Landmarks" ) )
@@ -1503,7 +1546,7 @@ void renderInspectionWindowWithTable(
 //    bool selectionButtonShown = false;
 
     static const ImVec2 sk_windowPadding( 0.0f, 0.0f );
-    static const float sk_windowRounding( 0.0f );
+//    static const float sk_windowRounding( 0.0f );
 
     static const ImVec4 buttonColor( 0.0f, 0.0f, 0.0f, 0.0f );
     static const ImVec4 blueColor( 0.0f, 0.5f, 1.0f, 1.0f );
@@ -1518,7 +1561,6 @@ void renderInspectionWindowWithTable(
             ImGuiTableFlags_ScrollY;
 
     static const ImGuiWindowFlags sk_windowFlags =
-            ImGuiWindowFlags_NoDecoration |
             ImGuiWindowFlags_MenuBar |
             ImGuiWindowFlags_AlwaysAutoResize |
             ImGuiWindowFlags_NoFocusOnAppearing |
@@ -1526,6 +1568,8 @@ void renderInspectionWindowWithTable(
             ImGuiWindowFlags_NoScrollbar |
             ImGuiWindowFlags_NoBackground |
             ImGuiWindowFlags_NoNav;
+
+    static bool s_showTitleBar = false;
 
     // For which images to show coordinates?
     static std::unordered_map<uuids::uuid, bool> s_showSubject;
@@ -1574,20 +1618,30 @@ void renderInspectionWindowWithTable(
             ImGui::EndMenu();
         }
 
-        if ( ImGui::BeginMenu( "Position" ) )
+        if ( ImGui::BeginMenu( "Window" ) )
         {
-            if ( ImGui::MenuItem( "Custom", nullptr, corner == -1 ) ) corner = -1;
-            if ( ImGui::MenuItem( "Top-left", nullptr, corner == 0 ) ) corner = 0;
-            if ( ImGui::MenuItem( "Top-right", nullptr, corner == 1 ) ) corner = 1;
-            if ( ImGui::MenuItem( "Bottom-left", nullptr, corner == 2 ) ) corner = 2;
-            if ( ImGui::MenuItem( "Bottom-right", nullptr, corner == 3 ) ) corner = 3;
+            if ( ImGui::BeginMenu( "Position" ) )
+            {
+                if ( ImGui::MenuItem( "Custom", nullptr, corner == -1 ) ) corner = -1;
+                if ( ImGui::MenuItem( "Top-left", nullptr, corner == 0 ) ) corner = 0;
+                if ( ImGui::MenuItem( "Top-right", nullptr, corner == 1 ) ) corner = 1;
+                if ( ImGui::MenuItem( "Bottom-left", nullptr, corner == 2 ) ) corner = 2;
+                if ( ImGui::MenuItem( "Bottom-right", nullptr, corner == 3 ) ) corner = 3;
+                ImGui::EndMenu();
+            }
+
+            if ( ImGui::MenuItem( "Show title bar", nullptr, s_showTitleBar ) )
+            {
+                s_showTitleBar = ! s_showTitleBar;
+            }
+
+            ImGui::Separator();
+            if ( appData.guiData().m_showInspectionWindow && ImGui::MenuItem( "Close" ) )
+            {
+                appData.guiData().m_showInspectionWindow = false;
+            }
 
             ImGui::EndMenu();
-        }
-
-        if ( appData.guiData().m_showInspectionWindow && ImGui::MenuItem( "Close" ) )
-        {
-            appData.guiData().m_showInspectionWindow = false;
         }
 
 //        ImGui::EndPopup();
@@ -1629,6 +1683,11 @@ void renderInspectionWindowWithTable(
         ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
     }
 
+    if ( ! s_showTitleBar )
+    {
+        windowFlags |= ImGuiWindowFlags_NoDecoration;
+    }
+
     const ImVec4* colors = ImGui::GetStyle().Colors;
     ImVec4 menuBarBgColor = colors[ImGuiCol_MenuBarBg];
     menuBarBgColor.w /= 2.0f;
@@ -1636,7 +1695,7 @@ void renderInspectionWindowWithTable(
     ImGui::SetNextWindowBgAlpha( 0.0f ); // Transparent background
 
     ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
-    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, sk_windowRounding );
+//    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, sk_windowRounding );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
 
     if ( ImGui::Begin( "##InspectionWindow", &( appData.guiData().m_showInspectionWindow ), windowFlags ) )
@@ -1684,7 +1743,7 @@ void renderInspectionWindowWithTable(
 
                 const auto segUid = appData.imageToActiveSegUid( *imageUid );
                 const Image* seg = ( segUid ? appData.seg( *segUid ) : nullptr );
-                const auto* table = getLabelTable( seg->settings().labelTableIndex() );
+                ParcellationLabelTable* table = getLabelTable( seg->settings().labelTableIndex() );
 
                 const std::optional<double> imageValue = getImageValue( imageIndex );
                 const std::optional<long> segLabel = getSegLabel( imageIndex );
@@ -1706,7 +1765,7 @@ void renderInspectionWindowWithTable(
                 ImGui::PushItemWidth( -1 );
                 {
                     std::string displayName = image->settings().displayName();
-                    if ( ImGui::InputText( "", &displayName ) )
+                    if ( ImGui::InputText( "##displayName", &displayName ) )
                     {
                         image->settings().setDisplayName( displayName );
                     }
@@ -1769,32 +1828,43 @@ void renderInspectionWindowWithTable(
                 {
                     ImGui::TableNextColumn(); // "Label"
 
-                    int64_t a = static_cast<int64_t>( *segLabel );
+                    size_t l = static_cast<size_t>( *segLabel );
                     ImGui::PushItemWidth( -1 );
-                    ImGui::InputScalar( "##segLabel", ImGuiDataType_S64, &a, nullptr, nullptr, "%ld" );
+                    ImGui::InputScalar( "##segLabel", ImGuiDataType_U64, &l, nullptr, nullptr, "%ld" );
                     ImGui::PopItemWidth();
 
                     if ( table )
                     {
-                        const char* labelName = table->getName( static_cast<size_t>( *segLabel ) ).c_str();
+                        std::string labelName = table->getName( l );
 
                         if ( ImGui::IsItemHovered() )
                         {
-                            ImGui::SetTooltip( "%s", labelName );
+                            // Tooltip for the segmentation label
+                            ImGui::SetTooltip( "%s", labelName.c_str() );
                         }
 
                         ImGui::TableNextColumn(); // "Region"
-                        ImGui::Text( "%s", labelName );
+
+                        ImGui::PushItemWidth( -1 );
+                        if ( ImGui::InputText( "##labelName", &labelName ) )
+                        {
+                            table->setName( l, labelName );
+                        }
+                        ImGui::PopItemWidth();
                     }
                     else
                     {
-                        ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                        ImGui::TableNextColumn(); // "Region"
+                        ImGui::Text( "<N/A>" );
                     }
                 }
                 else
                 {
-                    ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
-                    ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                    ImGui::TableNextColumn(); // "Label"
+                    ImGui::Text( "<N/A>" );
+
+                    ImGui::TableNextColumn(); // "Region"
+                    ImGui::Text( "<N/A>" );
                 }
 
 
@@ -1809,7 +1879,7 @@ void renderInspectionWindowWithTable(
 
                     glm::ivec3 a = *voxelPos;
                     ImGui::PushItemWidth( -1 );
-                    if ( ImGui::DragScalarN( "##voxel", ImGuiDataType_S32, glm::value_ptr( a ), 3, 1.0f,
+                    if ( ImGui::DragScalarN( "##voxelPos", ImGuiDataType_S32, glm::value_ptr( a ), 3, 1.0f,
                                              glm::value_ptr( sk_minDim ), glm::value_ptr( sk_maxDim ), "%d" ) )
                     {
                         if ( glm::all( glm::greaterThanEqual( a, sk_zero ) ) &&
@@ -1827,7 +1897,8 @@ void renderInspectionWindowWithTable(
                 }
                 else
                 {
-                    ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                    ImGui::TableNextColumn(); // "Voxel"
+                    ImGui::Text( "<N/A>" );
                 }
 
 
@@ -1840,7 +1911,7 @@ void renderInspectionWindowWithTable(
                     glm::vec3 a = *subjectPos;
 
                     ImGui::PushItemWidth( -1 );
-                    if ( ImGui::DragScalarN( "##physical", ImGuiDataType_Float, glm::value_ptr( a ), 3, stepSize,
+                    if ( ImGui::DragScalarN( "##physicalPos", ImGuiDataType_Float, glm::value_ptr( a ), 3, stepSize,
                                              nullptr, nullptr, appData.guiData().m_coordsPrecisionFormat.c_str() ) )
                     {
                         setSubjectPos( imageIndex, a );
@@ -1854,7 +1925,8 @@ void renderInspectionWindowWithTable(
                 }
                 else
                 {
-                    ImGui::TableNextColumn(); ImGui::Text( "<N/A>" );
+                    ImGui::TableNextColumn(); // "Physical"
+                    ImGui::Text( "<N/A>" );
                 }
 
                 ImGui::PopID(); /** PopID: imageIndex **/
@@ -1878,8 +1950,8 @@ void renderInspectionWindowWithTable(
         ImGui::End();
     }
 
-    // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize
-    ImGui::PopStyleVar( 3 );
+    // ImGuiStyleVar_WindowPadding, /*ImGuiStyleVar_WindowRounding*/, ImGuiStyleVar_WindowBorderSize
+    ImGui::PopStyleVar( 2 );
 }
 
 

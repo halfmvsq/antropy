@@ -172,14 +172,17 @@ void renderImageHeaderInformation(
 
 
     // subject_T_voxels:
-    ImGui::Text( "Voxels to Subject transformation:" );
-    ImGui::SameLine(); helpMarker( "Transformation from Voxels to Subject (LPS) space" );
+    ImGui::Text( "Voxel-to-Subject transformation:" );
+    ImGui::SameLine(); helpMarker( "Transformation from Voxel indices to Subject (LPS) space" );
 
     glm::mat4 s_T_p = glm::transpose( imgTx.subject_T_pixel() );
+
+    ImGui::PushItemWidth( -1 );
     ImGui::InputFloat4( "", glm::value_ptr( s_T_p[0] ), txFormat, ImGuiInputTextFlags_ReadOnly );
     ImGui::InputFloat4( "", glm::value_ptr( s_T_p[1] ), txFormat, ImGuiInputTextFlags_ReadOnly );
     ImGui::InputFloat4( "", glm::value_ptr( s_T_p[2] ), txFormat, ImGuiInputTextFlags_ReadOnly );
     ImGui::InputFloat4( "", glm::value_ptr( s_T_p[3] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+    ImGui::PopItemWidth();
 
     ImGui::Spacing();
     ImGui::Separator();
@@ -951,7 +954,7 @@ void renderImageHeader(
     {
         ImGui::Text( "Initial affine transformation:" );
         ImGui::SameLine();
-        helpMarker( "Initial affine transformation (read from file)" );
+        helpMarker( "Initial affine transformation matrix (read from file)" );
 
 
         bool enable_affine_T_subject = imgTx.get_enable_affine_T_subject();
@@ -972,10 +975,14 @@ void renderImageHeader(
             }
 
             glm::mat4 aff_T_sub = glm::transpose( imgTx.get_affine_T_subject() );
-            ImGui::InputFloat4( "Matrix", glm::value_ptr( aff_T_sub[0] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+
+            ImGui::PushItemWidth( -1 );
+            ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[0] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[1] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[2] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[3] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+            ImGui::PopItemWidth();
+
             ImGui::Spacing();
         }
         ImGui::Separator();
@@ -1064,10 +1071,14 @@ void renderImageHeader(
 
             ImGui::Spacing();
             glm::mat4 world_T_affine = glm::transpose( imgTx.get_worldDef_T_affine() );
-            ImGui::InputFloat4( "Matrix", glm::value_ptr( world_T_affine[0] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+
+            ImGui::PushItemWidth( -1 );
+            ImGui::Text( "Subject-to-World matrix:" );
+            ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[0] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[1] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[2] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::InputFloat4( "", glm::value_ptr( world_T_affine[3] ), txFormat, ImGuiInputTextFlags_ReadOnly );
+            ImGui::PopItemWidth();
 
 
             ImGui::Spacing();

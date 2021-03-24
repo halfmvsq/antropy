@@ -195,7 +195,7 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
             const bool syncZoomsForAllViews = s_modifierState.shift;
 
             handler.doCameraZoomDrag( *s_lastWinPos, currWinPos, *s_startWinPos,
-                                   ZoomBehavior::ToStartPosition, syncZoomsForAllViews );
+                                      ZoomBehavior::ToStartPosition, syncZoomsForAllViews );
         }
         else if ( s_mouseButtonState.middle )
         {
@@ -209,6 +209,10 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
         {
             handler.doCameraTranslate2d( *s_lastWinPos, currWinPos, *s_startWinPos );
         }
+        else if ( s_mouseButtonState.right )
+        {
+            // do 3D translate
+        }
         break;
     }
     case MouseMode::CameraRotate:
@@ -219,13 +223,24 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
         }
         else if ( s_mouseButtonState.right )
         {
-            std::optional<CallbackHandler::AxisConstraint> constraint;
-
-            if ( s_modifierState.shift ) constraint = CallbackHandler::AxisConstraint::X;
-            else if ( s_modifierState.control ) constraint = CallbackHandler::AxisConstraint::Y;
-            else if ( s_modifierState.alt ) constraint = CallbackHandler::AxisConstraint::Z;
-
-            handler.doCameraRotate3d( *s_lastWinPos, currWinPos, *s_startWinPos, constraint );
+            if ( s_modifierState.shift )
+            {
+                handler.doCameraRotate3d( *s_lastWinPos, currWinPos, *s_startWinPos,
+                                          CallbackHandler::AxisConstraint::X );
+            }
+            else if ( s_modifierState.control )
+            {
+                handler.doCameraRotate3d( *s_lastWinPos, currWinPos, *s_startWinPos,
+                                          CallbackHandler::AxisConstraint::Y );
+            }
+            else if ( s_modifierState.alt )
+            {
+                handler.doCameraRotate2d( *s_lastWinPos, currWinPos, *s_startWinPos );
+            }
+            else
+            {
+                handler.doCameraRotate3d( *s_lastWinPos, currWinPos, *s_startWinPos, std::nullopt );
+            }
         }
         break;
     }

@@ -163,6 +163,10 @@ struct RenderData
     // Flashlight radius
     float m_flashlightRadius;
 
+    // When true, the flashlight overlays the moving image on top of fixed image.
+    // When false, the flashlight replaces the fixed image with the moving image.
+    bool m_flashlightOverlays;
+
 
     struct LandmarkParams
     {

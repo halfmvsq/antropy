@@ -506,6 +506,7 @@ void renderPlane(
         View& view,
         const glm::vec3& worldOrigin,
         float flashlightRadius,
+        bool flashlightOverlays,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I,
         const std::function< const Image* ( const std::optional<uuids::uuid>& imageUid ) > getImage,
         bool showEdges )
@@ -528,6 +529,7 @@ void renderPlane(
     {
         program.setUniform( "aspectRatio", view.camera().aspectRatio() );
         program.setUniform( "flashlightRadius", flashlightRadius );
+        program.setUniform( "flashlightOverlays", flashlightOverlays );
 
         const glm::vec4 clipCrosshairs = camera::clip_T_world( view.camera() ) * glm::vec4{ worldOrigin, 1.0f };
         program.setUniform( "clipCrosshairs", glm::vec2{ clipCrosshairs / clipCrosshairs.w } );
@@ -2649,6 +2651,7 @@ void Rendering::renderImages()
                 renderPlane( program, layout.renderMode(),
                              m_appData.renderData().m_quad, *view.second, worldCrosshairsOrigin,
                              m_appData.renderData().m_flashlightRadius,
+                             m_appData.renderData().m_flashlightOverlays,
                              I, getImage, showEdges );
 
                 if ( ! renderLandmarksOnTop )
@@ -2736,7 +2739,9 @@ void Rendering::renderImages()
                 if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
 
                 renderPlane( program, view.second->renderMode(), m_appData.renderData().m_quad, *view.second,
-                             worldCrosshairsOrigin, m_appData.renderData().m_flashlightRadius,
+                             worldCrosshairsOrigin,
+                             m_appData.renderData().m_flashlightRadius,
+                             m_appData.renderData().m_flashlightOverlays,
                              I, getImage, showEdges );
 
                 if ( ! renderLandmarksOnTop )
@@ -2998,6 +3003,7 @@ bool Rendering::createImageProgram( GLShaderProgram& program )
 
         // For flashlighting:
         fsUniforms.insertUniform( "flashlightRadius", UniformType::Float, 0.5f );
+        fsUniforms.insertUniform( "flashlightOverlays", UniformType::Bool, true );
 
         auto fs = std::make_shared<GLShader>( "fsImage", ShaderType::Fragment, fsSource.c_str() );
         fs->setRegisteredUniforms( std::move( fsUniforms ) );
@@ -3083,6 +3089,7 @@ bool Rendering::createEdgeProgram( GLShaderProgram& program )
 
         // For flashlighting:
         fsUniforms.insertUniform( "flashlightRadius", UniformType::Float, 0.5f );
+        fsUniforms.insertUniform( "flashlightOverlays", UniformType::Bool, true );
 
         fsUniforms.insertUniform( "thresholdEdges", UniformType::Bool, true );
         fsUniforms.insertUniform( "edgeMagnitude", UniformType::Float, 0.0f );

@@ -45,6 +45,10 @@ uniform float aspectRatio;
 
 uniform float flashlightRadius;
 
+// When true, the flashlight overlays the moving image on top of fixed image.
+// When false, the flashlight replaces the fixed image with the moving image.
+uniform bool flashlightOverlays;
+
 
 float smoothThreshold( float value, vec2 thresholds )
 {
@@ -74,7 +78,7 @@ void main()
         ( showFix == ( ( ! quadrants.x || Q.x ) == ( ! quadrants.y || Q.y ) ) ) );
 
     doRender = doRender || ( ( 3 == renderMode ) &&
-        ( showFix == ( flashlightDist > flashlightRadius ) ) );
+        ( ( showFix == ( flashlightDist > flashlightRadius ) ) || ( flashlightOverlays && showFix ) ) );
 
     if ( ! doRender ) discard;
 
