@@ -319,6 +319,7 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/rendering/utility/gl/GLVertexArrayObject.cpp
     ${SRC_DIR}/rendering/utility/math/SliceIntersector.cpp
 
+    ${SRC_DIR}/ui/GuiData.cpp
     ${SRC_DIR}/ui/Headers.cpp
     ${SRC_DIR}/ui/Helpers.cpp
     ${SRC_DIR}/ui/ImGuiCustomControls.cpp

@@ -1372,14 +1372,23 @@ void renderImageViewIntersections(
 
             if ( isActive )
             {
+                // The active image gets a stippled line pattern
                 const float dist = glm::distance( lastPos, currPos );
                 const uint32_t numLines = dist / sk_stippleLen;
+
+                if ( 0 == numLines )
+                {
+                    // At a minimum, draw one stipple line:
+                    nvgLineTo( nvg, currPos.x, currPos.y );
+                }
 
                 for ( uint32_t j = 1; j <= numLines; ++j )
                 {
                     const float t = static_cast<float>( j ) / static_cast<float>( numLines );
                     const glm::vec2 pos = lastPos + t * ( currPos - lastPos );
 
+                    // To create the stipple pattern, alternate drawing lines and
+                    // moving the pen on odd/even values of j:
                     if ( j % 2 )
                     {
                         nvgLineTo( nvg, pos.x, pos.y );
@@ -1392,6 +1401,7 @@ void renderImageViewIntersections(
             }
             else
             {
+                // Non-active images get solid lines
                 nvgLineTo( nvg, currPos.x, currPos.y );
             }
 
@@ -1409,9 +1419,9 @@ void renderImageViewIntersections(
 
 void renderViewOutline( NVGcontext* nvg, const View& view, bool drawActiveOutline )
 {
-    constexpr float k_padOuter = 0.0f;
-//    constexpr float k_padInner = 2.0f;
-    constexpr float k_padActive = 3.0f;
+    static constexpr float k_padOuter = 0.0f;
+//    static constexpr float k_padInner = 2.0f;
+    static constexpr float k_padActive = 3.0f;
 
     const auto& C = view.winMouseMinMaxCoords();
 

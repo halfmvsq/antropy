@@ -128,7 +128,8 @@ private:
     // Set true when images are loaded from disk and ready to be loaded into textures
     std::atomic<bool> m_imagesReady;
 
-    // Set true if images could not be loaded
+    // Set true when images could not be loaded.
+    // If true, this flag will cause the render loop to exit.
     std::atomic<bool> m_imageLoadFailed;
 
     GlfwWrapper m_glfw;

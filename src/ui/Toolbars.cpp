@@ -124,12 +124,18 @@ void renderToolbar(
     }
 
 
-    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
-    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
 
-    //    static bool isCollapsed = false;
+    ImGui::PushStyleColor( ImGuiCol_TitleBgCollapsed, activeColor );
+
+//    static bool isCollapsed = false;
+
+    /// @note The trick with isCollapsed does not work: the toolbar is too narrow in vertical orientation
+    /// to show the text "Tools".
 
     const char* title = ( ( isHoriz /*| isCollapsed*/ )
                           ? "Tools###ToolbarWindow"
@@ -485,6 +491,8 @@ void renderToolbar(
             {
                 if ( ImGui::Button( ICON_FK_INFO, sk_toolbarButtonSize) )
                 {
+                    // Make boolean variable that turns true to show the about window.
+                    // About window should be modal.
                 }
 
                 if ( ImGui::IsItemHovered() ) {
@@ -503,6 +511,8 @@ void renderToolbar(
             renderContextMenu( corner, isHoriz );
         }
 
+//        isCollapsed = false;
+
         ImGui::End(); // End toolbar
     }
 //    else
@@ -510,9 +520,12 @@ void renderToolbar(
 //        isCollapsed = true;
 //    }
 
-    // Pop: ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize,
-    // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ItemSpacing
-    ImGui::PopStyleVar( 4 );
+    // ImGuiCol_TitleBgCollapsed
+    ImGui::PopStyleColor( 1 );
+
+    // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
+    // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
+    ImGui::PopStyleVar( 5 );
 
     ImGui::PopID();
 
@@ -627,11 +640,13 @@ void renderSegToolbar(
         ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
     }
 
-
-    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
+    ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
-    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
+
+    ImGui::PushStyleColor( ImGuiCol_TitleBgCollapsed, activeColor );
 
     const char* title = ( ( isHoriz /*| isCollapsed*/ )
                           ? "Segmentation###SegToolbarWindow"
@@ -656,432 +671,461 @@ void renderSegToolbar(
         const std::string fgButtonLabel = std::to_string( fgLabel ) + "###fgButton";
         const std::string bgButtonLabel = std::to_string( bgLabel ) + "###bgButton";
 
-        ImGui::PushStyleColor( ImGuiCol_Button, inactiveColor );
+        ImGui::PushStyleColor( ImGuiCol_Button, inactiveColor ); // PUSH color
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushStyleColor( ImGuiCol_Button, fgImGuiColor );
+        ImGui::PushStyleColor( ImGuiCol_Text, ( useDarkTextForFgColor ? sk_darkTextColor : sk_lightTextColor ) );
         {
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushStyleColor( ImGuiCol_Button, fgImGuiColor );
-            ImGui::PushStyleColor( ImGuiCol_Text, ( useDarkTextForFgColor ? sk_darkTextColor : sk_lightTextColor ) );
+            if ( ImGui::Button( fgButtonLabel.c_str(), sk_toolbarButtonSize) )
             {
-                if ( ImGui::Button( fgButtonLabel.c_str(), sk_toolbarButtonSize) )
-                {
-                    ImGui::OpenPopup( "foregroundLabelPopup" );
-                }
+                ImGui::OpenPopup( "foregroundLabelPopup" );
             }
-            ImGui::PopStyleColor( 2 ); // ImGuiCol_Button, ImGuiCol_Text
-            if ( ImGui::IsItemHovered() )
+        }
+        ImGui::PopStyleColor( 2 ); // ImGuiCol_Button, ImGuiCol_Text
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Select foreground label (<,>)" );
+        }
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushStyleColor( ImGuiCol_Button, bgImGuiColor );
+        ImGui::PushStyleColor( ImGuiCol_Text, ( useDarkTextForBgColor ? sk_darkTextColor : sk_lightTextColor ) );
+        {
+            if ( ImGui::Button( bgButtonLabel.c_str(), sk_toolbarButtonSize) )
             {
-                ImGui::SetTooltip( "%s", "Select foreground label (<,>)" );
+                ImGui::OpenPopup( "backgroundLabelPopup" );
             }
+        }
+        ImGui::PopStyleColor( 2 ); // ImGuiCol_Button, ImGuiCol_Text
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Select background label (shift + <,>)" );
+        }
 
 
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushStyleColor( ImGuiCol_Button, bgImGuiColor );
-            ImGui::PushStyleColor( ImGuiCol_Text, ( useDarkTextForBgColor ? sk_darkTextColor : sk_lightTextColor ) );
+        if ( activeLabelTable && ImGui::BeginPopup( "foregroundLabelPopup" ) )
+        {
+            const float sz = ImGui::GetTextLineHeight();
+
+            for ( size_t i = 0; i < activeLabelTable->numLabels(); ++i )
             {
-                if ( ImGui::Button( bgButtonLabel.c_str(), sk_toolbarButtonSize) )
-                {
-                    ImGui::OpenPopup( "backgroundLabelPopup" );
-                }
-            }
-            ImGui::PopStyleColor( 2 ); // ImGuiCol_Button, ImGuiCol_Text
-            if ( ImGui::IsItemHovered() )
-            {
-                ImGui::SetTooltip( "%s", "Select background label (shift + <,>)" );
-            }
+                const std::string labelName = std::to_string( i ) + ") " + activeLabelTable->getName( i );
+                const glm::vec3 labelColor = activeLabelTable->getColor( i );
+                const ImU32 labelColorU32 = ImGui::ColorConvertFloat4ToU32( ImVec4( labelColor.r, labelColor.g, labelColor.b, 1.0f ) );
 
-
-            if ( activeLabelTable && ImGui::BeginPopup( "foregroundLabelPopup" ) )
-            {
-                const float sz = ImGui::GetTextLineHeight();
-
-                for ( size_t i = 0; i < activeLabelTable->numLabels(); ++i )
-                {
-                    const std::string labelName = std::to_string( i ) + ") " + activeLabelTable->getName( i );
-                    const glm::vec3 labelColor = activeLabelTable->getColor( i );
-                    const ImU32 labelColorU32 = ImGui::ColorConvertFloat4ToU32( ImVec4( labelColor.r, labelColor.g, labelColor.b, 1.0f ) );
-
-                    const ImVec2 p = ImGui::GetCursorScreenPos();
-                    ImGui::GetWindowDrawList()->AddRectFilled( p, ImVec2( p.x + sz, p.y + sz ), labelColorU32 );
-                    ImGui::Dummy( ImVec2( sz, sz ) );
-                    ImGui::SameLine();
-
-                    bool isSelected = ( fgLabel == i );
-                    if ( ImGui::MenuItem( labelName.c_str(), "", &isSelected ) )
-                    {
-                        if ( isSelected )
-                        {
-                            appData.settings().setForegroundLabel( i, *activeLabelTable );
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                }
-
-                ImGui::EndPopup();
-            }
-
-
-            if ( activeLabelTable && ImGui::BeginPopup( "backgroundLabelPopup" ) )
-            {
-                const float sz = ImGui::GetTextLineHeight();
-
-                for ( size_t i = 0; i < activeLabelTable->numLabels(); ++i )
-                {
-                    const std::string labelName = std::to_string( i ) + ") " + activeLabelTable->getName( i );
-                    const glm::vec3 labelColor = activeLabelTable->getColor( i );
-                    const ImU32 labelColorU32 = ImGui::ColorConvertFloat4ToU32( ImVec4( labelColor.r, labelColor.g, labelColor.b, 1.0f ) );
-
-                    const ImVec2 p = ImGui::GetCursorScreenPos();
-                    ImGui::GetWindowDrawList()->AddRectFilled( p, ImVec2( p.x + sz, p.y + sz ), labelColorU32 );
-                    ImGui::Dummy( ImVec2( sz, sz ) );
-                    ImGui::SameLine();
-
-                    bool isSelected = ( bgLabel == i );
-                    if ( ImGui::MenuItem( labelName.c_str(), "", &isSelected ) )
-                    {
-                        if ( isSelected )
-                        {
-                            appData.settings().setBackgroundLabel( i, *activeLabelTable );
-                            ImGui::SetItemDefaultFocus();
-                        }
-                    }
-                }
-
-                ImGui::EndPopup();
-            }
-
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushID( id );
-            {
-                if ( ImGui::Button( ICON_FK_RANDOM, sk_toolbarButtonSize ) )
-                {
-                    appData.settings().swapForegroundAndBackgroundLabels( *activeLabelTable );
-                }
-                if ( ImGui::IsItemHovered() )
-                {
-                    ImGui::SetTooltip( "%s", "Swap foreground and background labels" );
-                }
-                ++id;
-            }
-            ImGui::PopID();
-
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::Dummy( buttonSpace );
-
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushID( id );
-            {
-                bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
-                ImGui::PushStyleColor( ImGuiCol_Button, ( replaceBgWithFg ? activeColor : inactiveColor ) );
-                {
-                    if ( ImGui::Button( ICON_FK_PENCIL_SQUARE, sk_toolbarButtonSize ) )
-                    {
-                        replaceBgWithFg = ! replaceBgWithFg;
-                        appData.settings().setReplaceBackgroundWithForeground( replaceBgWithFg );
-                    }
-
-                    if ( ImGui::IsItemHovered() ) {
-                        ImGui::SetTooltip( "%s", "Draw foreground label only on top of background label" );
-                    }
-                }
-                ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
-
-                ++id;
-            }
-            ImGui::PopID();
-
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushID( id );
-            {
-                bool use3d = appData.settings().use3dBrush();
-                ImGui::PushStyleColor( ImGuiCol_Button, ( use3d ? activeColor : inactiveColor ) );
-                {
-                    if ( ImGui::Button( ICON_FK_CUBE, sk_toolbarButtonSize) )
-                    {
-                        use3d = ! use3d;
-                        appData.settings().setUse3dBrush( use3d );
-                    }
-
-                    if ( ImGui::IsItemHovered() )
-                    {
-                        ImGui::SetTooltip( "%s", "Set 2D/3D brush" );
-                    }
-                }
-                ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
-
-                ++id;
-            }
-            ImGui::PopID();
-
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushID( id );
-            {
-                bool roundBrush = appData.settings().useRoundBrush();
-
-                if ( ImGui::Button( roundBrush ? ICON_FK_CIRCLE_THIN : ICON_FK_SQUARE_O, sk_toolbarButtonSize ) )
-                {
-                    roundBrush = ! roundBrush;
-                    appData.settings().setUseRoundBrush( roundBrush );
-                }
-
-                if ( ImGui::IsItemHovered() )
-                {
-                    ImGui::SetTooltip( "%s", "Set round/square brush shape" );
-                }
-
-                ++id;
-            }
-            ImGui::PopID();
-
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::Dummy( buttonSpace );
-
-            constexpr uint32_t minBrushVox = 1;
-            constexpr uint32_t maxBrushVox = 101;
-
-            if ( isHoriz ) ImGui::SameLine();
-            if ( ImGui::Button( ICON_FK_PLUS_CIRCLE, sk_toolbarButtonSize) )
-            {
-                /// @todo replace with AntropyApp::cycleBrushSize
-                uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-                brushSizeVox = glm::clamp( brushSizeVox + 1, minBrushVox, maxBrushVox );
-                appData.settings().setBrushSizeInVoxels( brushSizeVox );
-            }
-            if ( ImGui::IsItemHovered() )
-            {
-                ImGui::SetTooltip( "%s", "Increase brush size (+)" );
-            }
-
-            if ( isHoriz ) ImGui::SameLine();
-            if ( ImGui::Button( ICON_FK_MINUS_CIRCLE, sk_toolbarButtonSize) )
-            {
-                /// @todo replace with AntropyApp::cycleBrushSize
-                uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-                brushSizeVox = glm::clamp( brushSizeVox - 1, minBrushVox, maxBrushVox );
-                appData.settings().setBrushSizeInVoxels( brushSizeVox );
-            }
-            if ( ImGui::IsItemHovered() )
-            {
-                ImGui::SetTooltip( "%s", "Decrease brush size (-)" );
-            }
-
-
-            if ( isHoriz ) ImGui::SameLine();
-            if ( ImGui::Button( ICON_FK_BULLSEYE, sk_toolbarButtonSize) )
-            {
-                ImGui::OpenPopup( "brushSizePopup" );
-            }
-
-            if ( ImGui::IsItemHovered() )
-            {
-                ImGui::SetTooltip( "%s", "Brush options" );
-            }
-
-            if ( ImGui::BeginPopup( "brushSizePopup" ) )
-            {
-                bool useVoxels = appData.settings().useVoxelBrushSize();
-                bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
-                bool use3d = appData.settings().use3dBrush();
-                bool useIso = appData.settings().useIsotropicBrush();
-                bool useRound = appData.settings().useRoundBrush();
-                bool xhairsMove = appData.settings().crosshairsMoveWithBrush();
-
-                ImGui::Text( "Brush options:" );
-                ImGui::Separator();
-                ImGui::Dummy( ImVec2( 0.0f, 4.0f ) );
-
-                ImGui::Spacing();
-
-                if ( useVoxels )
-                {
-                    uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-                    uint32_t stepSmall = 1;
-                    uint32_t stepBig = 5;
-
-                    if ( ImGui::InputScalar( "width (vox)##brushSizeVox", ImGuiDataType_U32, &brushSizeVox, &stepSmall, &stepBig ) )
-                    {
-                        brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
-                        appData.settings().setBrushSizeInVoxels( brushSizeVox );
-                    }
-                }
-//                else
-//                {
-//                    float brushSizeMm = appData.brushSizeInMm();
-
-//                    if ( ImGui::SliderFloat( "size (mm)##brushSizeMmSlider", &brushSizeMm, 0.001f, 100.000f, "%.3f" ) )
-//                    {
-//                        appData.setBrushSizeInMm( brushSizeMm );
-//                    }
-//                }
-                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
-                ImGui::SameLine(); helpMarker( "Brush width in voxels" );
-                ImGui::Dummy( ImVec2( 0.0f, 2.0f ) );
-
-
-//                if ( ImGui::RadioButton( "Voxels", useVoxels ) )
-//                {
-//                    useVoxels = true;
-//                    appData.setUseVoxelBrushSize( useVoxels );
-//                }
-
-//                ImGui::SameLine();
-//                if ( ImGui::RadioButton( "Millimeters", ! useVoxels ) )
-//                {
-//                    useVoxels = false;
-//                    appData.setUseVoxelBrushSize( useVoxels );
-//                }
-//                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
-//                ImGui::SameLine(); HelpMarker( "Set brush size in units of either voxels or millimeters" );
-
-
-                if ( ImGui::RadioButton( "Round", useRound ) )
-                {
-                    useRound = true;
-                    appData.settings().setUseRoundBrush( useRound );
-                }
-
+                const ImVec2 p = ImGui::GetCursorScreenPos();
+                ImGui::GetWindowDrawList()->AddRectFilled( p, ImVec2( p.x + sz, p.y + sz ), labelColorU32 );
+                ImGui::Dummy( ImVec2( sz, sz ) );
                 ImGui::SameLine();
-                if ( ImGui::RadioButton( "Square", ! useRound ) )
+
+                bool isSelected = ( fgLabel == i );
+                if ( ImGui::MenuItem( labelName.c_str(), "", &isSelected ) )
                 {
-                    useRound = false;
-                    appData.settings().setUseRoundBrush( useRound );
+                    if ( isSelected )
+                    {
+                        appData.settings().setForegroundLabel( i, *activeLabelTable );
+                        ImGui::SetItemDefaultFocus();
+                    }
                 }
-                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
-                ImGui::SameLine(); helpMarker( "Set either round or square brush shape" );
-                ImGui::Dummy( ImVec2( 0.0f, 2.0f ) );
+            }
+
+            ImGui::EndPopup();
+        }
 
 
-                if ( ImGui::RadioButton( "2D", ! use3d ) )
-                {
-                    use3d = false;
-                    appData.settings().setUse3dBrush( use3d );
-                }
+        if ( activeLabelTable && ImGui::BeginPopup( "backgroundLabelPopup" ) )
+        {
+            const float sz = ImGui::GetTextLineHeight();
 
+            for ( size_t i = 0; i < activeLabelTable->numLabels(); ++i )
+            {
+                const std::string labelName = std::to_string( i ) + ") " + activeLabelTable->getName( i );
+                const glm::vec3 labelColor = activeLabelTable->getColor( i );
+                const ImU32 labelColorU32 = ImGui::ColorConvertFloat4ToU32( ImVec4( labelColor.r, labelColor.g, labelColor.b, 1.0f ) );
+
+                const ImVec2 p = ImGui::GetCursorScreenPos();
+                ImGui::GetWindowDrawList()->AddRectFilled( p, ImVec2( p.x + sz, p.y + sz ), labelColorU32 );
+                ImGui::Dummy( ImVec2( sz, sz ) );
                 ImGui::SameLine();
-                if ( ImGui::RadioButton( "3D", use3d ) )
+
+                bool isSelected = ( bgLabel == i );
+                if ( ImGui::MenuItem( labelName.c_str(), "", &isSelected ) )
                 {
-                    use3d = true;
-                    appData.settings().setUse3dBrush( use3d );
+                    if ( isSelected )
+                    {
+                        appData.settings().setBackgroundLabel( i, *activeLabelTable );
+                        ImGui::SetItemDefaultFocus();
+                    }
                 }
-                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
-                ImGui::SameLine(); helpMarker( "Set either 2D (planar) or 3D (volumetric) brush shape" );
-                ImGui::Dummy( ImVec2( 0.0f, 2.0f ) );
+            }
+
+            ImGui::EndPopup();
+        }
 
 
-                if ( ImGui::Checkbox( "Isotropic brush", &useIso ) )
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+            if ( ImGui::Button( ICON_FK_RANDOM, sk_toolbarButtonSize ) )
+            {
+                appData.settings().swapForegroundAndBackgroundLabels( *activeLabelTable );
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "%s", "Swap foreground and background labels" );
+            }
+            ++id;
+        }
+        ImGui::PopID();
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::Dummy( buttonSpace );
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+            bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
+            ImGui::PushStyleColor( ImGuiCol_Button, ( replaceBgWithFg ? activeColor : inactiveColor ) );
+            {
+                if ( ImGui::Button( ICON_FK_PENCIL_SQUARE, sk_toolbarButtonSize ) )
                 {
-                    appData.settings().setUseIsotropicBrush( useIso );
-                }
-                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
-                ImGui::SameLine(); helpMarker( "Set either anisotropic or isotropic brush dimensions" );
-                ImGui::Dummy( ImVec2( 0.0f, 2.0f ) );
-
-
-
-                if ( ImGui::Checkbox( "Replace background with foreground", &replaceBgWithFg ) )
-                {
+                    replaceBgWithFg = ! replaceBgWithFg;
                     appData.settings().setReplaceBackgroundWithForeground( replaceBgWithFg );
                 }
-                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
-                ImGui::SameLine(); helpMarker( "When enabled, the brush only draws the foreground label on top of the background label" );
-                ImGui::Dummy( ImVec2( 0.0f, 2.0f ) );
 
-
-
-                if ( ImGui::Checkbox( "Crosshairs move with brush", &xhairsMove ) )
-                {
-                    appData.settings().setCrosshairsMoveWithBrush( xhairsMove );
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetTooltip( "%s", "Draw foreground label only on top of background label" );
                 }
-                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
-                ImGui::SameLine(); helpMarker( "Crosshairs movement is linked with brush movement" );
-
-                ImGui::EndPopup();
             }
+            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+
+            ++id;
+        }
+        ImGui::PopID();
 
 
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::Dummy( buttonSpace );
-
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushID( id );
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+            bool use3d = appData.settings().use3dBrush();
+            ImGui::PushStyleColor( ImGuiCol_Button, ( use3d ? activeColor : inactiveColor ) );
             {
-                bool xhairsMove = appData.settings().crosshairsMoveWithBrush();
-
-                ImGui::PushStyleColor( ImGuiCol_Button, ( xhairsMove ? activeColor : inactiveColor ) );
+                if ( ImGui::Button( ICON_FK_CUBE, sk_toolbarButtonSize) )
                 {
-                    if ( ImGui::Button( xhairsMove ? ICON_FK_LINK : ICON_FK_CHAIN_BROKEN, sk_toolbarButtonSize ) )
-                    {
-                        xhairsMove = ! xhairsMove;
-                        appData.settings().setCrosshairsMoveWithBrush( xhairsMove );
-                    }
+                    use3d = ! use3d;
+                    appData.settings().setUse3dBrush( use3d );
                 }
-                ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
 
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Crosshairs linked to brush" );
+                    ImGui::SetTooltip( "%s", "Set 2D/3D brush" );
                 }
-
-                ++id;
             }
-            ImGui::PopID();
+            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+
+            ++id;
+        }
+        ImGui::PopID();
 
 
-            if ( isHoriz ) ImGui::SameLine();
-            if ( ImGui::Button( ICON_FK_RSS, sk_toolbarButtonSize ) )
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+            bool roundBrush = appData.settings().useRoundBrush();
+
+            if ( ImGui::Button( roundBrush ? ICON_FK_CIRCLE_THIN : ICON_FK_SQUARE_O, sk_toolbarButtonSize ) )
             {
-                ImGui::OpenPopup( "segSyncPopup" );
+                roundBrush = ! roundBrush;
+                appData.settings().setUseRoundBrush( roundBrush );
             }
 
             if ( ImGui::IsItemHovered() )
             {
-                ImGui::SetTooltip( "%s", "Synchronize drawing of segmentations on multiple images" );
+                ImGui::SetTooltip( "%s", "Set round/square brush shape" );
             }
 
+            ++id;
+        }
+        ImGui::PopID();
 
-            if ( isHoriz ) ImGui::SameLine();
-            if ( ImGui::Button( ICON_FK_CUBES, sk_toolbarButtonSize) )
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::Dummy( buttonSpace );
+
+        static constexpr uint32_t minBrushVox = 1;
+        static constexpr uint32_t maxBrushVox = 1023;
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_PLUS_CIRCLE, sk_toolbarButtonSize) )
+        {
+            /// @todo replace with AntropyApp::cycleBrushSize
+            uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
+            brushSizeVox = glm::clamp( brushSizeVox + 1, minBrushVox, maxBrushVox );
+            appData.settings().setBrushSizeInVoxels( brushSizeVox );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Increase brush size (+)" );
+        }
+
+        if ( isHoriz ) ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_MINUS_CIRCLE, sk_toolbarButtonSize) )
+        {
+            /// @todo replace with AntropyApp::cycleBrushSize
+            uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
+            brushSizeVox = glm::clamp( brushSizeVox - 1, minBrushVox, maxBrushVox );
+            appData.settings().setBrushSizeInVoxels( brushSizeVox );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Decrease brush size (-)" );
+        }
+
+
+        /*
+        if ( isHoriz ) ImGui::SameLine();
+
+        {
+            uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
+
+            ImGui::PushStyleColor( ImGuiCol_FrameBg, inactiveColor );
+            ImGui::PushItemWidth( -1 );
+
+            if ( ImGui::InputScalar( "##brushSizeInput", ImGuiDataType_U32,
+                                     &brushSizeVox, nullptr, nullptr, "%d" ) )
             {
-                const auto imageUid = appData.activeImageUid();
-                const Image* image = appData.activeImage();
+                brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
+                appData.settings().setBrushSizeInVoxels( brushSizeVox );
+            }
 
-                if ( imageUid && image )
+            ImGui::PopItemWidth();
+            ImGui::PopStyleColor( 1 ); // ImGuiCol_FrameBg
+        }
+        */
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_BULLSEYE, sk_toolbarButtonSize) )
+        {
+            ImGui::OpenPopup( "brushSizePopup" );
+        }
+
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Brush options" );
+        }
+
+
+        /// @todo Should save off default values (prior to toolbar's change) and push them here:
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 8.0f, 4.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4.0f, 3.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.0f );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 4.0f );
+
+        if ( ImGui::BeginPopup( "brushSizePopup" ) )
+        {
+            bool useVoxels = appData.settings().useVoxelBrushSize();
+            bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
+            bool use3d = appData.settings().use3dBrush();
+            bool useIso = appData.settings().useIsotropicBrush();
+            bool useRound = appData.settings().useRoundBrush();
+            bool xhairsMove = appData.settings().crosshairsMoveWithBrush();
+
+            ImGui::Text( "Brush options:" );
+            ImGui::Separator();
+
+            ImGui::Spacing();
+
+            if ( useVoxels )
+            {
+                uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
+                uint32_t stepSmall = 1;
+                uint32_t stepBig = 5;
+
+                if ( ImGui::InputScalar( "width (vox)##brushSizeVox", ImGuiDataType_U32, &brushSizeVox, &stepSmall, &stepBig ) )
                 {
-                    if ( const auto seedSegUid = appData.imageToActiveSegUid( *imageUid ) )
+                    brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
+                    appData.settings().setBrushSizeInVoxels( brushSizeVox );
+                }
+            }
+            //                else
+            //                {
+            //                    float brushSizeMm = appData.brushSizeInMm();
+
+            //                    if ( ImGui::SliderFloat( "size (mm)##brushSizeMmSlider", &brushSizeMm, 0.001f, 100.000f, "%.3f" ) )
+            //                    {
+            //                        appData.setBrushSizeInMm( brushSizeMm );
+            //                    }
+            //                }
+            ImGui::SameLine(); helpMarker( "Brush width in voxels" );
+
+
+            //                if ( ImGui::RadioButton( "Voxels", useVoxels ) )
+            //                {
+            //                    useVoxels = true;
+            //                    appData.setUseVoxelBrushSize( useVoxels );
+            //                }
+
+            //                ImGui::SameLine();
+            //                if ( ImGui::RadioButton( "Millimeters", ! useVoxels ) )
+            //                {
+            //                    useVoxels = false;
+            //                    appData.setUseVoxelBrushSize( useVoxels );
+            //                }
+            //                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
+            //                ImGui::SameLine(); HelpMarker( "Set brush size in units of either voxels or millimeters" );
+
+
+            if ( ImGui::RadioButton( "Round", useRound ) )
+            {
+                useRound = true;
+                appData.settings().setUseRoundBrush( useRound );
+            }
+
+            ImGui::SameLine();
+            if ( ImGui::RadioButton( "Square", ! useRound ) )
+            {
+                useRound = false;
+                appData.settings().setUseRoundBrush( useRound );
+            }
+            ImGui::SameLine(); helpMarker( "Set either round or square brush shape" );
+
+
+            if ( ImGui::RadioButton( "2D", ! use3d ) )
+            {
+                use3d = false;
+                appData.settings().setUse3dBrush( use3d );
+            }
+
+            ImGui::SameLine();
+            if ( ImGui::RadioButton( "3D", use3d ) )
+            {
+                use3d = true;
+                appData.settings().setUse3dBrush( use3d );
+            }
+            ImGui::SameLine(); helpMarker( "Set either 2D (planar) or 3D (volumetric) brush shape" );
+
+
+            if ( ImGui::Checkbox( "Isotropic brush", &useIso ) )
+            {
+                appData.settings().setUseIsotropicBrush( useIso );
+            }
+            ImGui::SameLine(); helpMarker( "Set either anisotropic or isotropic brush dimensions" );
+
+
+            if ( ImGui::Checkbox( "Replace background with foreground", &replaceBgWithFg ) )
+            {
+                appData.settings().setReplaceBackgroundWithForeground( replaceBgWithFg );
+            }
+            ImGui::SameLine(); helpMarker( "When enabled, the brush only draws the foreground label on top of the background label" );
+
+
+            if ( ImGui::Checkbox( "Crosshairs move with brush", &xhairsMove ) )
+            {
+                appData.settings().setCrosshairsMoveWithBrush( xhairsMove );
+            }
+            ImGui::SameLine(); helpMarker( "Crosshairs movement is linked with brush movement" );
+
+            ImGui::EndPopup();
+        }
+
+        // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
+        // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
+        ImGui::PopStyleVar( 5 );
+
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::Dummy( buttonSpace );
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+            bool xhairsMove = appData.settings().crosshairsMoveWithBrush();
+
+            ImGui::PushStyleColor( ImGuiCol_Button, ( xhairsMove ? activeColor : inactiveColor ) );
+            {
+                if ( ImGui::Button( xhairsMove ? ICON_FK_LINK : ICON_FK_CHAIN_BROKEN, sk_toolbarButtonSize ) )
+                {
+                    xhairsMove = ! xhairsMove;
+                    appData.settings().setCrosshairsMoveWithBrush( xhairsMove );
+                }
+            }
+            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "%s", "Crosshairs linked to brush" );
+            }
+
+            ++id;
+        }
+        ImGui::PopID();
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_RSS, sk_toolbarButtonSize ) )
+        {
+            ImGui::OpenPopup( "segSyncPopup" );
+        }
+
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Synchronize drawing of segmentations on multiple images" );
+        }
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_CUBES, sk_toolbarButtonSize) )
+        {
+            const auto imageUid = appData.activeImageUid();
+            const Image* image = appData.activeImage();
+
+            if ( imageUid && image )
+            {
+                if ( const auto seedSegUid = appData.imageToActiveSegUid( *imageUid ) )
+                {
+                    const size_t numSegsForImage = appData.imageToSegUids( *imageUid ).size();
+
+                    std::string segDisplayName =
+                            std::string( "Graph Cuts segmentation " ) +
+                            std::to_string( numSegsForImage + 1 ) +
+                            " for image '" +
+                            image->settings().displayName() + "'";
+
+                    if ( const auto blankSegUid = createBlankSeg( *imageUid, std::move( segDisplayName ) ) )
                     {
-                        const size_t numSegsForImage = appData.imageToSegUids( *imageUid ).size();
-
-                        std::string segDisplayName =
-                                std::string( "Graph Cuts segmentation " ) +
-                                std::to_string( numSegsForImage + 1 ) +
-                                " for image '" +
-                                image->settings().displayName() + "'";
-
-                        if ( const auto blankSegUid = createBlankSeg( *imageUid, std::move( segDisplayName ) ) )
-                        {
-                            updateImageUniforms( *imageUid );
-                            executeGridCutsSeg( *imageUid, *seedSegUid, *blankSegUid );
-                        }
+                        updateImageUniforms( *imageUid );
+                        executeGridCutsSeg( *imageUid, *seedSegUid, *blankSegUid );
                     }
                 }
             }
-            if ( ImGui::IsItemHovered() )
-            {
-                ImGui::SetTooltip( "%s", "Execute Graph Cuts segmentation" );
-            }
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Execute Graph Cuts segmentation" );
+        }
 
 
-            if ( ImGui::BeginPopup( "segSyncPopup" ) )
-            {
-                const size_t activeIndex = getActiveImageIndex();
+        /// @todo Should save off default values (prior to toolbar's change) and push them here:
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 8.0f, 4.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4.0f, 3.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.0f );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 4.0f );
 
-                /*
+        if ( ImGui::BeginPopup( "segSyncPopup" ) )
+        {
+            const size_t activeIndex = getActiveImageIndex();
+
+            /*
                 for ( size_t i = 0; i < getNumImages(); ++i )
                 {
                     ImGui::PushID( static_cast<int>( i ) );
@@ -1116,63 +1160,61 @@ void renderSegToolbar(
                 }
                 */
 
-                ImGui::Text( "Select the active image to segment:" );
-                ImGui::Dummy( ImVec2( 0.0f, 4.0f ) );
+            ImGui::Text( "Select the active image to segment:" );
 
-                renderActiveImageSelectionCombo(
-                            getNumImages,
-                            getImageDisplayAndFileName,
-                            getActiveImageIndex,
-                            setActiveImageIndex,
-                            false );
+            renderActiveImageSelectionCombo(
+                        getNumImages,
+                        getImageDisplayAndFileName,
+                        getActiveImageIndex,
+                        setActiveImageIndex,
+                        false );
 
-                ImGui::Dummy( ImVec2( 0.0f, 4.0f ) );
-                ImGui::Separator();
-                ImGui::Dummy( ImVec2( 0.0f, 4.0f ) );
+            ImGui::Separator();
 
-                ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
+            ImGui::SetNextItemOpen( true, ImGuiCond_Appearing );
 
-                if ( ImGui::TreeNode( "Synchronize drawing on additional images:" ) )
+            if ( ImGui::TreeNode( "Synchronize drawing on additional images:" ) )
+            {
+                for ( size_t i = 0; i < getNumImages(); ++i )
                 {
-                    ImGui::Dummy( ImVec2( 0.0f, 4.0f ) );
+                    // Active image is not shown
+                    if ( i == activeIndex ) continue;
 
-                    for ( size_t i = 0; i < getNumImages(); ++i )
+                    const auto displayAndFileName = getImageDisplayAndFileName(i);
+
+                    // Image is selected if its seg is active
+                    bool isSelected = getImageHasActiveSeg( i );
+
+                    if ( ImGui::Selectable( displayAndFileName.first, &isSelected ) )
                     {
-                        // Active image is not shown
-                        if ( i == activeIndex ) continue;
-
-                        const auto displayAndFileName = getImageDisplayAndFileName(i);
-
-                        // Image is selected if its seg is active
-                        bool isSelected = getImageHasActiveSeg( i );
-
-                        if ( ImGui::Selectable( displayAndFileName.first, &isSelected ) )
+                        if ( isSelected )
                         {
-                            if ( isSelected )
-                            {
-                                setImageHasActiveSeg( i, true );
-                                ImGui::SetItemDefaultFocus();
-                            }
-                            else
-                            {
-                                setImageHasActiveSeg( i, false );
-                            }
+                            setImageHasActiveSeg( i, true );
+                            ImGui::SetItemDefaultFocus();
                         }
-
-                        if ( ImGui::IsItemHovered() )
+                        else
                         {
-                            ImGui::SetTooltip( "%s", displayAndFileName.second );
+                            setImageHasActiveSeg( i, false );
                         }
-
-                        ImGui::Dummy( ImVec2( 0.0f, 4.0f ) );
                     }
 
-                    ImGui::TreePop();
+                    if ( ImGui::IsItemHovered() )
+                    {
+                        ImGui::SetTooltip( "%s", displayAndFileName.second );
+                    }
                 }
 
-                ImGui::EndPopup();
+                ImGui::TreePop();
             }
+
+            ImGui::EndPopup();
         }
+
+        // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
+        // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
+        ImGui::PopStyleVar( 5 );
+
+
         ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
 
 
@@ -1184,9 +1226,12 @@ void renderSegToolbar(
         ImGui::End(); // End toolbar
     }
 
-    // Pop: ImGuiStyleVar_WindowRounding, ImGuiStyleVar_WindowBorderSize,
-    // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ItemSpacing
-    ImGui::PopStyleVar( 4 );
+    // ImGuiCol_TitleBgCollapsed
+    ImGui::PopStyleColor( 1 );
+
+    // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
+    // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
+    ImGui::PopStyleVar( 5 );
 
     ImGui::PopID();
 }

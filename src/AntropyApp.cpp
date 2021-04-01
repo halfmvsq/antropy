@@ -148,7 +148,10 @@ void AntropyApp::init()
 
 void AntropyApp::run()
 {
-    spdlog::debug( "Begin application run loop" );
+    // Recenter the crosshairs, but don't recenter views on the crosshairs:
+    static constexpr bool sk_recenterCrosshairs = true;
+    static constexpr bool sk_recenterOnCurrentCrosshairsPos = false;
+    static constexpr bool sk_resetObliqueOrientation = true;
 
     auto onImagesReady = [this] ()
     {
@@ -157,6 +160,7 @@ void AntropyApp::run()
         if ( ! refImg )
         {
             // At a minimum, we need a reference image to do anything.
+            // If the reference image is null, then image loading has failed.
             spdlog::critical( "The reference image is null" );
             throw_debug( "The reference image is null" )
         }
@@ -166,24 +170,20 @@ void AntropyApp::run()
 
         spdlog::debug( "Textures and uniforms ready; rendering enabled" );
 
-        m_glfw.setEventProcessingMode( EventProcessingMode::Wait ); // Render only on events
+        // Stop animation rendering (which plays during loading) and render only on events:
+        m_glfw.setEventProcessingMode( EventProcessingMode::Wait );
         m_glfw.setWindowTitleStatus( m_data.getAllImageDisplayNames() );
-
-        m_data.guiData().m_renderUiWindows = true;
-        m_data.guiData().m_renderUiOverlays = true;
 
         m_data.state().setAnimating( false );
         m_data.settings().setOverlays( true );
 
+        m_data.guiData().m_renderUiWindows = true;
+        m_data.guiData().m_renderUiOverlays = true;
+
+        // Prepare layouts and views:
         m_data.windowData().addAxCorSagLayout( m_data.numImages() );
         m_data.windowData().addLightboxLayoutForImage( refImg->header().pixelDimensions().z );
-
         m_data.windowData().setDefaultRenderedImagesForAllLayouts( m_data.imageUidsOrdered() );
-
-        // Recenter the crosshairs, but don't recenter views on the crosshairs:
-        static constexpr bool sk_recenterCrosshairs = true;
-        static constexpr bool sk_recenterOnCurrentCrosshairsPos = false;
-        static constexpr bool sk_resetObliqueOrientation = true;
 
         m_callbackHandler.recenterViews(
                     m_data.state().recenteringMode(),
@@ -201,6 +201,7 @@ void AntropyApp::run()
         spdlog::debug( "Window state setup" );
     };
 
+    spdlog::debug( "Begin application run loop" );
     m_glfw.renderLoop( m_imagesReady, m_imageLoadFailed, onImagesReady );
     spdlog::debug( "Done application run loop" );
 }
@@ -996,15 +997,13 @@ void AntropyApp::loadImagesFromParams( const InputParams& params )
         static constexpr size_t sk_defaultReferenceImageIndex = 0;
         static constexpr size_t sk_defaultActiveImageIndex = 1;
 
-        // Set event processing mode to poll, so that we can get continuous animations while loading
+        // Set event processing mode to poll, so that we have continuous animation while loading
         m_glfw.setEventProcessingMode( EventProcessingMode::Poll );
         m_data.state().setAnimating( true );
 
         spdlog::debug( "Begin loading images" );
 
-        const bool loadedReference = this->loadSerializedImage( project.m_referenceImage );
-
-        if ( ! loadedReference )
+        if ( ! loadSerializedImage( project.m_referenceImage ) )
         {
             spdlog::critical( "Could not load reference image {}",
                               project.m_referenceImage.m_imageFileName );
@@ -1013,23 +1012,14 @@ void AntropyApp::loadImagesFromParams( const InputParams& params )
 
         for ( const auto& additionalImage : project.m_additionalImages )
         {
-            const bool loadedImage = this->loadSerializedImage( additionalImage );
-
-            if ( ! loadedImage )
+            if ( ! loadSerializedImage( additionalImage ) )
             {
                 spdlog::error( "Could not load additional image {}; skipping it",
                                additionalImage.m_imageFileName );
             }
         }
 
-        if ( 0 == m_data.numImages() )
-        {
-            spdlog::critical( "There are no images loaded" );
-            onProjectLoadingDone( false );
-        }
-
         const auto refImageUid = m_data.imageUid( sk_defaultReferenceImageIndex );
-
         if ( refImageUid && m_data.setRefImageUid( *refImageUid ) )
         {           
             spdlog::info( "Set {} as the reference image", *refImageUid );
@@ -1040,50 +1030,26 @@ void AntropyApp::loadImagesFromParams( const InputParams& params )
             onProjectLoadingDone( false );
         }
 
-        if ( sk_defaultActiveImageIndex < m_data.numImages() )
-        {
-            const auto actImgUid = m_data.imageUid( sk_defaultActiveImageIndex );
+        const auto desiredActiveImageUid =
+                ( sk_defaultActiveImageIndex < m_data.numImages() )
+                ? m_data.imageUid( sk_defaultActiveImageIndex )
+                : *refImageUid;
 
-            if ( actImgUid && m_data.setActiveImageUid( *actImgUid ) )
-            {
-                spdlog::info( "Set {} as the active image", *actImgUid );
-            }
-            else
-            {
-                spdlog::error( "Unable to set {} as the active image", *actImgUid );
-//                onProjectLoadingDone( false );
-            }
+        if ( desiredActiveImageUid && m_data.setActiveImageUid( *desiredActiveImageUid ) )
+        {
+            spdlog::info( "Set {} as the active image", *desiredActiveImageUid );
         }
         else
         {
-            if ( m_data.setActiveImageUid( *refImageUid ) )
-            {
-                spdlog::info( "Set reference image ({}) as the active image", *refImageUid );
-            }
-            else
-            {
-                spdlog::error( "Unable to set {} as the active image", *refImageUid );
-//                onProjectLoadingDone( false );
-            }
+            spdlog::error( "Unable to set {} as the active image", *desiredActiveImageUid );
         }
 
-        /// @note The brush size in mm is not currently being used anywhere
-//      // Set brush size to min voxel size
-//      if ( const Image* image = m_data.refImage() )
-//      {
-//        m_data.setBrushSizeInMm( glm::compMin( image->header().spacing() ) );
-//      }
-
-
-        // Assign nice rainbow colors
+        // Assign nice rainbow colors:
         m_data.setRainbowColorsForAllImages();
         m_data.setRainbowColorsForAllLandmarkGroups();
 
-        // If there is only one image, show the tri-view layout:
-        if ( 1 == m_data.numImages() )
-        {
-            m_data.windowData().setCurrentLayoutIndex( 1 );
-        }
+        // Show the tri-view layout:
+        m_data.windowData().setCurrentLayoutIndex( 1 );
 
         onProjectLoadingDone( true );
     };
@@ -1093,22 +1059,20 @@ void AntropyApp::loadImagesFromParams( const InputParams& params )
     {
         if ( projectLoadedSuccessfully )
         {
-            // Set flag that images are ready and post an empty event to notify render thread
-            // that there is an event
             m_imagesReady = true;
-            m_glfw.postEmptyEvent();
+            m_imageLoadFailed = false;
+            m_glfw.postEmptyEvent(); // Post an empty event to notify render thread
             spdlog::debug( "Done loading images" );
         }
         else
         {
-            m_imagesReady = false;
-            m_imageLoadFailed = true; // This flag will cause the render loop to exit
             spdlog::critical( "Failed to load images" );
+            m_imagesReady = true;
+            m_imageLoadFailed = false;
         }
     };
 
-
-    m_glfw.setWindowTitleStatus( "Loading images..." );
+    m_glfw.setWindowTitleStatus( "Loading project..." );
 
     // Create a project to be loaded in from the input parameters
     m_data.setProject( createProjectFromInputParams( params ) );
@@ -1158,7 +1122,9 @@ void AntropyApp::setCallbacks()
                 return glm::vec3{ subjectPos / subjectPos.w };
             },
 
-            [this] ( size_t imageIndex ) { return data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex ); },
+            [this] ( size_t imageIndex ) {
+                return data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex );
+            },
 
             // Set subject position for image:
             [this] ( size_t imageIndex, const glm::vec3& subjectPos )

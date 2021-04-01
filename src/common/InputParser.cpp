@@ -179,7 +179,8 @@ int parseCommandLine( const int argc, char* argv[], InputParams& params )
                 spdlog::info( "\tImage {}: {}", i, imgSegPair.first );
             }
 
-            spdlog::info( "\tSegmentation for image {}: {}", i, ( imgSegPair.second ? *imgSegPair.second : "<none>" ) );
+            spdlog::info( "\tSegmentation for image {}: {}", i,
+                          ( imgSegPair.second ? *imgSegPair.second : "<none>" ) );
         }
     }
     else if ( params.projectFile )

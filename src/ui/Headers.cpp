@@ -296,6 +296,10 @@ void renderImageHeader(
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
 
+    const ImVec4* colors = ImGui::GetStyle().Colors;
+    const ImVec4 activeColor = colors[ImGuiCol_ButtonActive];
+    ImVec4 inactiveColor = colors[ImGuiCol_Button];
+
     const std::string minValuesFormatString = std::string( "Min: " ) + appData.guiData().m_imageValuePrecisionFormat;
     const std::string maxValuesFormatString = std::string( "Max: " ) + appData.guiData().m_imageValuePrecisionFormat;
 
@@ -392,7 +396,9 @@ void renderImageHeader(
     }
     else
     {
+        ImGui::PushStyleColor( ImGuiCol_Button, activeColor );
         ImGui::Button( ICON_FK_TOGGLE_ON );
+        ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
 
         if ( ImGui::IsItemHovered() )
         {
@@ -424,11 +430,14 @@ void renderImageHeader(
 
     if ( isActiveImage )
     {
-        if ( ImGui::Button( ( image->transformations().is_worldDef_T_affine_locked()
-                              ? ICON_FK_LOCK : ICON_FK_UNLOCK ), sk_smallToolbarButtonSize ) )
+        const bool isLocked = image->transformations().is_worldDef_T_affine_locked();
+
+        ImGui::PushStyleColor( ImGuiCol_Button, ( isLocked ? inactiveColor : activeColor ) );
+        if ( ImGui::Button( ( isLocked ? ICON_FK_LOCK : ICON_FK_UNLOCK ), sk_smallToolbarButtonSize ) )
         {
-            setLockManualImageTransformation( imageUid, ! image->transformations().is_worldDef_T_affine_locked() );
+            setLockManualImageTransformation( imageUid, ! isLocked );
         }
+        ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
 
         if ( image->transformations().is_worldDef_T_affine_locked() )
         {
@@ -1155,6 +1164,9 @@ void renderSegmentationHeader(
         return;
     }
 
+    const ImVec4* colors = ImGui::GetStyle().Colors;
+    const ImVec4 activeColor = colors[ImGuiCol_ButtonActive];
+
     ImGuiTreeNodeFlags headerFlags = ImGuiTreeNodeFlags_CollapsingHeader;
 
     if ( isActiveImage )
@@ -1204,7 +1216,9 @@ void renderSegmentationHeader(
     }
     else
     {
+        ImGui::PushStyleColor( ImGuiCol_Button, activeColor );
         ImGui::Button( ICON_FK_TOGGLE_ON );
+        ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
     }
 
 

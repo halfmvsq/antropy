@@ -8,10 +8,6 @@
 
 int main( int argc, char* argv[] )
 {
-    auto logSuccess = []() {
-        spdlog::debug( "------------------------ END SESSION (SUCCESS) ------------------------" );
-    };
-
     auto logFailure = []() {
         spdlog::debug( "------------------------ END SESSION (FAILURE) ------------------------" );
     };
@@ -34,8 +30,8 @@ int main( int argc, char* argv[] )
         if ( ! params.set )
         {
             spdlog::debug( "Command line arguments not specified" );
-            logSuccess();
-            return EXIT_SUCCESS;
+            logFailure();
+            return EXIT_FAILURE;
         }
 
         logging.setConsoleSinkLevel( params.consoleLogLevel );
@@ -66,6 +62,6 @@ int main( int argc, char* argv[] )
         return EXIT_FAILURE;
     }
 
-    logSuccess();
+    spdlog::debug( "------------------------ END SESSION (SUCCESS) ------------------------" );
     return EXIT_SUCCESS;
 }

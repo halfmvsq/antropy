@@ -1180,11 +1180,7 @@ void renderSettingsWindow(
                                          &coordPrecision, &sk_stepPrecision, &sk_stepPrecision, "%d" ) )
                 {
                     appData.guiData().m_coordsPrecision = std::min( std::max( coordPrecision, sk_minPrecision ), sk_maxPrecision );
-
-                    appData.guiData().m_coordsPrecisionFormat =
-                            std::string( "%0." ) +
-                            std::to_string( appData.guiData().m_coordsPrecision ) +
-                            std::string( "f" );
+                    appData.guiData().setCoordsPrecisionFormat();
                 }
                 ImGui::SameLine(); helpMarker( "Floating-point precision of image spatial coordinates (e.g. in Inspector window)" );
 
@@ -1192,11 +1188,7 @@ void renderSettingsWindow(
                                          &txPrecision, &sk_stepPrecision, &sk_stepPrecision, "%d" ) )
                 {
                     appData.guiData().m_txPrecision = std::min( std::max( txPrecision, sk_minPrecision ), sk_maxPrecision );
-
-                    appData.guiData().m_txPrecisionFormat =
-                            std::string( "%0." ) +
-                            std::to_string( appData.guiData().m_txPrecision ) +
-                            std::string( "f" );
+                    appData.guiData().setTxPrecisionFormat();
                 }
                 ImGui::SameLine(); helpMarker( "Floating-point precision of image transformation parameters" );
 
@@ -1546,7 +1538,10 @@ void renderInspectionWindowWithTable(
 //    bool selectionButtonShown = false;
 
     static const ImVec2 sk_windowPadding( 0.0f, 0.0f );
-//    static const float sk_windowRounding( 0.0f );
+    static const ImVec2 sk_framePadding( 0.0f, 0.0f );
+    static const ImVec2 sk_itemInnerSpacing( 1.0f, 1.0f );
+    static const ImVec2 sk_cellPadding( 0.0f, 0.0f );
+    static const float sk_windowRounding( 0.0f );
 
     static const ImVec4 buttonColor( 0.0f, 0.0f, 0.0f, 0.0f );
     static const ImVec4 blueColor( 0.0f, 0.5f, 1.0f, 1.0f );
@@ -1694,9 +1689,13 @@ void renderInspectionWindowWithTable(
 
     ImGui::SetNextWindowBgAlpha( 0.0f ); // Transparent background
 
-    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
-//    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, sk_windowRounding );
+    ImGui::PushStyleVar( ImGuiStyleVar_CellPadding, sk_cellPadding );
+    ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, sk_framePadding );
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemInnerSpacing, sk_itemInnerSpacing );
+    ImGui::PushStyleVar( ImGuiStyleVar_ScrollbarSize, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, sk_windowRounding );
 
     if ( ImGui::Begin( "##InspectionWindow", &( appData.guiData().m_showInspectionWindow ), windowFlags ) )
     {
@@ -1950,8 +1949,14 @@ void renderInspectionWindowWithTable(
         ImGui::End();
     }
 
-    // ImGuiStyleVar_WindowPadding, /*ImGuiStyleVar_WindowRounding*/, ImGuiStyleVar_WindowBorderSize
-    ImGui::PopStyleVar( 2 );
+    // ImGuiStyleVar_CellPadding
+    // ImGuiStyleVar_FramePadding
+    // ImGuiStyleVar_ItemInnerSpacing
+    // ImGuiStyleVar_ScrollbarSize
+    // ImGuiStyleVar_WindowBorderSize
+    // ImGuiStyleVar_WindowPadding
+    // ImGuiStyleVar_WindowRounding
+    ImGui::PopStyleVar( 7 );
 }
 
 
@@ -1996,15 +2001,16 @@ void renderOpacityBlenderWindow(
         const float sat = borderColorHsv[1];
         const float val = borderColorHsv[2];
 
-        const glm::vec3 bgColor = glm::rgbColor( glm::vec3{ hue, 0.5f * sat, 0.5f * val } );
-        const glm::vec3 bgHoveredColor = glm::rgbColor( glm::vec3{ hue, 0.6f * sat, 0.5f * val } );
+        const glm::vec3 frameBgColor = glm::rgbColor( glm::vec3{ hue, 0.5f * sat, 0.5f * val } );
         const glm::vec3 frameBgActiveColor = glm::rgbColor( glm::vec3{ hue, 0.7f * sat, 0.5f * val } );
+        const glm::vec3 frameBgHoveredColor = glm::rgbColor( glm::vec3{ hue, 0.6f * sat, 0.5f * val } );
         const glm::vec3 sliderGrabColor = glm::rgbColor( glm::vec3{ hue, sat, val } );
 
         ImGui::PushID( imageIndex );
-        ImGui::PushStyleColor( ImGuiCol_FrameBg, ImVec4( bgColor.r, bgColor.g, bgColor.b, 1.0f ) );
-        ImGui::PushStyleColor( ImGuiCol_FrameBgHovered, ImVec4( bgHoveredColor.r, bgHoveredColor.g, bgHoveredColor.b, 1.0f ) );
+
+        ImGui::PushStyleColor( ImGuiCol_FrameBg, ImVec4( frameBgColor.r, frameBgColor.g, frameBgColor.b, 1.0f ) );
         ImGui::PushStyleColor( ImGuiCol_FrameBgActive, ImVec4( frameBgActiveColor.r, frameBgActiveColor.g, frameBgActiveColor.b, 1.0f ) );
+        ImGui::PushStyleColor( ImGuiCol_FrameBgHovered, ImVec4( frameBgHoveredColor.r, frameBgHoveredColor.g, frameBgHoveredColor.b, 1.0f ) );
         ImGui::PushStyleColor( ImGuiCol_SliderGrab, ImVec4( sliderGrabColor.r, sliderGrabColor.g, sliderGrabColor.b, 1.0f ) );
 
         const std::string name = imgSettings.displayName() + "##" + std::to_string( imageIndex );
@@ -2020,6 +2026,10 @@ void renderOpacityBlenderWindow(
             ImGui::SetTooltip( "%s", imgHeader.fileName().c_str() );
         }
 
+        // ImGuiCol_FrameBg
+        // ImGuiCol_FrameBgActive
+        // ImGuiCol_FrameBgHovered
+        // ImGuiCol_SliderGrab
         ImGui::PopStyleColor( 4 );
         ImGui::PopID();
     }

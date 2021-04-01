@@ -110,6 +110,7 @@ public:
 
 private:
 
+    // Process user interaction input between render calls.
     void processInput();
 
     // GLFW window that is owned by this class:

@@ -36,7 +36,6 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
 
     spdlog::debug( "OpenGL Core profile version {}.{}", glMajorVersion, glMinorVersion );
 
-    // Initialize and configure GLFW
     if ( ! glfwInit() )
     {
         spdlog::critical( "Failed to initialize the GLFW windowing library" );
@@ -79,7 +78,6 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
     spdlog::debug( "Initialized GLFW window and context for Apple macOS platform" );
 #endif
 
-
     // Get window dimensions, using monitor work area if available
     int width = static_cast<int>( app->windowData().viewport().width() );
     int height = static_cast<int>( app->windowData().viewport().height() );
@@ -103,9 +101,6 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
         glfwTerminate();
         throw_debug( "Failed to create GLFW window and context" )
     }
-
-    // Can use for full-screen mode
-    // glfwSetWindowMonitor();
 
     spdlog::debug( "Created GLFW window and context" );
 
@@ -133,10 +128,7 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
                 MouseMode::WindowLevel, glfwCreateStandardCursor( GLFW_RESIZE_ALL_CURSOR ) );
     spdlog::debug( "Created GLFW cursors" );
 
-
-    // Load window icon
-//    GLFWimage image = load_icon("hippo.png");
-//    glfwSetWindowIcon( window, 1, image );
+//    glfwSetWindowIcon( window, 1, GLFWimage() );
 
     // Load all OpenGL function pointers with GLAD
     if ( ! gladLoadGLLoader( (GLADloadproc) glfwGetProcAddress ) )
@@ -265,11 +257,13 @@ void GlfwWrapper::postEmptyEvent()
 
 void GlfwWrapper::processInput()
 {
-    // Query whether relevant keys are pressed/released this frame and react accordingly
-//    if ( GLFW_PRESS == glfwGetKey( m_window, GLFW_KEY_ESCAPE ) )
-//    {
-//        glfwSetWindowShouldClose( m_window, true );
-//    }
+    // No inputs are currently being processed here.
+
+    // Could check inputs and react as shown below:
+    //    if ( GLFW_PRESS == glfwGetKey( m_window, GLFW_KEY_ESCAPE ) )
+    //    {
+    //        glfwSetWindowShouldClose( m_window, true );
+    //    }
 }
 
 

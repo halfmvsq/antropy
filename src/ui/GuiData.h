@@ -38,6 +38,9 @@ struct GuiData
     bool m_showCorrelationColormapWindow = false; //!< Show correlation colormap window
     bool m_showJointHistogramColormapWindow = false; //!< Show joint histogram colormap window
 
+    void setCoordsPrecisionFormat();
+    void setTxPrecisionFormat();
+
     /// Precision format string used for spatial coordinates
     std::string m_coordsPrecisionFormat = "%0.3f";
     uint32_t m_coordsPrecision = 3;
