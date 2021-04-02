@@ -1,7 +1,9 @@
 #ifndef UI_TOOLBARS_H
 #define UI_TOOLBARS_H
 
+#include "common/PublicTypes.h"
 #include "common/Types.h"
+
 #include <uuid.h>
 #include <functional>
 
@@ -12,7 +14,7 @@ void renderToolbar(
         AppData& appData,
         const std::function< MouseMode (void) >& getMouseMode,
         const std::function< void (MouseMode) >& setMouseMode,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews,
+        const AllViewsRecenterType& recenterAllViews,
         const std::function< bool (void) >& getOverlayVisibility,
         const std::function< void (bool) >& setOverlayVisibility,
         const std::function< void (int step) >& cycleViews,

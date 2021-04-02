@@ -1,6 +1,7 @@
 #ifndef UI_WINDOWS_H
 #define UI_WINDOWS_H
 
+#include "common/PublicTypes.h"
 #include "logic/camera/CameraTypes.h"
 #include "ui/UiControls.h"
 
@@ -139,7 +140,7 @@ void renderSegmentationPropertiesWindow(
  */
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
+        const AllViewsRecenterType& recenterAllViews );
 
 
 /**
@@ -149,7 +150,7 @@ void renderLandmarkPropertiesWindow(
  */
 void renderAnnotationWindow(
         AppData& appData,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
+        const AllViewsRecenterType& recenterAllViews );
 
 
 /**
@@ -165,7 +166,7 @@ void renderSettingsWindow(
         const std::function< size_t (void) >& getNumImageColorMaps,
         const std::function< const ImageColorMap* ( size_t cmapIndex ) >& getImageColorMap,
         const std::function< void(void) >& updateMetricUniforms,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
+        const AllViewsRecenterType& recenterAllViews );
 
 
 /**

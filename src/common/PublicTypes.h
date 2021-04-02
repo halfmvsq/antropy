@@ -13,6 +13,12 @@ using AllViewsUpdaterType = std::function< void (void) >;
 /// Function that resets cameras of all views to their default states
 using AllViewsResetterType = std::function< void () >;
 
+/// Function that recenters cameras of all views
+using AllViewsRecenterType = std::function< void (
+    bool recenterCrosshairs,
+    bool recenterOnCurrentCrosshairsPosition,
+    bool resetObliqueOrientation ) >;
+
 
 /// Shorthand for a function that returns an object
 template< class T >

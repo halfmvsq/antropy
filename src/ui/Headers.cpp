@@ -76,6 +76,7 @@ std::pair< ImVec4, ImVec4 > computeHeaderBgAndTextColors( const glm::vec3& color
 void renderImageHeaderInformation(
         const AppData& appData,
         const ImageHeader& imgHeader,
+        const ImageSettings& /*imgSettings*/,
         const ImageTransformations& imgTx )
 {
     const char* txFormat = appData.guiData().m_txPrecisionFormat.c_str();
@@ -192,18 +193,8 @@ void renderImageHeaderInformation(
     // Bounding box:
     ImGui::Text( "Bounding box (in Subject space):" );
 
-    //    auto boxMinMax = imgHeader.boundingBoxMinMaxCorners();
-    //    ImGui::InputScalarN( "Min. corner (mm)", ImGuiDataType_Float, glm::value_ptr( boxMinMax.first ), 3,
-    //                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    //    ImGui::SameLine(); helpMarker( "Minimum corner of bounding box in Subject space (mm)" );
-    //    ImGui::Spacing();
-
-
-    //    ImGui::InputScalarN( "Max. corner (mm)", ImGuiDataType_Float, glm::value_ptr( boxMinMax.second ), 3,
-    //                         nullptr, nullptr, "%.3f", ImGuiInputTextFlags_ReadOnly );
-    //    ImGui::SameLine(); helpMarker( "Maximum corner of bounding box in Subject space (mm)" );
-    //    ImGui::Spacing();
-
+    // Note: we used to display the min and max bounding box corners in Subject space.
+    // However, this does not make sense if the Voxel-to-Subject transformation has a rotation.
 
     glm::vec3 boxCenter = imgHeader.subjectBBoxCenter();
     ImGui::InputScalarN( "Center (mm)", ImGuiDataType_Float, glm::value_ptr( boxCenter ), 3,
@@ -258,6 +249,23 @@ void renderImageHeaderInformation(
     ImGui::SameLine(); helpMarker( "Image size in mebibytes (MiB)" );
 
     ImGui::Spacing();
+
+
+    if ( ImGui::TreeNode( "Intensity histogram" ) )
+    {
+        // Other plotting tools for ImGui:
+        // ImPlot https://github.com/epezent/implot
+        // others https://github.com/ocornut/imgui/wiki/Useful-Widgets
+
+        ;
+
+//        auto f = [&imgSettings] (int idx) -> f
+//        static float arr[] = { 0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f };
+//        ImGui::PlotHistogram( "##histogram", imgSettings.componentStatistics( 0 ).m_histogram.data(), IM_ARRAYSIZE(arr), 0, NULL, 0.0f, 1.0f, ImVec2( 0, 80.0f ) );
+
+//        IMGUI_API void          PlotHistogram(const char* label, float(*values_getter)(void* data, int idx), void* data, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2(0, 0));
+//        ImGui::PlotHistogram("Histogram", func, NULL, display_count, 0, NULL, -1.0f, 1.0f, ImVec2(0, 80));
+    }
 }
 
 
@@ -1130,7 +1138,7 @@ void renderImageHeader(
 
     if ( ImGui::TreeNode( "Header Information" ) )
     {
-        renderImageHeaderInformation( appData, imgHeader, imgTx );
+        renderImageHeaderInformation( appData, imgHeader, imgSettings, imgTx );
         ImGui::TreePop();
     }
 
@@ -1447,7 +1455,7 @@ void renderSegmentationHeader(
 
     if ( ImGui::TreeNode( "Header Information" ) )
     {
-        renderImageHeaderInformation( appData, segHeader, segTx );
+        renderImageHeaderInformation( appData, segHeader, segSettings, segTx );
 
         ImGui::Separator();
         ImGui::TreePop();
@@ -1464,7 +1472,7 @@ void renderLandmarkGroupHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
+        const AllViewsRecenterType& recenterAllViews )
 {
     static const char* sk_saveLmsButtonText( "Save landmarks..." );
     static const char* sk_saveLmsDialogTitle( "Save Landmark Group" );
@@ -1768,7 +1776,7 @@ void renderAnnotationsHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
+        const AllViewsRecenterType& recenterAllViews )
 {
     static const char* sk_saveAnnotButtonText( "Save annotation..." );
     static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
@@ -1776,14 +1784,13 @@ void renderAnnotationsHeader(
 
     const char* coordFormat = appData.guiData().m_coordsPrecisionFormat.c_str();
 
+    Image* image = appData.image( imageUid );
+    if ( ! image ) return;
+
     auto setWorldCrosshairsPos = [&appData] ( const glm::vec3& worldCrosshairsPos )
     {
         appData.state().setWorldCrosshairsPos( worldCrosshairsPos );
     };
-
-
-    Image* image = appData.image( imageUid );
-    if ( ! image ) return;
 
     ImGuiTreeNodeFlags headerFlags = ImGuiTreeNodeFlags_CollapsingHeader;
 
@@ -1865,7 +1872,11 @@ void renderAnnotationsHeader(
     }
 
 
-    if ( ImGui::BeginCombo( "Annotation", activeAnnot->getDisplayName().c_str() ) )
+    const ImVec4* colors = ImGui::GetStyle().Colors;
+    ImGui::PushStyleColor( ImGuiCol_Header, colors[ImGuiCol_ButtonActive] );
+
+    // List box that uses all width and is 5 items tall
+    if ( ImGui::BeginListBox( "##annotList", ImVec2( -FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing() ) ) )
     {
         size_t annotIndex = 0;
         for ( const auto& annotUid : annotUids )
@@ -1876,22 +1887,25 @@ void renderAnnotationsHeader(
                 {
                     const bool isSelected = ( annotUid == *activeAnnotUid );
 
-                    if ( ImGui::Selectable( annot->getDisplayName().c_str(), isSelected) )
+                    if ( ImGui::Selectable( annot->getDisplayName().c_str(), isSelected ) )
                     {
                         appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
                         activeAnnot = appData.annotation( annotUid );
                     }
 
+                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                     if ( isSelected ) ImGui::SetItemDefaultFocus();
                 }
             }
             ImGui::PopID(); // lmGroupIndex
         }
 
-        ImGui::EndCombo();
+        ImGui::EndListBox();
     }
-    ImGui::SameLine();
-    helpMarker( "Select the group of landmarks to view" );
+    ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
+
+
+
 
     if ( ! activeAnnot )
     {

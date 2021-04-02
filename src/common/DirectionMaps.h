@@ -4,6 +4,7 @@
 #include <glm/vec3.hpp>
 
 #include <map>
+#include <string>
 
 
 class Directions
@@ -60,6 +61,9 @@ public:
     static glm::vec3 get( const Anatomy& dir );
     static glm::vec3 get( const Animal& dir );
 
+    static const std::string& abbrev( const Anatomy& dir );
+    static const std::string& abbrev( const Animal& dir );
+
 
 private:
 
@@ -70,10 +74,16 @@ private:
     static const ViewDirectionsMap s_viewDirections;
 
     using AnatomicalDirectionsMap = std::map< Anatomy, glm::vec3 >;
-    static const  AnatomicalDirectionsMap s_anatomicalDirections;
+    static const AnatomicalDirectionsMap s_anatomicalDirections;
 
     using AnimalDirectionsMap = std::map< Animal, glm::vec3 >;
     static const AnimalDirectionsMap s_animalDirections;
+
+    using AnatomicalAbbreviationMap = std::map< Anatomy, std::string >;
+    static const AnatomicalAbbreviationMap s_anatomicalAbbrevs;
+
+    using AnimalAbbreviationMap = std::map< Animal, std::string >;
+    static const AnimalAbbreviationMap s_animalAbbrevs;
 };
 
 #endif // DIRECTION_MAPS_H

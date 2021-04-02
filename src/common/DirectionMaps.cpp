@@ -44,6 +44,27 @@ const Directions::AnimalDirectionsMap Directions::s_animalDirections =
     { Directions::Animal::Rostral,  glm::vec3{ 0, 0, 1 } }
 };
 
+const Directions::AnatomicalAbbreviationMap Directions::s_anatomicalAbbrevs =
+{
+    { Directions::Anatomy::Right,     "R" },
+    { Directions::Anatomy::Left,      "L" },
+    { Directions::Anatomy::Anterior,  "A" },
+    { Directions::Anatomy::Posterior, "P" },
+    { Directions::Anatomy::Inferior,  "I" },
+    { Directions::Anatomy::Superior,  "S" }
+};
+
+const Directions::AnimalAbbreviationMap Directions::s_animalAbbrevs =
+{
+    { Directions::Animal::Right,   "R" },
+    { Directions::Animal::Left,    "L" },
+    { Directions::Animal::Ventral, "Ve" },
+    { Directions::Animal::Dorsal,  "Do" },
+    { Directions::Animal::Caudal,  "Ca" },
+    { Directions::Animal::Rostral, "Ro" }
+};
+
+
 glm::vec3 Directions::get( const Cartesian& dir )
 {
     return s_cartesianDirections.at( dir );
@@ -62,4 +83,14 @@ glm::vec3 Directions::get( const Anatomy& dir )
 glm::vec3 Directions::get( const Animal& dir )
 {
     return s_animalDirections.at(dir);
+}
+
+const std::string& Directions::abbrev( const Anatomy& dir )
+{
+    return s_anatomicalAbbrevs.at(dir);
+}
+
+const std::string& Directions::abbrev( const Animal& dir )
+{
+    return s_animalAbbrevs.at(dir);
 }

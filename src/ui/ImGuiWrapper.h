@@ -1,10 +1,10 @@
 #ifndef IMGUI_WRAPPER_H
 #define IMGUI_WRAPPER_H
 
-#include <glm/vec3.hpp>
+#include "common/PublicTypes.h"
 
+#include <glm/fwd.hpp>
 #include <uuid.h>
-
 #include <functional>
 
 class AppData;
@@ -24,7 +24,7 @@ public:
 
     void setCallbacks(
             std::function< void ( const uuids::uuid& viewUid ) > recenterView,
-            std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) > recenterCurrentViews,
+            AllViewsRecenterType recenterCurrentViews,
             std::function< bool ( void ) > getOverlayVisibility,
             std::function< void ( bool ) > setOverlayVisibility,
             std::function< void ( const uuids::uuid& viewUid ) > updateImageUniforms,
@@ -56,7 +56,7 @@ private:
 
     // Callbacks:
     std::function< void ( const uuids::uuid& viewUid ) > m_recenterView;
-    std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) > m_recenterAllViews;
+    AllViewsRecenterType m_recenterAllViews;
     std::function< bool ( void ) > m_getOverlayVisibility;
     std::function< void ( bool ) > m_setOverlayVisibility;
     std::function< void ( const uuids::uuid& viewUid ) > m_updateImageUniforms;

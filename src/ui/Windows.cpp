@@ -426,7 +426,10 @@ void renderViewOrientationToolWindow(
             ImGuiWindowFlags_NoFocusOnAppearing |
             ImGuiWindowFlags_NoBringToFrontOnFocus;
 
-    static constexpr int sk_corner = 2;
+    static constexpr float sk_gizmoSize = 96.0f;
+    static constexpr int sk_gizmoMode = ( imguiGizmo::mode3Axes | imguiGizmo::cubeAtOrigin );
+
+    static constexpr int sk_corner = 2; // bottom-left
 
     if ( camera::CameraType::Oblique != cameraType )
     {
@@ -437,8 +440,8 @@ void renderViewOrientationToolWindow(
 
     bool windowOpen = false;
 
-    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, sk_itemSpacing );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, sk_windowRounding );
 
     ImGuiWindowFlags windowFlags = sk_defaultWindowFlags;
@@ -448,37 +451,31 @@ void renderViewOrientationToolWindow(
         windowFlags |= ImGuiWindowFlags_NoBackground;
     }
 
-    const glm::vec2 bottomLeft(
-                winMouseMinMaxCoords.first.x + sk_framePad.x,
-                winMouseMinMaxCoords.second.y - sk_framePad.y );
+    const glm::vec2 bottomLeft( winMouseMinMaxCoords.first.x + sk_framePad.x,
+                                winMouseMinMaxCoords.second.y - sk_framePad.y );
 
-    const ImVec2 windowPosPivot(
-                ( sk_corner & 1 ) ? 1.0f : 0.0f,
-                ( sk_corner & 2 ) ? 1.0f : 0.0f );
+    const ImVec2 windowPosPivot( ( sk_corner & 1 ) ? 1.0f : 0.0f,
+                                 ( sk_corner & 2 ) ? 1.0f : 0.0f );
 
     ImGui::SetNextWindowPos( ImVec2( bottomLeft.x, bottomLeft.y ), ImGuiCond_Always, windowPosPivot );
-
     ImGui::SetNextWindowBgAlpha( 0.3f );
 
     ImGui::PushID( uidString.c_str() ); /*** ID = uidString ***/
 
     if ( ImGui::Begin( uidString.c_str(), &windowOpen, windowFlags ) )
     {
-        static constexpr float sk_size = 96.0f;
-        static constexpr int sk_mode = ( imguiGizmo::mode3Axes | imguiGizmo::cubeAtOrigin );
-
         const glm::quat oldQuat = getViewCameraRotation();
         glm::quat newQuat = oldQuat;
 
-        if ( ImGui::gizmo3D( "", newQuat, sk_size, sk_mode ) )
+        if ( ImGui::gizmo3D( "", newQuat, sk_gizmoSize, sk_gizmoMode ) )
         {
             setViewCameraRotation( newQuat * glm::inverse( oldQuat ) );
         }
 
         if ( ImGui::IsItemHovered() )
         {
-            const glm::vec3 n = getViewNormal();
-            ImGui::SetTooltip( "View normal: (%0.3f, %0.3f, %0.3f)\n", n.x, n.y, n.z );
+            const glm::vec3 n = -getViewNormal();
+            ImGui::SetTooltip( "View direction: (%0.3f, %0.3f, %0.3f)\n", n.x, n.y, n.z );
         }
 
         ImGui::End();
@@ -486,7 +483,7 @@ void renderViewOrientationToolWindow(
 
     ImGui::PopID(); /*** ID = uidString.c_str() ***/
 
-    // ImGuiStyleVar_WindowPadding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_WindowRounding
+    // ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
     ImGui::PopStyleVar( 3 );
 }
 
@@ -607,7 +604,7 @@ void renderSegmentationPropertiesWindow(
 
 void renderLandmarkPropertiesWindow(
         AppData& appData,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViewsOnCurrentCrosshairsPosition )
+        const AllViewsRecenterType& recenterAllViewsOnCurrentCrosshairsPosition )
 {
     if ( ImGui::Begin( "Landmarks",
                        &( appData.guiData().m_showLandmarksWindow ),
@@ -635,7 +632,7 @@ void renderLandmarkPropertiesWindow(
 
 void renderAnnotationWindow(
         AppData& appData,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
+        const AllViewsRecenterType& recenterAllViews )
 {
     if ( ImGui::Begin( "Annotations",
                        &( appData.guiData().m_showAnnotationsWindow ),
@@ -666,7 +663,7 @@ void renderSettingsWindow(
         const std::function< size_t (void) >& getNumImageColorMaps,
         const std::function< const ImageColorMap* ( size_t cmapIndex ) >& getImageColorMap,
         const std::function< void(void) >& updateMetricUniforms,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
+        const AllViewsRecenterType& recenterAllViews )
 {
     static constexpr bool sk_recenterCrosshairs = true;
     static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;

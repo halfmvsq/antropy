@@ -21,6 +21,14 @@
 #include <vector>
 
 
+/**
+ * @brief Compute statistics on one component of an image
+ * @tparam T Image component type
+ * @tparam U Statistic type
+ * @tparam NDim Image dimension
+ * @param[in] image Image on which to compute statistics
+ * @return Statistics
+ */
 template< typename T, typename U, uint32_t NDim >
 ComponentStats<U> computeImageStatistics( const typename itk::Image<T, NDim>::Pointer image )
 {

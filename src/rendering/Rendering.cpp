@@ -1,6 +1,7 @@
 #include "rendering/Rendering.h"
 
 #include "common/DataHelper.h"
+#include "common/DirectionMaps.h"
 #include "common/Exception.hpp"
 #include "common/MathFuncs.h"
 #include "common/Types.h"
@@ -858,7 +859,7 @@ void renderAnatomicalLabels(
     static constexpr float sk_fontMult = 0.03f;
 
     // Anatomical direction labels
-    static std::array< std::string, 6 > labels{ "L", "P", "S", "R", "A", "I" };
+    static const std::array< std::string, 6 > labels{ "L", "P", "S", "R", "A", "I" };
 
     const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
     const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
@@ -1535,6 +1536,8 @@ void renderCrosshairsOverlay(
 
 void renderLoadingOverlay( NVGcontext* nvg, const Viewport& windowVP )
 {
+    /// @todo Progress indicators: https://github.com/ocornut/imgui/issues/1901
+
     static const NVGcolor s_greyTextColor( nvgRGBA( 190, 190, 190, 255 ) );
     static const NVGcolor s_greyShadowColor( nvgRGBA( 64, 64, 64, 255 ) );
 

@@ -1,8 +1,9 @@
 #ifndef UI_HEADERS_H
 #define UI_HEADERS_H
 
-#include <uuid.h>
+#include "common/PublicTypes.h"
 
+#include <uuid.h>
 #include <functional>
 
 
@@ -23,11 +24,13 @@ class ParcellationLabelTable;
  *
  * @param[in] appData App data
  * @param[in] imgHeader Image header data
+ * @param[in] imgSettings Image settings data
  * @param[in] imgTx Image transformation data
  */
 void renderImageHeaderInformation(
         const AppData& appData,
         const ImageHeader& imgHeader,
+        const ImageSettings& imgSettings,
         const ImageTransformations& imgTx );
 
 
@@ -110,7 +113,7 @@ void renderLandmarkGroupHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
+        const AllViewsRecenterType& recenterAllViews );
 
 
 void renderAnnotationsHeader(
@@ -118,7 +121,7 @@ void renderAnnotationsHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews );
+        const AllViewsRecenterType& recenterAllViews );
 
 
 #endif // UI_HEADERS_H
