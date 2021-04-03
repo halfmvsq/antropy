@@ -583,13 +583,13 @@ glm::vec3 worldTranslationPerpendicularToWorldAxis(
 
 glm::vec4 ndc_T_view( const Viewport& viewport, const glm::vec2& viewPos )
 {
-    return glm::vec4( ndc2d_T_view( viewport, viewPos ), -1, 1 );
+    return glm::vec4( ndc2d_T_view( viewport, viewPos ), -1.0f, 1.0f );
 }
 
 glm::vec2 ndc2d_T_view( const Viewport& viewport, const glm::vec2& viewPos )
 {
-    return glm::vec2( 2 * ( viewPos.x - viewport.left() ) / ( viewport.width() - 1 ) - 1,
-                      2 * ( viewPos.y - viewport.bottom() ) / ( viewport.height() - 1 ) - 1 );
+    return glm::vec2( 2.0f * ( viewPos.x - viewport.left() ) / viewport.width() - 1.0f,
+                      2.0f * ( viewPos.y - viewport.bottom() ) / viewport.height() - 1.0f );
 }
 
 glm::vec2 viewDevice_T_ndc( const Viewport& viewport, const glm::vec2& ndcPos )
@@ -599,8 +599,8 @@ glm::vec2 viewDevice_T_ndc( const Viewport& viewport, const glm::vec2& ndcPos )
 
 glm::vec2 view_T_ndc( const Viewport& viewport, const glm::vec2& ndcPos )
 {
-    return glm::vec2( ( ndcPos.x + 1 ) * ( viewport.width() - 1 ) / 2.0f + viewport.left(),
-                      ( ndcPos.y + 1 ) * ( viewport.height() - 1 ) / 2.0f + viewport.bottom() );
+    return glm::vec2( ( ndcPos.x + 1.0f ) * viewport.width() / 2.0f + viewport.left(),
+                      ( ndcPos.y + 1.0f ) * viewport.height() / 2.0f + viewport.bottom() );
 }
 
 glm::mat4 view_T_ndc( const Viewport& viewport )
@@ -649,16 +649,16 @@ glm::vec2 ndc2d_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )
 
 glm::mat4 get_ndc_T_view( const Viewport& viewport )
 {
-    const glm::vec4 k_scaleX( 2.0f / viewport.width(), 0.0f, 0.0f, 0.0f );
-    const glm::vec4 k_scaleY( 0.0f, 2.0f / viewport.height(), 0.0f, 0.0f );
-    const glm::vec4 k_scaleZ( 0.0f, 0.0f, 1.0f, 0.0f );
+    const glm::vec4 scaleX( 2.0f / viewport.width(), 0.0f, 0.0f, 0.0f );
+    const glm::vec4 scaleY( 0.0f, 2.0f / viewport.height(), 0.0f, 0.0f );
+    const glm::vec4 scaleZ( 0.0f, 0.0f, 1.0f, 0.0f );
 
-    const glm::vec4 k_translation(
+    const glm::vec4 translation(
                 -2.0f * viewport.left() / viewport.width() - 1.0f,
                 -2.0f * viewport.bottom() / viewport.height() - 1.0f,
                 -1.0f, 1.0f );
 
-    return glm::mat4( k_scaleX, k_scaleY, k_scaleZ, k_translation );
+    return glm::mat4( scaleX, scaleY, scaleZ, translation );
 }
 
 

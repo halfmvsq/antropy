@@ -37,3 +37,6 @@
 [submodule "externals/imGuIZMO.quat"]
 	path = externals/imGuIZMO.quat
 	url = https://github.com/BrutPitt/imGuIZMO.quat.git
+[submodule "externals/cmake-modules"]
+	path = externals/cmake-modules
+	url = https://github.com/rpavlik/cmake-modules.git

@@ -1059,7 +1059,17 @@ Image* AppData::refImage()
     return ( refImageUid() ) ? image( *refImageUid() ) : nullptr;
 }
 
+const Image* AppData::refImage() const
+{
+    return ( refImageUid() ) ? image( *refImageUid() ) : nullptr;
+}
+
 Image* AppData::activeImage()
+{
+    return ( activeImageUid() ) ? image( *activeImageUid() ) : nullptr;
+}
+
+const Image* AppData::activeImage() const
 {
     return ( activeImageUid() ) ? image( *activeImageUid() ) : nullptr;
 }

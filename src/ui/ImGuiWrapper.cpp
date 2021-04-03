@@ -452,6 +452,35 @@ void ImGuiWrapper::render()
             ImGui::ShowDemoWindow( &m_appData.guiData().m_showDemoWindow );
         }
 
+        //        if ( true )
+        //        {
+        //            if ( ImGui::BeginMainMenuBar() )
+        //            {
+        //                const auto s = ImGui::GetWindowSize();
+        //                const std::string sizeString = std::to_string(s.x) + ", " + std::to_string(s.y);
+
+        //                if ( ImGui::BeginMenu( "File" ) )
+        //                {
+        //                    if ( ImGui::MenuItem( sizeString.c_str() ) )
+        //                    {
+
+        //                    }
+        //                    ImGui::EndMenu();
+        //                }
+
+        //                if ( ImGui::BeginMenu( "Edit" ) )
+        //                {
+        //                    if ( ImGui::MenuItem( "Item" ) )
+        //                    {
+
+        //                    }
+        //                    ImGui::EndMenu();
+        //                }
+
+        //                ImGui::EndMainMenuBar();
+        //            }
+        //        }
+
         if ( m_appData.guiData().m_showSettingsWindow )
         {
             renderSettingsWindow(

@@ -96,6 +96,10 @@ public:
     void setColor( glm::vec3 color );
     const glm::vec3& getColor() const;
 
+    /// @brief Set/get the annotation line stroke thickness
+    void setLineThickness( float thickness );
+    float getLineThickness() const;
+
     /// @brief Get the annotation plane equation in Subject space
     const glm::vec4& getSubjectPlaneEquation() const;
 
@@ -153,6 +157,9 @@ private:
 
     /// Annotation color (non-premultiplied RGB triple)
     glm::vec3 m_color;
+
+    /// Annotation line thickness
+    float m_lineThickness;
 
     /// Equation of the 3D plane containing this annotation. The plane is defined by the
     /// coefficients (A, B, C, D) of equation Ax + By + Cz + D = 0, where (x, y, z) are

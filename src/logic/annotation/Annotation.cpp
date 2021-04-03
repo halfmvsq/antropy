@@ -14,6 +14,7 @@ namespace
 {
 
 static constexpr float sk_defaultOpacity = 1.0f;
+static constexpr float sk_defaultThickness = 1.5f;
 
 } // anonymous
 
@@ -31,6 +32,7 @@ Annotation::Annotation(
       m_visibility( true ),
       m_opacity( sk_defaultOpacity ),
       m_color{ std::move( color ) },
+      m_lineThickness( sk_defaultThickness ),
 
       m_subjectPlaneEquation{ 1.0f, 0.0f, 0.0f, 0.0f },
       m_subjectPlaneOrigin{ 0.0f, 0.0f, 0.0f },
@@ -175,6 +177,19 @@ void Annotation::setColor( glm::vec3 color )
 const glm::vec3& Annotation::getColor() const
 {
     return m_color;
+}
+
+void Annotation::setLineThickness( float thickness )
+{
+    if ( thickness >= 0.0f )
+    {
+        m_lineThickness = thickness;
+    }
+}
+
+float Annotation::getLineThickness() const
+{
+    return m_lineThickness;
 }
 
 const glm::vec4& Annotation::getSubjectPlaneEquation() const

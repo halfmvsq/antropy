@@ -99,11 +99,14 @@ public:
     /// Remove a layout
     void removeLayout( size_t index );
 
-    /// Get the viewport
+    /// Get the window viewport
     const Viewport& viewport() const;
 
-    /// Resize the viewport
-    void resizeViewport( int width, int height );
+    /// Resize the window viewport (in device-independent pixel units)
+    void resizeViewport( float width, float height );
+
+    /// Set the window viewport (in device-independent pixel units)
+    void setViewport( float left, float bottom, float width, float height );
 
     /// Set ratio of framebuffer to window unit coordinates
     void setDeviceScaleRatio( const glm::vec2& ratio );

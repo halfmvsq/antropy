@@ -49,7 +49,7 @@ public:
     void run();
 
     /// Resize the framebuffer
-    void resize( int width, int height );
+    void resize( float width, float height );
 
     /// Render one frame
     void render();

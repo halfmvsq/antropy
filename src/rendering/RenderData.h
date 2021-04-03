@@ -180,7 +180,6 @@ struct RenderData
 
     struct AnnotationParams
     {
-        float strokeWidth = 1.0f;
         glm::vec3 textColor;
 
         /// Flag to either render annotations on top of all image planes (true)

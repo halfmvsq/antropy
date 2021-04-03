@@ -32,6 +32,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
+#include <algorithm>
 #include <string>
 
 
@@ -265,6 +266,8 @@ void renderImageHeaderInformation(
 
 //        IMGUI_API void          PlotHistogram(const char* label, float(*values_getter)(void* data, int idx), void* data, int values_count, int values_offset = 0, const char* overlay_text = NULL, float scale_min = FLT_MAX, float scale_max = FLT_MAX, ImVec2 graph_size = ImVec2(0, 0));
 //        ImGui::PlotHistogram("Histogram", func, NULL, display_count, 0, NULL, -1.0f, 1.0f, ImVec2(0, 80));
+
+//        ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, overlay, -1.0f, 1.0f, ImVec2(0, 80.0f));
     }
 }
 
@@ -1474,12 +1477,29 @@ void renderLandmarkGroupHeader(
         bool isActiveImage,
         const AllViewsRecenterType& recenterAllViews )
 {
+    static const char* sk_newLmGroupButtonText( "Create new group of landmarks" );
     static const char* sk_saveLmsButtonText( "Save landmarks..." );
     static const char* sk_saveLmsDialogTitle( "Save Landmark Group" );
     static const std::vector< const char* > sk_saveLmsDialogFilters{};
 
     Image* image = appData.image( imageUid );
     if ( ! image ) return;
+
+
+    auto addNewLmGroupButton = [&appData, &image, &imageUid] ()
+    {
+        if ( ImGui::Button( sk_newLmGroupButtonText ) )
+        {
+            LandmarkGroup newGroup;
+            newGroup.setName( std::string( "Landmarks for " ) + image->settings().displayName() );
+
+            const auto newLmGroupUid = appData.addLandmarkGroup( std::move( newGroup ) );
+            appData.assignLandmarkGroupUidToImage( imageUid, newLmGroupUid );
+            appData.setRainbowColorsForAllLandmarkGroups();
+            appData.assignActiveLandmarkGroupUidToImage( imageUid, newLmGroupUid );
+        }
+    };
+
 
     ImGuiTreeNodeFlags headerFlags = ImGuiTreeNodeFlags_CollapsingHeader;
 
@@ -1521,17 +1541,7 @@ void renderLandmarkGroupHeader(
     if ( lmGroupUids.empty() )
     {
         ImGui::Text( "This image has no landmarks." );
-
-        if ( ImGui::Button( "Create new group of landmarks" ) )
-        {
-            LandmarkGroup newGroup;
-            newGroup.setName( std::string( "Landmarks for " ) + image->settings().displayName() );
-
-            const auto newLmGroupUid = appData.addLandmarkGroup( std::move( newGroup ) );
-            appData.assignLandmarkGroupUidToImage( imageUid, newLmGroupUid );
-            appData.setRainbowColorsForAllLandmarkGroups();
-        }
-
+        addNewLmGroupButton();
         ImGui::PopID(); // imageUid
         return;
     }
@@ -1575,20 +1585,20 @@ void renderLandmarkGroupHeader(
             for ( const auto& lmGroupUid : lmGroupUids )
             {
                 ImGui::PushID( static_cast<int>( lmGroupIndex++ ) );
+
+                if ( LandmarkGroup* lmGroup = appData.landmarkGroup( lmGroupUid ) )
                 {
-                    if ( LandmarkGroup* lmGroup = appData.landmarkGroup( lmGroupUid ) )
+                    const bool isSelected = ( lmGroupUid == *activeLmGroupUid );
+
+                    if ( ImGui::Selectable( lmGroup->getName().c_str(), isSelected) )
                     {
-                        const bool isSelected = ( lmGroupUid == *activeLmGroupUid );
-
-                        if ( ImGui::Selectable( lmGroup->getName().c_str(), isSelected) )
-                        {
-                            appData.assignActiveLandmarkGroupUidToImage( imageUid, lmGroupUid );
-                            activeLmGroup = appData.landmarkGroup( lmGroupUid );
-                        }
-
-                        if ( isSelected ) ImGui::SetItemDefaultFocus();
+                        appData.assignActiveLandmarkGroupUidToImage( imageUid, lmGroupUid );
+                        activeLmGroup = appData.landmarkGroup( lmGroupUid );
                     }
+
+                    if ( isSelected ) ImGui::SetItemDefaultFocus();
                 }
+
                 ImGui::PopID(); // lmGroupIndex
             }
 
@@ -1690,7 +1700,6 @@ void renderLandmarkGroupHeader(
         }
     }
     ImGui::SameLine(); helpMarker( "Set a global color for all landmarks in this group" );
-    ImGui::Spacing();
 
 
     // Text color for all landmarks:
@@ -1743,8 +1752,13 @@ void renderLandmarkGroupHeader(
                 recenterAllViews );
 
 
-    // Save landmarks to CSV and save settings to project file:
+
     ImGui::Separator();
+
+    addNewLmGroupButton();
+
+
+    // Save landmarks to CSV and save settings to project file:
     const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
                 sk_saveLmsButtonText, sk_saveLmsDialogTitle, sk_saveLmsDialogFilters );
 
@@ -1778,6 +1792,13 @@ void renderAnnotationsHeader(
         bool isActiveImage,
         const AllViewsRecenterType& recenterAllViews )
 {
+    static const ImGuiColorEditFlags sk_annotColorEditFlags =
+            ImGuiColorEditFlags_PickerHueBar |
+            ImGuiColorEditFlags_DisplayRGB |
+            ImGuiColorEditFlags_DisplayHex |
+            ImGuiColorEditFlags_Uint8 |
+            ImGuiColorEditFlags_InputRGB;
+
     static const char* sk_saveAnnotButtonText( "Save annotation..." );
     static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
@@ -1791,6 +1812,57 @@ void renderAnnotationsHeader(
     {
         appData.state().setWorldCrosshairsPos( worldCrosshairsPos );
     };
+
+    auto moveCrosshairsToAnnotationCenter =
+            [&appData, &image, &setWorldCrosshairsPos, &recenterAllViews] ( const Annotation* annot )
+    {
+        if ( ! annot ) return;
+
+        const glm::mat4& world_T_subject = image->transformations().worldDef_T_subject();
+        const glm::mat3 world_T_subject_invTranspose = glm::inverseTranspose( glm::mat3{ world_T_subject } );
+
+        // Move crosshairs to the polygon centroid position:
+        const glm::vec2& planePolyCentroid = annot->polygon().getCentroid();
+        const glm::vec4 subjectPos{ annot->unprojectFromAnnotationPlaneToSubjectPoint( planePolyCentroid ), 1.0f };
+        const glm::vec4 worldPos = world_T_subject * subjectPos;
+        const glm::vec3 worldNormal = glm::normalize( world_T_subject_invTranspose *
+                                                      glm::vec3{ annot->getSubjectPlaneEquation() } );
+
+        setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
+
+        const auto viewsWithNormal = appData.windowData().findCurrentViewsWithNormal( worldNormal );
+
+        // Does the current layout have a view with this orientaion?
+        if ( viewsWithNormal.empty() )
+        {
+            spdlog::trace( "did not find view with normal {}", glm::to_string(worldNormal) );
+
+            /// @todo Ask user to select view
+            const auto currentViewUid = appData.windowData().currentViewUids().front();
+            if ( View* view = appData.windowData().getCurrentView( currentViewUid ) )
+            {
+                /// @todo Set to A, C, or S if normal is A, C or S;
+                view->setCameraType( camera::CameraType::Oblique );
+
+                /// @todo Does not work properly yet
+                camera::orientCameraToWorldTargetNormalDirection( view->camera(), worldNormal );
+
+                /// @todo Determine which view type is closet. (ASC): then...
+                /// @todo Also orient such that S is most superior (for coronal/sagittal-like views),
+                /// A is most suprior (for axial-like views).
+                spdlog::trace( "changed view {} normal to {}", currentViewUid,
+                               glm::to_string( camera::worldDirection( view->camera(), Directions::View::Back ) ) );
+            }
+        }
+        else
+        {
+            spdlog::trace( "found view {} with normal {}", viewsWithNormal[0], glm::to_string(worldNormal) );
+        }
+
+        /// @todo Need a version of this that does not re-orient views!!!!
+        recenterAllViews( false, true, false );
+    };
+
 
     ImGuiTreeNodeFlags headerFlags = ImGuiTreeNodeFlags_CollapsingHeader;
 
@@ -1871,41 +1943,48 @@ void renderAnnotationsHeader(
         return;
     }
 
-
     const ImVec4* colors = ImGui::GetStyle().Colors;
     ImGui::PushStyleColor( ImGuiCol_Header, colors[ImGuiCol_ButtonActive] );
 
-    // List box that uses all width and is 5 items tall
-    if ( ImGui::BeginListBox( "##annotList", ImVec2( -FLT_MIN, 5 * ImGui::GetTextLineHeightWithSpacing() ) ) )
+    const size_t numLines = std::max( std::min( annotUids.size(), 10ul ), 5ul );
+
+    /// @todo Change this into a child window, like for Landmarks.
+    /// then do ImGui::SetScrollHereY( 1.0f ); to put activeAnnot at bottom
+
+    if ( ImGui::BeginListBox(
+             "##annotList", ImVec2( -FLT_MIN, numLines * ImGui::GetTextLineHeightWithSpacing() ) ) )
     {
         size_t annotIndex = 0;
         for ( const auto& annotUid : annotUids )
         {
             ImGui::PushID( static_cast<int>( annotIndex++ ) );
+
+            if ( Annotation* annot = appData.annotation( annotUid ) )
             {
-                if ( Annotation* annot = appData.annotation( annotUid ) )
+                const bool isSelected = ( annotUid == *activeAnnotUid );
+
+                /// @see Line 2791 of demo:
+                /// ImGui::SetScrollHereY(i * 0.25f); // 0.0f:top, 0.5f:center, 1.0f:bottom
+
+                if ( ImGui::Selectable( annot->getDisplayName().c_str(), isSelected ) )
                 {
-                    const bool isSelected = ( annotUid == *activeAnnotUid );
+                    appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
+                    activeAnnot = appData.annotation( annotUid );
 
-                    if ( ImGui::Selectable( annot->getDisplayName().c_str(), isSelected ) )
-                    {
-                        appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
-                        activeAnnot = appData.annotation( annotUid );
-                    }
-
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if ( isSelected ) ImGui::SetItemDefaultFocus();
+                    // Go to annotation when clicked:
+                    moveCrosshairsToAnnotationCenter( activeAnnot );
                 }
+
+                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                if ( isSelected ) ImGui::SetItemDefaultFocus();
             }
+
             ImGui::PopID(); // lmGroupIndex
         }
 
         ImGui::EndListBox();
     }
     ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
-
-
-
 
     if ( ! activeAnnot )
     {
@@ -1953,71 +2032,39 @@ void renderAnnotationsHeader(
 
     // Color:
     glm::vec3 annotColor = activeAnnot->getColor();
-    if ( ImGui::ColorEdit3( "Color", glm::value_ptr( annotColor ), sk_colorEditFlags ) )
+    if ( ImGui::ColorEdit3( "Color", glm::value_ptr( annotColor ), sk_annotColorEditFlags ) )
     {
         activeAnnot->setColor( annotColor );
     }
     ImGui::SameLine(); helpMarker( "Set the annotation color" );
-    ImGui::Spacing();
+
+
+    // Line stroke thickness:
+    float annotThickness = activeAnnot->getLineThickness();
+    if ( ImGui::InputFloat( "Thickness", &annotThickness, 0.1f, 1.0f, "%0.2f" ) )
+    {
+        if ( annotThickness >= 0.0f )
+        {
+            activeAnnot->setLineThickness( annotThickness );
+        }
+    }
+    ImGui::SameLine(); helpMarker( "Annotation line thickness" );
+    ImGui::Separator();
 
 
     // Plane normal vector and offset:
     ImGui::Text( "Annotation plane:" );
-    glm::vec4 annotPlaneEq = activeAnnot->getSubjectPlaneEquation();
 
-    ImGui::InputFloat3( "Normal vector", glm::value_ptr( annotPlaneEq ), coordFormat );
+    glm::vec4 annotPlaneEq = activeAnnot->getSubjectPlaneEquation();
+    ImGui::InputFloat3( "Normal", glm::value_ptr( annotPlaneEq ), coordFormat );
     ImGui::SameLine(); helpMarker( "Annotation plane normal vector (x, y, z) in image Subject space" );
 
     ImGui::InputFloat( "Offset (mm)", &annotPlaneEq[3], 0.0f, 0.0f, coordFormat );
     ImGui::SameLine(); helpMarker( "Offset distance (mm) of annotation plane from the image Subject space origin" );
     ImGui::Spacing();
 
-    if ( ImGui::Button( "Go to annotation" ) )
-    {
-        const glm::mat4& world_T_subject = image->transformations().worldDef_T_subject();
-        const glm::mat3 world_T_subject_invTranspose = glm::inverseTranspose( glm::mat3{ world_T_subject } );
-
-        // Move crosshairs to the polygon centroid position:
-        const glm::vec2& planePolyCentroid = activeAnnot->polygon().getCentroid();
-        const glm::vec4 subjectPos{ activeAnnot->unprojectFromAnnotationPlaneToSubjectPoint( planePolyCentroid ), 1.0f };
-        const glm::vec4 worldPos = world_T_subject * subjectPos;
-        const glm::vec3 worldNormal = glm::normalize( world_T_subject_invTranspose * glm::vec3{ annotPlaneEq } );
-
-        setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
-
-        const auto viewsWithNormal = appData.windowData().findCurrentViewsWithNormal( worldNormal );
-
-        // Does the current layout have a view with this orientaion?
-        if ( viewsWithNormal.empty() )
-        {
-            spdlog::trace( "did not find view with normal {}", glm::to_string(worldNormal) );
-
-            /// @todo Ask user to select view
-            const auto currentViewUid = appData.windowData().currentViewUids().front();
-            if ( View* view = appData.windowData().getCurrentView( currentViewUid ) )
-            {
-                /// @todo Set to A, C, or S if normal is A, C or S;
-                view->setCameraType( camera::CameraType::Oblique );
-
-                /// @todo Does not work properly yet
-                camera::orientCameraToWorldTargetNormalDirection( view->camera(), worldNormal );
-
-                /// @todo Determine which view type is closet. (ASC): then...
-                /// @todo Also orient such that S is most superior (for coronal/sagittal-like views),
-                /// A is most suprior (for axial-like views).
-                spdlog::trace( "changed view {} normal to {}", currentViewUid,
-                               glm::to_string( camera::worldDirection( view->camera(), Directions::View::Back ) ) );
-            }
-        }
-        else
-        {
-            spdlog::trace( "found view {} with normal {}", viewsWithNormal[0], glm::to_string(worldNormal) );
-        }
-
-        /// @todo Need a version of this that does not re-orient views!!!!
-        recenterAllViews( false, true, false );
-    }
     ImGui::Separator();
+
 
     // Save annotation SVG and save settings to project file:
 

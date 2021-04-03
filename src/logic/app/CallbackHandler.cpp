@@ -2,6 +2,7 @@
 
 #include "common/DataHelper.h"
 #include "common/MathFuncs.h"
+#include "common/Types.h"
 
 #include "image/SegUtil.tpp"
 
@@ -334,10 +335,6 @@ void CallbackHandler::doCrosshairsMove(
     if ( ! view ) return;
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
-    // We need a reference image to move the crosshairs
-    const Image* refImg = m_appData.refImage();
-    if ( ! refImg ) return;
-
     const auto& windowVP = m_appData.windowData().viewport();
     const glm::vec4 winClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
                 view->clipPlaneDepth(), 1 };
@@ -354,17 +351,16 @@ void CallbackHandler::doCrosshairsMove(
 
     // const auto& hd = refImage.header();
 
-    glm::vec4 worldPos = camera::world_T_clip( view->camera() ) * viewClipPos;
-    worldPos = worldPos / worldPos.w;
-
     const glm::vec3 worldCameraFront = camera::worldDirection(
                 view->camera(), Directions::View::Front );
 
-    // Apply this view's offset from the crosshairs position in order to calculate the view plane position.
-    // The offset is calculated based on the slice scroll distance of the reference image.
+    // Apply this view's offset from the crosshairs position in order to calculate the
+    // view plane position:
+    const float offsetDist = data::computeViewOffsetDistance(
+                m_appData, view->offsetSetting(), worldCameraFront );
 
-    const float offsetDist = static_cast<float>( view->numOffsets() ) *
-            data::sliceScrollDistance( worldCameraFront, *refImg );
+    glm::vec4 worldPos = camera::world_T_clip( view->camera() ) * viewClipPos;
+    worldPos = worldPos / worldPos.w;
 
     worldPos -= glm::vec4{ offsetDist * worldCameraFront, 0 };
 
@@ -374,7 +370,10 @@ void CallbackHandler::doCrosshairsMove(
 
     if ( m_appData.renderData().m_snapCrosshairsToReferenceVoxels )
     {
-        worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter( *refImg, worldPos ), 1.0f };
+        if ( const Image* refImg = m_appData.refImage() )
+        {
+            worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter( *refImg, worldPos ), 1.0f };
+        }
     }
 
     m_appData.state().setWorldCrosshairsPos( glm::vec3{ worldPos } );
@@ -635,9 +634,9 @@ void CallbackHandler::doAnnotate(
     const Image* activeImage = ( activeImageUid ? m_appData.image( *activeImageUid ) : nullptr );
     if ( ! activeImage ) return;
 
-    const glm::vec4 winClipPos{
-        camera::ndc2d_T_view( m_appData.windowData().viewport(), currWindowPos ),
-                view->clipPlaneDepth(), 1.0f };
+    const glm::vec4 winClipPos(
+                camera::ndc2d_T_view( m_appData.windowData().viewport(), currWindowPos ),
+                view->clipPlaneDepth(), 1.0f );
 
     const glm::vec4 viewClipPos = view->viewClip_T_winClip() * winClipPos;
 
@@ -650,10 +649,6 @@ void CallbackHandler::doAnnotate(
     // The pointer is in the view bounds! Make this the active view:
     m_appData.windowData().setActiveViewUid( *viewUid );
 
-    // World position for annotation point:
-    glm::vec4 worldPos = camera::world_T_clip( view->camera() ) * viewClipPos;
-    worldPos = worldPos / worldPos.w;
-
     // Apply this view's offset from the crosshairs position in order to calculate the view plane position.
     // The offset is calculated based on the slice scroll distance of the reference image.
 
@@ -661,9 +656,12 @@ void CallbackHandler::doAnnotate(
     const glm::vec3 worldCameraFront = camera::worldDirection(
                 view->camera(), Directions::View::Front );
 
-    const float offsetDist = static_cast<float>( view->numOffsets() ) *
-            data::sliceScrollDistance( worldCameraFront, *refImg );
+    const float offsetDist = data::computeViewOffsetDistance(
+                m_appData, view->offsetSetting(), worldCameraFront );
 
+    // World position for annotation point:
+    glm::vec4 worldPos = camera::world_T_clip( view->camera() ) * viewClipPos;
+    worldPos = worldPos / worldPos.w;
     worldPos -= glm::vec4{ offsetDist * worldCameraFront, 0.0f };
 
 
@@ -715,6 +713,8 @@ void CallbackHandler::doAnnotate(
                                glm::to_string( subjectPlaneEquation ), *activeImageUid );
                 return;
             }
+
+            m_appData.assignActiveAnnotationUidToImage( *activeImageUid, *annotUid );
 
             spdlog::debug( "Added new annotation {} (subject plane: {}) for image {}",
                            *annotUid, glm::to_string( subjectPlaneEquation ), *activeImageUid );

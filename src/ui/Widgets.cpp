@@ -267,7 +267,7 @@ void renderLandmarkChildWindow(
         LandmarkGroup* activeLmGroup,
         const glm::vec3& worldCrosshairsPos,
         const std::function< void ( const glm::vec3& worldCrosshairsPos ) >& setWorldCrosshairsPos,
-        const std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation ) >& recenterAllViews )
+        const AllViewsRecenterType& recenterAllViews )
 {
     static const std::string sk_showAll = std::string( ICON_FK_EYE ) + " Show all";
     static const std::string sk_hideAll = std::string( ICON_FK_EYE_SLASH ) + " Hide all";
@@ -291,7 +291,7 @@ void renderLandmarkChildWindow(
     std::map< size_t, PointRecord<glm::vec3> >& points = activeLmGroup->getPoints();
 
     const bool childVisible = ImGui::BeginChild(
-                "", ImVec2( 0, 250 ), true,
+                "", ImVec2( 355, 300 ), true,
                 ImGuiWindowFlags_MenuBar |
                 ImGuiWindowFlags_HorizontalScrollbar );
 
@@ -300,6 +300,8 @@ void renderLandmarkChildWindow(
         ImGui::EndChild();
         return;
     }
+
+    bool scrollToBottomOfLmList = false;
 
     if ( ImGui::BeginMenuBar() )
     {
@@ -345,7 +347,8 @@ void renderLandmarkChildWindow(
 
             activeLmGroup->addPoint( newIndex, pointRec );
 
-            /// @todo Scroll child window to the end of the list of landmarks
+            // Scroll child window to the end of the list of landmarks
+            scrollToBottomOfLmList = true;
         }
 
         ImGui::EndMenuBar();
@@ -381,7 +384,11 @@ void renderLandmarkChildWindow(
             }
         }
 
+//        ImGui::Dummy( ImVec2( 1.0f, 0.0f ) );
         ImGui::SameLine();
+
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 1.0f, 4.0f ) );
+
         if ( ImGui::Button( ICON_FK_HAND_O_UP ) )
         {
             const glm::mat4 world_T_landmark = ( activeLmGroup->getInVoxelSpace() )
@@ -432,6 +439,10 @@ void renderLandmarkChildWindow(
             ImGui::SetTooltip( "Delete landmark" );
         }
 
+        // ImGuiStyleVar_ItemSpacing
+        ImGui::PopStyleVar();
+
+
         if ( activeLmGroup->getRenderLandmarkNames() )
         {
             // Edit the name if they are visible
@@ -448,13 +459,26 @@ void renderLandmarkChildWindow(
             }
         }
 
+
         ImGui::SameLine();
-        ImGui::PushItemWidth( 250.0f );
+
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemInnerSpacing, ImVec2( 1.0f, 4.0f ) );
+        ImGui::PushItemWidth( 200.0f );
         if ( ImGui::InputFloat3( "##pointPos", glm::value_ptr( pointPos ), coordFormat, 0 ) )
         {
             point.setPosition( pointPos );
         }
         ImGui::PopItemWidth();
+        ImGui::PopStyleVar(); // ImGuiStyleVar_ItemInnerSpacing
+
+        if ( scrollToBottomOfLmList )
+        {
+            if ( pointIndex == ( points.size() - 1 ) )
+            {
+                ImGui::SetScrollHereY( 1.0f );
+                scrollToBottomOfLmList = false;
+            }
+        }
 
         ImGui::PopID(); /*** PopID pointIndex ***/
     }

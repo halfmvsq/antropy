@@ -4,7 +4,9 @@ cmake_minimum_required( VERSION 3.10 )
 # Versioning
 #--------------------------------------------------------------------------------
 set( APPNAME_FULL "Antropy" )
-set( ORGNAME_FULL "Penn Image Computing and Science Lab, Department of Radiology, University of Pennsylvania" )
+set( ORGNAME_LINE_1 "Penn Image Computing and Science Lab" )
+set( ORGNAME_LINE_2 "Department of Radiology" )
+set( ORGNAME_LINE_3 "University of Pennsylvania" )
 
 set( VERSION_MAJOR 0 )
 set( VERSION_MINOR 3 )
@@ -244,6 +246,50 @@ add_subdirectory( ${EXT_DIR}/filesystem )
 # Standalone CMake-Based C++ Resource Compiler
 #--------------------------------------------------------------------------------
 include( ${EXT_DIR}/cmakerc/CMakeRC.cmake )
+
+
+#--------------------------------------------------------------------------------
+# CMake Modules Collection (included as Git submodule):
+# by Ryan A. Pavlik, Ph.D.
+# The good thing about these functions is, they will force a CMake re-configure
+# before a build every time the HEAD commit changes.
+#--------------------------------------------------------------------------------
+list( APPEND CMAKE_MODULE_PATH "${EXT_DIR}/cmake-modules/" )
+
+include( GetGitRevisionDescription )
+get_git_head_revision( GIT_REFSPEC ANTROPY_GIT_COMMIT_SHA1 )
+
+
+#--------------------------------------------------------------------------------
+# Get other build and Git information
+#--------------------------------------------------------------------------------
+
+find_package( Git QUIET )
+
+if( GIT_FOUND )
+    message( "Git found: ${GIT_EXECUTABLE} (version ${GIT_VERSION_STRING})" )
+endif()
+
+# Get the current working branch
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE ANTROPY_GIT_BRANCH
+    OUTPUT_STRIP_TRAILING_WHITESPACE )
+
+# Get the timestamp
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} show -s --format=%ci ${ANTROPY_GIT_COMMIT_SHA1}
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE ANTROPY_GIT_COMMIT_TIMESTAMP
+    OUTPUT_STRIP_TRAILING_WHITESPACE )
+
+message( STATUS "Git commit info:")
+message( STATUS " -Hash: ${ANTROPY_GIT_COMMIT_SHA1}" )
+message( STATUS " -Date: ${ANTROPY_GIT_COMMIT_TIMESTAMP}" )
+message( STATUS " -Branch: ${ANTROPY_GIT_BRANCH}" )
+
+string( TIMESTAMP BUILD_TIMESTAMP "%Y-%m-%d %H:%M:%S" UTC )
 
 
 #--------------------------------------------------------------------------------

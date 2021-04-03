@@ -2,6 +2,7 @@
 #define VIEW_H
 
 #include "common/CoordinateFrame.h"
+#include "common/Types.h"
 #include "common/UuidRange.h"
 #include "common/Viewport.h"
 
@@ -17,6 +18,7 @@
 
 #include <uuid.h>
 
+#include <optional>
 #include <set>
 #include <list>
 #include <utility>
@@ -26,7 +28,9 @@ class Image;
 
 
 /**
- * @brief Holds the view's camera and information about the image plane being rendered in it.
+ * @brief Represents a view in the window. Each view is a visual representation of the
+ * scene from a single orientation. The view holds its camera and information about the
+ * image plane being rendered in it.
  */
 class View
 {
@@ -34,8 +38,15 @@ public:
 
     /**
      * @brief Construct a view
-     * @param[in] winClipViewport Viewport of the view, defined in Clip space of its enclosing window
-     * @param[in] numOffsets Number of scroll offsets from the crosshairs at which to render this view's plane
+     *
+     * @param[in] winClipViewport Viewport (left, bottom, width, height) of the view,
+     * defined in Clip space of its enclosing window's viewport
+     * (e.g. (-1, -1, 2, 2) is a view that covers the full window viewport and
+     * (0, 0, 1, 1) is a view that covers the top-right quadrant of the window viewport)
+     *
+     * @param[in] numOffsets Number of scroll offsets (relative to the reference image)
+     * from the crosshairs at which to render this view's image planes
+     *
      * @param[in] cameraType Camera type of the view
      * @param[in] shaderType Shader type of the view
      *
@@ -44,7 +55,7 @@ public:
      * 2) absolute mm offset
      */
     View( Viewport winClipViewport,
-          int32_t numOffsets,
+          ViewOffsetSetting offsetSetting,
           camera::CameraType cameraType,
           camera::ViewRenderMode shaderType,
           UiControls uiControls,
@@ -63,7 +74,7 @@ public:
 
     float clipPlaneDepth() const;
 
-    int32_t numOffsets() const;
+    const ViewOffsetSetting& offsetSetting() const;
 
     const glm::mat4& winClip_T_viewClip() const;
     const glm::mat4& viewClip_T_winClip() const;
@@ -125,9 +136,8 @@ private:
     glm::mat4 m_winClip_T_viewClip;
     glm::mat4 m_viewClip_T_winClip;
 
-    // Number of steps to offset the view along the camera's front axis: used for tiled layouts
-    int32_t m_numOffsets;
-
+    // View offset setting
+    ViewOffsetSetting m_offset;
 
     /**** START COMMON FUNCTIONALITY WITH LAYOUT ****/
 

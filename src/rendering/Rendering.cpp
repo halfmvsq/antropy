@@ -1255,15 +1255,13 @@ void renderAnnotations(
 
         if ( subjectPlaneVertices.empty() ) continue;
 
-        nvgStrokeWidth( nvg, appData.renderData().m_globalAnnotationParams.strokeWidth );
-
-        const glm::vec3 color = annot->getColor();
-
         /// @todo Should annotation opacity be modulated with image opacity?
         /// Landmarks opacity is not.
+        const glm::vec3 color = annot->getColor();
         const float opacity = annot->getOpacity() * static_cast<float>( img->settings().opacity() );
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
+        nvgStrokeWidth( nvg, annot->getLineThickness() );
 
         nvgBeginPath( nvg );
 
@@ -1471,15 +1469,29 @@ void renderCrosshairsOverlay(
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
 
-    if ( 0 == view.numOffsets() )
+    // Is the view offset from the crosshairs position?
+    const auto& offset = view.offsetSetting();
+
+    const bool viewIsOffset =
+            ( ViewOffsetMode::RelativeToRefImageScrolls == offset.m_offsetMode &&
+              0 != offset.m_relativeOffsetSteps ) ||
+
+            ( ViewOffsetMode::RelativeToImageScrolls == offset.m_offsetMode &&
+              0 != offset.m_relativeOffsetSteps ) ||
+
+            ( ViewOffsetMode::Absolute == offset.m_offsetMode &&
+              glm::epsilonNotEqual( offset.m_absoluteOffset, 0.0f, glm::epsilon<float>() ) );
+
+    if ( viewIsOffset )
     {
-        nvgStrokeWidth( nvg, 2.0f );
-        nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, color.a ) );
+        // Offset views get thinner, transparent crosshairs
+        nvgStrokeWidth( nvg, 1.0f );
+        nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, 0.5f * color.a ) );
     }
     else
     {
-        nvgStrokeWidth( nvg, 1.0f );
-        nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, 0.5f * color.a ) );
+        nvgStrokeWidth( nvg, 2.0f );
+        nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, color.a ) );
     }
 
     const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
@@ -2027,12 +2039,10 @@ void Rendering::render()
 }
 
 
-void Rendering::resize( int width, int height )
+void Rendering::setDeviceViewport( const glm::vec4& deviceViewport  )
 {
-    m_appData.windowData().resizeViewport( width, height );
-
-    const glm::ivec4 vp{ m_appData.windowData().viewport().getDeviceAsVec4() };
-    glViewport( vp[0], vp[1], vp[2], vp[3] );
+    // Set the OpenGL viewport in device units:
+    glViewport( deviceViewport[0], deviceViewport[1], deviceViewport[2], deviceViewport[3] );
 }
 
 

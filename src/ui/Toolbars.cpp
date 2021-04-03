@@ -87,11 +87,10 @@ void renderToolbar(
             | ImGuiWindowFlags_NoNav
             ;
 
-    const MouseMode activeMouseMode = getMouseMode();
-
     const ImVec2 buttonSpace = ( isHoriz ? ImVec2( 2.0f, 0.0f ) : ImVec2( 0.0f, 2.0f ) );
 
     bool openAddLayoutPopup = false;
+    bool openAboutDialogPopup = false;
 
     const ImVec4* colors = ImGui::GetStyle().Colors;
     ImVec4 activeColor = colors[ImGuiCol_ButtonActive];
@@ -101,13 +100,8 @@ void renderToolbar(
     activeColor.w = 0.94f;
     inactiveColor.w = 0.7f;
 
-
     GuiData& guiData = appData.guiData();
-
-    ImGui::PushID( "toolbar" );
-
     ImGuiIO& io = ImGui::GetIO();
-
     ImGuiWindowFlags windowFlags = toolbarWindowFlags;
 
     if ( corner != -1 )
@@ -123,9 +117,8 @@ void renderToolbar(
         ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
     }
 
-
-    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
@@ -141,46 +134,50 @@ void renderToolbar(
                           ? "Tools###ToolbarWindow"
                           : "###ToolbarWindow" );
 
+    ImGui::PushID( "toolbar" );
+
     if ( ImGui::Begin( title, toolbarWindowOpen, toolbarWindowFlags ) )
     {
         //        isCollapsed = false;
 
         int id = 0;
 
+        const MouseMode activeMouseMode = getMouseMode();
+
         for ( const MouseMode& mouseMode : AllMouseModes )
         {
-            ImGui::PushID( id );
+            ImGui::PushID( id ); // PUSH ID
+
+            bool isModeActive = ( activeMouseMode == mouseMode );
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushStyleColor( ImGuiCol_Button, ( isModeActive ? activeColor : inactiveColor ) );
             {
-                bool isModeActive = ( activeMouseMode == mouseMode );
-
-                if ( isHoriz ) ImGui::SameLine();
-                ImGui::PushStyleColor( ImGuiCol_Button, ( isModeActive ? activeColor : inactiveColor ) );
+                if ( ImGui::Button( toolbarButtonIcon( mouseMode ), sk_toolbarButtonSize) )
                 {
-                    if ( ImGui::Button( toolbarButtonIcon( mouseMode ), sk_toolbarButtonSize) )
+                    isModeActive = ! isModeActive;
+                    if ( isModeActive )
                     {
-                        isModeActive = ! isModeActive;
-                        if ( isModeActive )
-                        {
-                            setMouseMode( mouseMode );
-                        }
-                    }
-
-                    if ( ImGui::IsItemHovered() )
-                    {
-                        ImGui::SetTooltip( "%s", typeString( mouseMode ).c_str() );
-                    }
-
-                    if ( MouseMode::CameraZoom == mouseMode ||
-                         MouseMode::Annotate == mouseMode )
-                    {
-                        // Put a small dummy space after these buttons
-                        if ( isHoriz ) ImGui::SameLine();
-                        ImGui::Dummy( buttonSpace );
+                        setMouseMode( mouseMode );
                     }
                 }
-                ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
-                ++id;
+
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", typeString( mouseMode ).c_str() );
+                }
+
+                if ( MouseMode::CameraZoom == mouseMode ||
+                     MouseMode::Annotate == mouseMode )
+                {
+                    // Put a small dummy space after these buttons
+                    if ( isHoriz ) ImGui::SameLine();
+                    ImGui::Dummy( buttonSpace );
+                }
             }
+            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+            ++id;
+
             ImGui::PopID();
         }
 
@@ -491,8 +488,7 @@ void renderToolbar(
             {
                 if ( ImGui::Button( ICON_FK_INFO, sk_toolbarButtonSize) )
                 {
-                    // Make boolean variable that turns true to show the about window.
-                    // About window should be modal.
+                    openAboutDialogPopup = true;
                 }
 
                 if ( ImGui::IsItemHovered() ) {
@@ -538,6 +534,8 @@ void renderToolbar(
                                       sk_doNotRecenterOnCurrentCrosshairsPosition,
                                       sk_doNotResetObliqueViews );
                 } );
+
+    renderAboutDialogModalPopup( openAboutDialogPopup );
 }
 
 

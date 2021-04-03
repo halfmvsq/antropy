@@ -75,7 +75,7 @@ smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap =
 
 
 View::View( Viewport winClipViewport,
-            int32_t numOffsets,
+            ViewOffsetSetting offsetSetting,
             camera::CameraType cameraType,
             camera::ViewRenderMode shaderType,
             UiControls uiControls,
@@ -87,7 +87,7 @@ View::View( Viewport winClipViewport,
       m_winClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport.getAsVec4() ) ),
       m_viewClip_T_winClip( glm::inverse( m_winClip_T_viewClip ) ),
 
-      m_numOffsets( numOffsets ),
+      m_offset( std::move( offsetSetting ) ),
 
       m_renderedImageUids(),
       m_metricImageUids(),
@@ -127,6 +127,9 @@ View::View( Viewport winClipViewport,
 
 bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCrosshairs )
 {
+    static constexpr size_t k_maxNumWarnings = 10;
+    static size_t warnCount = 0;
+
     const glm::vec3 worldCameraOrigin = camera::worldOrigin( m_camera );
     const glm::vec3 worldCameraFront = camera::worldDirection( m_camera, Directions::View::Front );
 
@@ -134,9 +137,7 @@ bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCross
     // coordinates of the quad that is textured with the image.
 
     // Apply this view's offset from the crosshairs position in order to calculate the view plane position.
-    const float offsetDist = static_cast<float>( m_numOffsets ) *
-            data::sliceScrollDistance( appData, worldCameraFront, ImageSelection::ReferenceImage, this );
-
+    const float offsetDist = data::computeViewOffsetDistance( appData, m_offset, worldCameraFront );
     const glm::vec3 worldPlanePos = worldCrosshairs + offsetDist * worldCameraFront;
     const glm::vec4 worldViewPlane = math::makePlane( -worldCameraFront, worldPlanePos );
 
@@ -150,11 +151,20 @@ bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCross
         static constexpr float sk_pushBackFraction = 0.10f;
         const float eyeToTargetOffset = sk_pushBackFraction * ( m_camera.farDistance() - m_camera.nearDistance() );
         camera::setWorldTarget( m_camera, worldCameraOrigin + worldCameraToPlaneDistance * worldCameraFront, eyeToTargetOffset );
+
+        warnCount = 0; // Reset warning counter
     }
     else
     {
-        spdlog::warn( "Camera (front direction = {}) is parallel with the view (plane = {})",
-                      glm::to_string( worldCameraFront ), glm::to_string( worldViewPlane ) );
+        if ( warnCount++ < k_maxNumWarnings )
+        {
+            spdlog::warn( "Camera (front direction = {}) is parallel with the view (plane = {})",
+                          glm::to_string( worldCameraFront ), glm::to_string( worldViewPlane ) );
+        }
+        else if ( k_maxNumWarnings == warnCount )
+        {
+            spdlog::warn( "Halting warning about camera front direction." );
+        }
 
         return false;
     }
@@ -497,7 +507,7 @@ camera::ViewRenderMode View::renderMode() const { return m_shaderType; }
 const Viewport& View::winClipViewport() const { return m_winClipViewport; }
 float View::clipPlaneDepth() const { return m_clipPlaneDepth; }
 
-int32_t View::numOffsets() const { return m_numOffsets; }
+const ViewOffsetSetting& View::offsetSetting() const { return m_offset; }
 
 const glm::mat4& View::winClip_T_viewClip() const { return m_winClip_T_viewClip; }
 const glm::mat4& View::viewClip_T_winClip() const { return m_viewClip_T_winClip; }

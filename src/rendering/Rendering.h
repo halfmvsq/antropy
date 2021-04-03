@@ -7,6 +7,8 @@
 #include "logic/camera/CameraTypes.h"
 #include "rendering/utility/gl/GLShaderProgram.h"
 
+#include <glm/fwd.hpp>
+
 #include <uuid.h>
 
 #include <array>
@@ -41,8 +43,8 @@ public:
     /// Render the scene
     void render();
 
-    /// Set the viewport to match framebuffer dimensions
-    void resize( int width, int height );
+    /// Set the rendering viewport (left, bottom, width, height) in device pixel units
+    void setDeviceViewport( const glm::vec4& deviceViewport );
 
     /// Update all texture interpolation parameters for the active image component
     void updateImageInterpolation( const uuids::uuid& imageUid );

@@ -1,6 +1,7 @@
 #include "windowing/WindowData.h"
 
 #include "common/Exception.hpp"
+#include "common/Types.h"
 #include "common/UuidUtility.h"
 
 #include "logic/camera/CameraTypes.h"
@@ -29,7 +30,6 @@ Layout createFourUpLayout()
 {
     using namespace camera;
 
-    const int32_t numOffsets = 0;
     const UiControls uiControls( true );
 
     const auto noRotationSyncGroup = std::nullopt;
@@ -42,10 +42,13 @@ Layout createFourUpLayout()
 
     auto zoomGroup = layout.cameraZoomSyncGroups().try_emplace( zoomSyncGroupUid ).first;
 
+    ViewOffsetSetting offsetSetting;
+    offsetSetting.m_offsetMode = ViewOffsetMode::None;
+
     {
         // top right
         auto view = std::make_shared<View>(
-                    Viewport{ 0.0f, 0.0f, 1.0f, 1.0f }, numOffsets,
+                    Viewport{ 0.0f, 0.0f, 1.0f, 1.0f }, offsetSetting,
                     CameraType::Coronal, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -57,7 +60,7 @@ Layout createFourUpLayout()
     {
         // top left
         auto view = std::make_shared<View>(
-                    Viewport{ -1.0f, 0.0f, 1.0f, 1.0f }, numOffsets,
+                    Viewport{ -1.0f, 0.0f, 1.0f, 1.0f }, offsetSetting,
                     CameraType::Sagittal, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -69,7 +72,7 @@ Layout createFourUpLayout()
     {
         // bottom left
         auto view = std::make_shared<View>(
-                    Viewport{ -1.0f, -1.0f, 1.0f, 1.0f }, numOffsets,
+                    Viewport{ -1.0f, -1.0f, 1.0f, 1.0f }, offsetSetting,
                     CameraType::ThreeD, ViewRenderMode::Disabled,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
@@ -81,7 +84,7 @@ Layout createFourUpLayout()
     {
         // bottom right
         auto view = std::make_shared<View>(
-                    Viewport{ 0.0f, -1.0f, 1.0f, 1.0f }, numOffsets,
+                    Viewport{ 0.0f, -1.0f, 1.0f, 1.0f }, offsetSetting,
                     CameraType::Axial, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -99,7 +102,6 @@ Layout createTriLayout()
 {
     using namespace camera;
 
-    const int32_t numOffsets = 0;
     const UiControls uiControls( true );
 
     const auto noRotationSyncGroup = std::nullopt;
@@ -111,10 +113,13 @@ Layout createTriLayout()
 
     auto zoomGroup = layout.cameraZoomSyncGroups().try_emplace( zoomSyncGroupUid ).first;
 
+    ViewOffsetSetting offsetSetting;
+    offsetSetting.m_offsetMode = ViewOffsetMode::None;
+
     {
         // left
         auto view = std::make_shared<View>(
-                    Viewport{ -1.0f, -1.0f, 1.5f, 2.0f }, numOffsets,
+                    Viewport{ -1.0f, -1.0f, 1.5f, 2.0f }, offsetSetting,
                     CameraType::Axial, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
@@ -125,7 +130,7 @@ Layout createTriLayout()
     {
         // bottom right
         auto view = std::make_shared<View>(
-                    Viewport{ 0.5f, -1.0f, 0.5f, 1.0f }, numOffsets,
+                    Viewport{ 0.5f, -1.0f, 0.5f, 1.0f }, offsetSetting,
                     CameraType::Coronal, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -137,7 +142,7 @@ Layout createTriLayout()
     {
         // top right
         auto view = std::make_shared<View>(
-                    Viewport{ 0.5f, 0.0f, 0.5f, 1.0f }, numOffsets,
+                    Viewport{ 0.5f, 0.0f, 0.5f, 1.0f }, offsetSetting,
                     CameraType::Sagittal, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -155,7 +160,6 @@ Layout createTriTopBottomLayout( size_t numRows )
 {
     using namespace camera;
 
-    const int32_t numOffsets = 0;
     const UiControls uiControls( true );
 
     const auto axiRotationSyncGroupUid = generateRandomUuid();
@@ -185,6 +189,9 @@ Layout createTriTopBottomLayout( size_t numRows )
     auto corZoomGroup = layout.cameraZoomSyncGroups().try_emplace( corZoomSyncGroupUid ).first;
     auto sagZoomGroup = layout.cameraZoomSyncGroups().try_emplace( sagZoomSyncGroupUid ).first;
 
+    ViewOffsetSetting offsetSetting;
+    offsetSetting.m_offsetMode = ViewOffsetMode::None;
+
     for ( size_t r = 0; r < numRows; ++r )
     {
         const float height = 2.0f / static_cast<float>( numRows );
@@ -193,7 +200,7 @@ Layout createTriTopBottomLayout( size_t numRows )
         {
             // axial
             auto view = std::make_shared<View>(
-                        Viewport{ -1.0f, bottom, 2.0f/3.0f, height }, numOffsets,
+                        Viewport{ -1.0f, bottom, 2.0f/3.0f, height }, offsetSetting,
                         CameraType::Axial, ViewRenderMode::Image,
                         uiControls,
                         axiRotationSyncGroupUid, axiTranslationSyncGroupUid, axiZoomSyncGroupUid );
@@ -211,7 +218,7 @@ Layout createTriTopBottomLayout( size_t numRows )
         {
             // coronal
             auto view = std::make_shared<View>(
-                        Viewport{ -1.0f/3.0f, bottom, 2.0f/3.0f, height }, numOffsets,
+                        Viewport{ -1.0f/3.0f, bottom, 2.0f/3.0f, height }, offsetSetting,
                         CameraType::Coronal, ViewRenderMode::Image,
                         uiControls,
                         corRotationSyncGroupUid, corTranslationSyncGroupUid, corZoomSyncGroupUid );
@@ -228,7 +235,7 @@ Layout createTriTopBottomLayout( size_t numRows )
         {
             // sagittal
             auto view = std::make_shared<View>(
-                        Viewport{ 1.0f/3.0f, bottom, 2.0f/3.0f, height }, numOffsets,
+                        Viewport{ 1.0f/3.0f, bottom, 2.0f/3.0f, height }, offsetSetting,
                         CameraType::Sagittal, ViewRenderMode::Image,
                         uiControls,
                         sagRotationSyncGroupUid, sagTranslationSyncGroupUid, sagZoomSyncGroupUid );
@@ -281,6 +288,9 @@ Layout createGridLayout(
 
     size_t count = 0;
 
+    ViewOffsetSetting offsetSetting;
+    offsetSetting.m_offsetMode = ViewOffsetMode::RelativeToRefImageScrolls;
+
     for ( int j = 0; j < height; ++j )
     {
         for ( int i = 0; i < width; ++i )
@@ -289,11 +299,11 @@ Layout createGridLayout(
             const float b = -1.0f + static_cast<float>( j ) * h;
 
             const int counter = width * j + i;
-            const int numOffsets = ( offsetViews ? ( counter - width * height / 2 ) : 0 );
+            offsetSetting.m_relativeOffsetSteps = ( offsetViews ? ( counter - width * height / 2 ) : 0 );
 
             auto view = std::make_shared<View>(
                         Viewport{ l, b, w, h },
-                        numOffsets,
+                        offsetSetting,
                         cameraType,
                         s_shaderType,
                         UiControls( ! isLightbox ),
@@ -670,10 +680,19 @@ const Viewport& WindowData::viewport() const
     return m_viewport;
 }
 
-void WindowData::resizeViewport( int width, int height )
+void WindowData::resizeViewport( float width, float height )
 {
-    m_viewport.setWidth( static_cast<float>( width ) );
-    m_viewport.setHeight( static_cast<float>( height ) );
+    m_viewport.setWidth( width );
+    m_viewport.setHeight( height );
+    updateAllViews();
+}
+
+void WindowData::setViewport( float left, float bottom, float width, float height )
+{
+    m_viewport.setLeft( left );
+    m_viewport.setBottom( bottom );
+    m_viewport.setWidth( width );
+    m_viewport.setHeight( height );
     updateAllViews();
 }
 
@@ -767,8 +786,8 @@ std::vector<uuids::uuid> WindowData::findCurrentViewsWithNormal(
         const View* view = getCurrentView( viewUid );
         if ( ! view ) continue;
 
-        const float d = std::abs( glm::dot( camera::worldDirection( view->camera(), Directions::View::Back ),
-                                            glm::normalize( worldNormal ) ) );
+        const glm::vec3 worldBackDir = camera::worldDirection( view->camera(), Directions::View::Back );
+        const float d = std::abs( glm::dot( worldBackDir, glm::normalize( worldNormal ) ) );
 
         if ( glm::epsilonEqual( d, 1.0f, EPS ) || glm::epsilonEqual( d, -1.0f, EPS ) )
         {

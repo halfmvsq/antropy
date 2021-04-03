@@ -8,7 +8,8 @@
 
 int main( int argc, char* argv[] )
 {
-    auto logFailure = []() {
+    auto logFailure = []()
+    {
         spdlog::debug( "------------------------ END SESSION (FAILURE) ------------------------" );
     };
 

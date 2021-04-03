@@ -1,8 +1,11 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#include <uuid.h>
+
 #include <array>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -163,6 +166,51 @@ enum class ImageSelection
 
     /// All images loaded in the application.
     AllLoadedImages
+};
+
+
+/**
+ * @brief Describes modes for offsetting the position of the view's image plane
+ * (along the view camera's front axis) relative to the World-space crosshairs position.
+ * Typically, this is used to offset the views in tiled layouts by a certain number of steps
+ * (along the camera's front axis)
+ */
+enum class ViewOffsetMode
+{
+    /// Offset by a given number of view scrolls relative to the reference image
+    RelativeToRefImageScrolls,
+
+    /// Offset by a given number of view scrolls relative to an image
+    RelativeToImageScrolls,
+
+    /// Offset by an absolute distance (in physical units)
+    Absolute,
+
+    /// No offset
+    None
+};
+
+
+/**
+ * @brief Describes an offset setting for a view
+ */
+struct ViewOffsetSetting
+{
+    /// Offset mode
+    ViewOffsetMode m_offsetMode = ViewOffsetMode::None;
+
+    /// Absolute offset distance, which is used if m_offsetMode is OffsetMode::Absolute
+    float m_absoluteOffset = 0.0f;
+
+    /// Relative number of offset scrolls, which is used if m_offsetMode is
+    /// OffsetMode::RelativeToRefImageScrolls or OffsetMode::RelativeToImageScrolls
+    int m_relativeOffsetSteps = 0;
+
+    /// If m_offsetMode is OffsetMode::RelativeToRefImageScrolls,
+    /// then this holds the unique ID of the image relative which offsets are computed.
+    /// If the image ID is not specified in OffsetMode::RelativeToRefImageScrolls,
+    /// then the offset is ignored (i.e. assumed to be zero).
+    std::optional<uuids::uuid> m_offsetImage = std::nullopt;
 };
 
 #endif // TYPES_H

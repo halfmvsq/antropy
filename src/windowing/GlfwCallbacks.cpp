@@ -62,11 +62,7 @@ void windowSizeCallback( GLFWwindow* window, int winWidth, int winHeight )
         return;
     }
 
-//    float xscale, yscale;
-//    glfwGetWindowContentScale( window, &xscale, &yscale );
-//    app->windowData().setDeviceScaleRatio( { xscale, yscale } );
-
-    app->resize( winWidth, winHeight );
+    app->resize( static_cast<float>( winWidth ), static_cast<float>( winHeight ) );
     app->render();
 
     // The app sometimes crashes on macOS without this call

@@ -17,4 +17,6 @@ void renderAddLayoutModalPopup(
         bool openAddLayoutPopup,
         const std::function< void (void) >& recenterViews );
 
+void renderAboutDialogModalPopup( bool open );
+
 #endif // UI_POPUPS

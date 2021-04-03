@@ -7,8 +7,7 @@
 #include "common/CoordinateFrame.h"
 #include "common/Types.h"
 
-#include <glm/mat4x4.hpp>
-#include <glm/vec3.hpp>
+#include <glm/fwd.hpp>
 
 #include <uuid.h>
 
@@ -61,6 +60,11 @@ glm::vec2 sliceMoveDistance(
         const glm::vec3& worldCameraUpDir,
         const ImageSelection&,
         const View* view );
+
+float computeViewOffsetDistance(
+        const AppData& appData,
+        const ViewOffsetSetting& offsetSetting,
+        const glm::vec3& worldCameraFront );
 
 
 /**

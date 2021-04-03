@@ -88,7 +88,10 @@ int parseCommandLine( const int argc, char* argv[], InputParams& params )
     params.set = false;
 
     std::ostringstream desc;
-    desc << "3D image differencing tool (" << ANTROPY_ORGNAME_FULL << ")";
+    desc << "3D image differencing tool ("
+         << ANTROPY_ORGNAME_LINE1 << ", "
+         << ANTROPY_ORGNAME_LINE2 << ", "
+         << ANTROPY_ORGNAME_LINE3 << ")";
 
     argparse::ArgumentParser program( ANTROPY_APPNAME_FULL, ANTROPY_VERSION_FULL );
 

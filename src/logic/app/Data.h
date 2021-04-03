@@ -247,7 +247,11 @@ public:
 
     /// @todo Put into DataHelper
     Image* refImage();
+    const Image* refImage() const;
+
     Image* activeImage();
+    const Image* activeImage() const;
+
     Image* activeSeg();
 
     ParcellationLabelTable* activeLabelTable();

@@ -193,8 +193,53 @@ float sliceScrollDistance(
     const glm::mat3& pixel_T_world_IT = image.transformations().pixel_T_worldDef_invTransp();
     const glm::vec3 pixelDir = glm::abs( glm::normalize( pixel_T_world_IT * worldCameraFrontDir ) );
 
-    // Scroll distance is proportional to spacing of image along the view direction
-    return  std::abs( glm::dot( glm::vec3{ image.header().spacing() }, pixelDir ) );
+    // Scroll distance is proportional to spacing of image along the view direction:
+    return std::abs( glm::dot( glm::vec3{ image.header().spacing() }, pixelDir ) );
+}
+
+
+float computeViewOffsetDistance(
+        const AppData& appData,
+        const ViewOffsetSetting& offsetSetting,
+        const glm::vec3& worldCameraFront )
+{
+    switch ( offsetSetting.m_offsetMode )
+    {
+    case ViewOffsetMode::RelativeToRefImageScrolls:
+    {
+        if ( const Image* refImg = appData.refImage() )
+        {
+            return static_cast<float>( offsetSetting.m_relativeOffsetSteps ) *
+                    data::sliceScrollDistance( worldCameraFront, *refImg );
+        }
+
+        return 0.0f; // Invalid reference image, so do not offset
+    }
+    case ViewOffsetMode::RelativeToImageScrolls:
+    {
+        const Image* image = ( offsetSetting.m_offsetImage )
+                ? appData.image( *(offsetSetting.m_offsetImage) )
+                : nullptr;
+
+        if ( image )
+        {
+            return static_cast<float>( offsetSetting.m_relativeOffsetSteps ) *
+                    data::sliceScrollDistance( worldCameraFront, *image );
+        }
+
+        return 0.0f; // Invalid image, so do not offset
+    }
+    case ViewOffsetMode::Absolute:
+    {
+        return offsetSetting.m_absoluteOffset;
+    }
+    case ViewOffsetMode::None:
+    {
+        return 0.0f;
+    }
+    }
+
+    return 0.0f;
 }
 
 

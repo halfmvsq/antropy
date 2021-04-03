@@ -207,9 +207,10 @@ void AntropyApp::run()
 }
 
 
-void AntropyApp::resize( int width, int height )
+void AntropyApp::resize( float width, float height )
 {
-    m_rendering.resize( width, height );
+    m_data.windowData().setViewport( 0.0f, 0.0f, width, height );
+    m_rendering.setDeviceViewport( m_data.windowData().viewport().getDeviceAsVec4() );
 }
 
 
@@ -243,7 +244,12 @@ WindowData& AntropyApp::windowData() { return m_data.windowData(); }
 void AntropyApp::logPreamble()
 {
     spdlog::info( "{} (version {})", ANTROPY_APPNAME_FULL, ANTROPY_VERSION_FULL );
-    spdlog::info( "{}", ANTROPY_ORGNAME_FULL );
+    spdlog::info( "{}, {], {}", ANTROPY_ORGNAME_LINE1, ANTROPY_ORGNAME_LINE2, ANTROPY_ORGNAME_LINE3 );
+
+    spdlog::debug( "Git commit hash: {}", ANTROPY_GIT_COMMIT_SHA1 );
+    spdlog::debug( "Git commit timestamp: {}", ANTROPY_GIT_COMMIT_TIMESTAMP );
+    spdlog::debug( "Git branch: {}", ANTROPY_GIT_BRANCH );
+    spdlog::debug( "Build timestamp: {}", ANTROPY_BUILD_TIMESTAMP );
 }
 
 

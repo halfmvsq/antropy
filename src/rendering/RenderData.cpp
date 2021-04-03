@@ -94,7 +94,7 @@ RenderData::RenderData()
 
       m_backgroundColor( 0.1f, 0.1f, 0.1f ),
       m_crosshairsColor( 0.0f, 0.5f, 1.0f, 1.0f ),
-      m_anatomicalLabelColor( 0.87f, 0.53f, 0.09f, 1.0f ),
+      m_anatomicalLabelColor( 0.695f, 0.870f, 0.090f, 1.0f ),
 
       m_squaredDifferenceParams(),
       m_crossCorrelationParams(),
