@@ -1298,7 +1298,7 @@ void renderImageViewIntersections(
         NVGcontext* nvg,
         const Viewport& windowVP,
         AppData& appData,
-        const View& view,
+        View& view,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
 {
     // Line segment stipple length in pixels
@@ -1313,8 +1313,6 @@ void renderImageViewIntersections(
 
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
-
-    nvgStrokeWidth( nvg, 1.25f );
 
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
@@ -1352,6 +1350,8 @@ void renderImageViewIntersections(
 
         const auto activeImageUid = appData.activeImageUid();
         const bool isActive = ( activeImageUid && ( *activeImageUid == imgUid ) );
+
+        nvgStrokeWidth( nvg, isActive ? 2.0f : 1.0f );
 
         glm::vec2 lastPos;
 

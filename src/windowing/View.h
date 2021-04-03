@@ -9,7 +9,7 @@
 #include "logic/camera/Camera.h"
 #include "logic/camera/CameraTypes.h"
 
-#include "rendering/utility/math/SliceIntersectorTypes.h"
+#include "rendering/utility/math/SliceIntersector.h"
 
 #include "ui/UiControls.h"
 
@@ -68,7 +68,7 @@ public:
     bool updateImageSlice( const AppData& appData, const glm::vec3& worldCrosshairs );
 
     std::optional< intersection::IntersectionVerticesVec4 >
-    computeImageSliceIntersection( const Image* image, const CoordinateFrame& crosshairs ) const;
+    computeImageSliceIntersection( const Image* image, const CoordinateFrame& crosshairs );
 
     const Viewport& winClipViewport() const;
 
@@ -170,6 +170,9 @@ private:
 
     // Min and max corners of the view in coordinates of the enclosing window
     std::pair< glm::vec2, glm::vec2 > m_winMouseViewMinMaxCorners;
+
+    /// Object for intersecting the view plane with the 3D images
+    SliceIntersector m_sliceIntersector;
 };
 
 #endif // VIEW_H
