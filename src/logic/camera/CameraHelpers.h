@@ -330,12 +330,13 @@ float computeSmallestWorldDepthOffset( const camera::Camera& camera, const glm::
 
 
 /**
- * @brief Compute the matrix transformation between view Clip space and window Clip space.
- * @note This matrix does no transform the z coordinate.
- * @param clipVP The view's viewport, defined in Clip coordinates of the enclosing Window
+ * @brief Compute the matrix transformation between view Clip space and Clip space of the
+ * view's enclosing window.
+ * @note This matrix does not transform the z coordinate.
+ * @param clipVP The view's viewport, defined in Clip coordinates of its enclosing Window
  * @return Transformation
  */
-glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& clipVP );
+glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& winClipVP );
 
 
 glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera );

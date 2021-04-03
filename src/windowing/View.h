@@ -4,7 +4,6 @@
 #include "common/CoordinateFrame.h"
 #include "common/Types.h"
 #include "common/UuidRange.h"
-#include "common/Viewport.h"
 
 #include "logic/camera/Camera.h"
 #include "logic/camera/CameraTypes.h"
@@ -54,7 +53,7 @@ public:
      * 1) integer offset number of slices relative to reference image
      * 2) absolute mm offset
      */
-    View( Viewport winClipViewport,
+    View( glm::vec4 winClipViewport,
           ViewOffsetSetting offsetSetting,
           camera::CameraType cameraType,
           camera::ViewRenderMode shaderType,
@@ -70,14 +69,13 @@ public:
     std::optional< intersection::IntersectionVerticesVec4 >
     computeImageSliceIntersection( const Image* image, const CoordinateFrame& crosshairs );
 
-    const Viewport& winClipViewport() const;
+    const glm::vec4& winClipViewport() const;
+    const glm::mat4& winClip_T_viewClip() const;
+    const glm::mat4& viewClip_T_winClip() const;
 
     float clipPlaneDepth() const;
 
     const ViewOffsetSetting& offsetSetting() const;
-
-    const glm::mat4& winClip_T_viewClip() const;
-    const glm::mat4& viewClip_T_winClip() const;
 
     void setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners );
     const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords() const;
@@ -129,8 +127,8 @@ private:
 
     // Viewport of the view defined in Clip space of the enclosing window,
     // which spans from bottom left [-1, -1] to top right [1, 1].
-    // A full-window view has viewport [left = -1, bottom = -1, width = 2, height = 2]
-    Viewport m_winClipViewport;
+    // A full-window view has viewport (left = -1, bottom = -1, width = 2, height = 2)
+    glm::vec4 m_winClipViewport;
 
     // Transformations between Clip spaces of the view and its enclosing window
     glm::mat4 m_winClip_T_viewClip;
@@ -138,6 +136,7 @@ private:
 
     // View offset setting
     ViewOffsetSetting m_offset;
+
 
     /**** START COMMON FUNCTIONALITY WITH LAYOUT ****/
 

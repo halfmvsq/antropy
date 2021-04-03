@@ -47,7 +47,7 @@ public:
             bool resetObliqueOrientation );
 
     void recenterView(
-            View* view,
+            View& view,
             const glm::vec3& worldCenter,
             const glm::vec3& worldFov,
             bool resetZoom,
@@ -138,15 +138,15 @@ private:
 
     // Recompute view aspect ratios
     void recomputeAllViewAspectRatios();
-    void recomputeViewAspectRatio( View* view );
+    void recomputeViewAspectRatio( View& view );
 
     // Recompute view corners
     void recomputeAllViewCorners();
-    void recomputeViewCorners( View* view );
+    void recomputeViewCorners( View& view );
 
     // Recompute view aspect ratios and corners
     void updateAllViews();
-    void updateView( View* view );
+    void updateView( View& view );
 
     Viewport m_viewport; // Window viewport (encompassing all views)
     std::vector<Layout> m_layouts; // All view layouts

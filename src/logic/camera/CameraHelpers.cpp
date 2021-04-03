@@ -891,10 +891,10 @@ float computeSmallestWorldDepthOffset( const camera::Camera& camera, const glm::
 }
 
 
-glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& clipVP )
+glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& winClipVP )
 {
-    const glm::vec3 T{ clipVP[0] + 0.5f * clipVP[2], clipVP[1] + 0.5f * clipVP[3], 0.0f };
-    const glm::vec3 S{ 0.5f * clipVP[2], 0.5f * clipVP[3], 1.0f };
+    const glm::vec3 T{ winClipVP[0] + 0.5f * winClipVP[2], winClipVP[1] + 0.5f * winClipVP[3], 0.0f };
+    const glm::vec3 S{ 0.5f * winClipVP[2], 0.5f * winClipVP[3], 1.0f };
     return glm::translate( T ) * glm::scale( S );
 }
 

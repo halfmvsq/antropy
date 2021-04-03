@@ -75,7 +75,7 @@ smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap =
 } // anonymous
 
 
-View::View( Viewport winClipViewport,
+View::View( glm::vec4 winClipViewport,
             ViewOffsetSetting offsetSetting,
             camera::CameraType cameraType,
             camera::ViewRenderMode shaderType,
@@ -85,7 +85,8 @@ View::View( Viewport winClipViewport,
             std::optional<uuids::uuid> cameraZoomSyncGroup )
     :
       m_winClipViewport( std::move( winClipViewport ) ),
-      m_winClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport.getAsVec4() ) ),
+
+      m_winClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport ) ),
       m_viewClip_T_winClip( glm::inverse( m_winClip_T_viewClip ) ),
 
       m_offset( std::move( offsetSetting ) ),
@@ -501,7 +502,7 @@ camera::Camera& View::camera() { return m_camera; }
 camera::CameraType View::cameraType() const { return m_cameraType; }
 camera::ViewRenderMode View::renderMode() const { return m_shaderType; }
 
-const Viewport& View::winClipViewport() const { return m_winClipViewport; }
+const glm::vec4& View::winClipViewport() const { return m_winClipViewport; }
 float View::clipPlaneDepth() const { return m_clipPlaneDepth; }
 
 const ViewOffsetSetting& View::offsetSetting() const { return m_offset; }

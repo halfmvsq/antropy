@@ -1098,7 +1098,8 @@ void AntropyApp::setCallbacks()
                 [this](){ m_imgui.render(); } );
 
     m_imgui.setCallbacks(
-            [this] ( const uuids::uuid& viewUid ) {
+            [this] ( const uuids::uuid& viewUid )
+            {
                 m_callbackHandler.recenterView( m_data.state().recenteringMode(), viewUid );
             },
 

@@ -1344,7 +1344,7 @@ void renderImageViewIntersections(
         worldIntersections->at( 6 ) = worldIntersections->at( 0 );
 
         const glm::vec3 color = img->settings().borderColor();
-        const float opacity = static_cast<float>( img->settings().visibility() ) * img->settings().opacity();
+        const float opacity = static_cast<float>( img->settings().visibility() * img->settings().opacity() );
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
 
@@ -1373,7 +1373,7 @@ void renderImageViewIntersections(
             {
                 // The active image gets a stippled line pattern
                 const float dist = glm::distance( lastPos, currPos );
-                const uint32_t numLines = dist / sk_stippleLen;
+                const uint32_t numLines = static_cast<uint32_t>( dist / sk_stippleLen );
 
                 if ( 0 == numLines )
                 {
@@ -2042,7 +2042,10 @@ void Rendering::render()
 void Rendering::setDeviceViewport( const glm::vec4& deviceViewport  )
 {
     // Set the OpenGL viewport in device units:
-    glViewport( deviceViewport[0], deviceViewport[1], deviceViewport[2], deviceViewport[3] );
+    glViewport( static_cast<GLint>( deviceViewport[0] ),
+                static_cast<GLint>( deviceViewport[1] ),
+                static_cast<GLint>( deviceViewport[2] ),
+                static_cast<GLint>( deviceViewport[3] ) );
 }
 
 
@@ -2870,59 +2873,57 @@ void Rendering::renderVectorOverlays()
     WindowData& windowData = m_appData.windowData();
     const Viewport& windowVP = windowData.viewport();
 
-
-    glm::mat4 world_T_refSubject( 1.0f );
-
-    if ( const Image* refImage = m_appData.refImage() )
-    {
-        world_T_refSubject = refImage->transformations().worldDef_T_subject();
-    }
-
     startNvgFrame( m_nvg, windowVP );
+
+    if ( m_isAppDoneLoadingImages )
     {
-        if ( m_isAppDoneLoadingImages )
+        glm::mat4 world_T_refSubject( 1.0f );
+
+        if ( const Image* refImage = m_appData.refImage() )
         {
-            const glm::vec4 worldCrosshairs{ m_appData.state().worldCrosshairs().worldOrigin(), 1.0f };
-            const auto activeViewUid = m_appData.windowData().activeViewUid();
-            const bool annotating = ( MouseMode::Annotate == m_appData.state().mouseMode() );
+            world_T_refSubject = refImage->transformations().worldDef_T_subject();
+        }
 
-            for ( const auto& viewUid : windowData.currentViewUids() )
+        const glm::vec4 worldCrosshairs{ m_appData.state().worldCrosshairs().worldOrigin(), 1.0f };
+        const auto activeViewUid = windowData.activeViewUid();
+        const bool annotating = ( MouseMode::Annotate == m_appData.state().mouseMode() );
+
+        for ( const auto& viewUid : windowData.currentViewUids() )
+        {
+            const View* view = windowData.getCurrentView( viewUid );
+            if ( ! view ) continue;
+
+            if ( m_showOverlays &&
+                 camera::ViewRenderMode::Disabled != view->renderMode() )
             {
-                const View* view = windowData.getCurrentView( viewUid );
-                if ( ! view ) continue;
+                const auto labelPosInfo = computeAnatomicalLabelPosInfo(
+                            windowVP, *view, world_T_refSubject, worldCrosshairs );
 
-                if ( m_showOverlays &&
-                     camera::ViewRenderMode::Disabled != view->renderMode() )
-                {
-                    const auto labelPosInfo = computeAnatomicalLabelPosInfo(
-                                windowVP, *view, world_T_refSubject, worldCrosshairs );
-
-                    renderCrosshairsOverlay( m_nvg, *view, m_appData.renderData().m_crosshairsColor, labelPosInfo );
-                    renderAnatomicalLabels( m_nvg, *view, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
-                }
-
-                const bool drawActiveOutline = ( annotating && activeViewUid && ( *activeViewUid == viewUid ) );
-
-                renderViewOutline( m_nvg, *view, drawActiveOutline );
+                renderCrosshairsOverlay( m_nvg, *view, m_appData.renderData().m_crosshairsColor, labelPosInfo );
+                renderAnatomicalLabels( m_nvg, *view, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
             }
 
-            renderWindowOutline( m_nvg, windowVP );
-        }
-        else
-        {
-            renderLoadingOverlay( m_nvg, windowVP );
+            const bool drawActiveOutline = ( annotating && activeViewUid && ( *activeViewUid == viewUid ) );
 
-//            nvgFontSize( m_nvg, 64.0f );
-//            const char* txt = "Text me up.";
-//            float bounds[4];
-//            nvgTextBounds( m_nvg, 10, 10, txt, NULL, bounds );
-//            nvgBeginPath( m_nvg );
-////            nvgRoundedRect( m_nvg, bounds[0],bounds[1], bounds[2]-bounds[0], bounds[3]-bounds[1], 0 );
-//            nvgText( m_nvg, vp.width() / 2, vp.height() / 2, "Loading images...", NULL );
-//            nvgFill( m_nvg );
+            renderViewOutline( m_nvg, *view, drawActiveOutline );
         }
 
+        renderWindowOutline( m_nvg, windowVP );
     }
+    else
+    {
+        renderLoadingOverlay( m_nvg, windowVP );
+
+        //            nvgFontSize( m_nvg, 64.0f );
+        //            const char* txt = "Text me up.";
+        //            float bounds[4];
+        //            nvgTextBounds( m_nvg, 10, 10, txt, NULL, bounds );
+        //            nvgBeginPath( m_nvg );
+        ////            nvgRoundedRect( m_nvg, bounds[0],bounds[1], bounds[2]-bounds[0], bounds[3]-bounds[1], 0 );
+        //            nvgText( m_nvg, vp.width() / 2, vp.height() / 2, "Loading images...", NULL );
+        //            nvgFill( m_nvg );
+    }
+
     endNvgFrame( m_nvg );
 }
 

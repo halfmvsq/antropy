@@ -48,7 +48,8 @@ Layout createFourUpLayout()
     {
         // top right
         auto view = std::make_shared<View>(
-                    Viewport{ 0.0f, 0.0f, 1.0f, 1.0f }, offsetSetting,
+                    glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f },
+                    offsetSetting,
                     CameraType::Coronal, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -60,7 +61,8 @@ Layout createFourUpLayout()
     {
         // top left
         auto view = std::make_shared<View>(
-                    Viewport{ -1.0f, 0.0f, 1.0f, 1.0f }, offsetSetting,
+                    glm::vec4{ -1.0f, 0.0f, 1.0f, 1.0f },
+                    offsetSetting,
                     CameraType::Sagittal, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -72,7 +74,8 @@ Layout createFourUpLayout()
     {
         // bottom left
         auto view = std::make_shared<View>(
-                    Viewport{ -1.0f, -1.0f, 1.0f, 1.0f }, offsetSetting,
+                    glm::vec4{ -1.0f, -1.0f, 1.0f, 1.0f },
+                    offsetSetting,
                     CameraType::ThreeD, ViewRenderMode::Disabled,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
@@ -84,7 +87,8 @@ Layout createFourUpLayout()
     {
         // bottom right
         auto view = std::make_shared<View>(
-                    Viewport{ 0.0f, -1.0f, 1.0f, 1.0f }, offsetSetting,
+                    glm::vec4{ 0.0f, -1.0f, 1.0f, 1.0f },
+                    offsetSetting,
                     CameraType::Axial, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -119,7 +123,8 @@ Layout createTriLayout()
     {
         // left
         auto view = std::make_shared<View>(
-                    Viewport{ -1.0f, -1.0f, 1.5f, 2.0f }, offsetSetting,
+                    glm::vec4{ -1.0f, -1.0f, 1.5f, 2.0f },
+                    offsetSetting,
                     CameraType::Axial, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
@@ -130,7 +135,8 @@ Layout createTriLayout()
     {
         // bottom right
         auto view = std::make_shared<View>(
-                    Viewport{ 0.5f, -1.0f, 0.5f, 1.0f }, offsetSetting,
+                    glm::vec4{ 0.5f, -1.0f, 0.5f, 1.0f },
+                    offsetSetting,
                     CameraType::Coronal, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -142,7 +148,8 @@ Layout createTriLayout()
     {
         // top right
         auto view = std::make_shared<View>(
-                    Viewport{ 0.5f, 0.0f, 0.5f, 1.0f }, offsetSetting,
+                    glm::vec4{ 0.5f, 0.0f, 0.5f, 1.0f },
+                    offsetSetting,
                     CameraType::Sagittal, ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
@@ -200,7 +207,8 @@ Layout createTriTopBottomLayout( size_t numRows )
         {
             // axial
             auto view = std::make_shared<View>(
-                        Viewport{ -1.0f, bottom, 2.0f/3.0f, height }, offsetSetting,
+                        glm::vec4{ -1.0f, bottom, 2.0f/3.0f, height },
+                        offsetSetting,
                         CameraType::Axial, ViewRenderMode::Image,
                         uiControls,
                         axiRotationSyncGroupUid, axiTranslationSyncGroupUid, axiZoomSyncGroupUid );
@@ -218,7 +226,8 @@ Layout createTriTopBottomLayout( size_t numRows )
         {
             // coronal
             auto view = std::make_shared<View>(
-                        Viewport{ -1.0f/3.0f, bottom, 2.0f/3.0f, height }, offsetSetting,
+                        glm::vec4{ -1.0f/3.0f, bottom, 2.0f/3.0f, height },
+                        offsetSetting,
                         CameraType::Coronal, ViewRenderMode::Image,
                         uiControls,
                         corRotationSyncGroupUid, corTranslationSyncGroupUid, corZoomSyncGroupUid );
@@ -235,7 +244,8 @@ Layout createTriTopBottomLayout( size_t numRows )
         {
             // sagittal
             auto view = std::make_shared<View>(
-                        Viewport{ 1.0f/3.0f, bottom, 2.0f/3.0f, height }, offsetSetting,
+                        glm::vec4{ 1.0f/3.0f, bottom, 2.0f/3.0f, height },
+                        offsetSetting,
                         CameraType::Sagittal, ViewRenderMode::Image,
                         uiControls,
                         sagRotationSyncGroupUid, sagTranslationSyncGroupUid, sagZoomSyncGroupUid );
@@ -302,7 +312,7 @@ Layout createGridLayout(
             offsetSetting.m_relativeOffsetSteps = ( offsetViews ? ( counter - width * height / 2 ) : 0 );
 
             auto view = std::make_shared<View>(
-                        Viewport{ l, b, w, h },
+                        glm::vec4{ l, b, w, h },
                         offsetSetting,
                         cameraType,
                         s_shaderType,
@@ -501,7 +511,7 @@ void WindowData::recenterAllViews(
         {
             if ( view.second )
             {
-                recenterView( view.second.get(), worldCenter, worldFov, resetZoom, resetObliqueOrientation );
+                recenterView( *view.second, worldCenter, worldFov, resetZoom, resetObliqueOrientation );
             }
         }
     }
@@ -515,31 +525,32 @@ void WindowData::recenterView(
         bool resetZoom,
         bool resetObliqueOrientation )
 {
-    recenterView( getView( viewUid ), worldCenter, worldFov, resetZoom, resetObliqueOrientation );
+    if ( View* view = getView( viewUid ) )
+    {
+        recenterView( *view, worldCenter, worldFov, resetZoom, resetObliqueOrientation );
+    }
 }
 
 
 void WindowData::recenterView(
-        View* view,
+        View& view,
         const glm::vec3& worldCenter,
         const glm::vec3& worldFov,
         bool resetZoom,
         bool resetObliqueOrientation )
 {
-    if ( ! view ) return;
-
     if ( resetZoom )
     {
-        camera::resetZoom( view->camera() );
+        camera::resetZoom( view.camera() );
     }
 
-    if ( resetObliqueOrientation && ( camera::CameraType::Oblique == view->cameraType() ) )
+    if ( resetObliqueOrientation && ( camera::CameraType::Oblique == view.cameraType() ) )
     {
         // Reset the view orientation for oblique views:
-        camera::resetViewTransformation( view->camera() );
+        camera::resetViewTransformation( view.camera() );
     }
 
-    camera::positionCameraForWorldTargetAndFov( view->camera(), worldFov, worldCenter );
+    camera::positionCameraForWorldTargetAndFov( view.camera(), worldFov, worldCenter );
 
     updateView( view );
 }
@@ -608,12 +619,12 @@ WindowData::currentViewUidAtCursor( const glm::vec2& windowPos ) const
     for ( const auto& view : m_layouts.at( m_currentLayout ).views() )
     {
         if ( ! view.second ) continue;
-        const auto& winClipVp = view.second->winClipViewport();
+        const glm::vec4& winClipVp = view.second->winClipViewport();
 
-        if ( ( winClipVp.left() <= winClipPos.x ) &&
-             ( winClipPos.x < winClipVp.left() + winClipVp.width() ) &&
-             ( winClipVp.bottom() <= winClipPos.y ) &&
-             ( winClipPos.y < winClipVp.bottom() + winClipVp.height() ) )
+        if ( ( winClipVp[0] <= winClipPos.x ) &&
+             ( winClipPos.x < winClipVp[0] + winClipVp[2] ) &&
+             ( winClipVp[1] <= winClipPos.y ) &&
+             ( winClipPos.y < winClipVp[1] + winClipVp[3] ) )
         {
             return view.first;
         }
@@ -733,7 +744,7 @@ uuid_range_t WindowData::cameraZoomGroupViewUids(
 void WindowData::applyImageSelectionToAllCurrentViews(
         const uuids::uuid& referenceViewUid )
 {
-    constexpr bool s_filterAgainstDefaults = false;
+    static constexpr bool s_filterAgainstDefaults = false;
 
     const View* referenceView = getCurrentView( referenceViewUid );
     if ( ! referenceView ) return;
@@ -766,8 +777,7 @@ void WindowData::applyViewShaderToAllCurrentViews(
 
         if ( camera::CameraType::ThreeD == view->cameraType() )
         {
-            // Don't allow changing shader of 3D views
-            continue;
+            continue; // Don't allow changing shader of 3D views
         }
 
         view->setRenderMode( shaderType );
@@ -806,19 +816,18 @@ void WindowData::recomputeAllViewAspectRatios()
         {
             if ( view.second )
             {
-                recomputeViewAspectRatio( view.second.get() );
+                recomputeViewAspectRatio( *view.second );
             }
         }
     }
 }
 
-void WindowData::recomputeViewAspectRatio( View* view )
+void WindowData::recomputeViewAspectRatio( View& view )
 {
-    if ( ! view ) return;
-
     // The view camera's aspect ratio is the product of the main window's
     // aspect ratio and the view's aspect ratio:
-    view->camera().setAspectRatio( m_viewport.aspectRatio() * view->winClipViewport().aspectRatio() );
+    const float viewAspect = view.winClipViewport()[2] / view.winClipViewport()[3];
+    view.camera().setAspectRatio( m_viewport.aspectRatio() * viewAspect );
 }
 
 void WindowData::recomputeAllViewCorners()
@@ -850,33 +859,29 @@ void WindowData::recomputeAllViewCorners()
             {
                 if ( view.second )
                 {
-                    recomputeViewCorners( view.second.get() );
+                    recomputeViewCorners( *view.second );
                 }
             }
         }
     }
 }
 
-void WindowData::recomputeViewCorners( View* view )
+void WindowData::recomputeViewCorners( View& view )
 {
-    // Bottom-left and top-right coordinates in Clip space:
-    static const glm::vec4 s_clipViewBL{ -1, -1, 0, 1 };
-    static const glm::vec4 s_clipViewTR{ 1, 1, 0, 1 };
+    const glm::vec4& vp = view.winClipViewport();
 
-    if ( ! view ) return;
-
-    const glm::vec4 winClipViewBL = view->winClip_T_viewClip() * s_clipViewBL;
+    const glm::vec4 winClipViewBL{ vp[0], vp[1], 0, 1 };
     const glm::vec2 winPixelViewBL = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewBL } );
     const glm::vec2 winMouseViewBL = camera::mouse_T_view( m_viewport, winPixelViewBL );
 
-    const glm::vec4 winClipViewTR = view->winClip_T_viewClip() * s_clipViewTR;
+    const glm::vec4 winClipViewTR{ vp[0] + vp[2], vp[1] + vp[3], 0, 1 };
     const glm::vec2 winPixelViewTR = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewTR } );
     const glm::vec2 winMouseViewTR = camera::mouse_T_view( m_viewport, winPixelViewTR );
 
     const glm::vec2 cornerMin = glm::min( winMouseViewBL, winMouseViewTR );
     const glm::vec2 cornerMax = glm::max( winMouseViewBL, winMouseViewTR );
 
-    view->setWinMouseMinMaxCoords( { cornerMin, cornerMax } );
+    view.setWinMouseMinMaxCoords( { cornerMin, cornerMax } );
 }
 
 void WindowData::updateAllViews()
@@ -885,7 +890,7 @@ void WindowData::updateAllViews()
     recomputeAllViewCorners();
 }
 
-void WindowData::updateView( View* view )
+void WindowData::updateView( View& view )
 {
     recomputeViewAspectRatio( view );
     recomputeViewCorners( view );
