@@ -1,10 +1,12 @@
 #ifndef SLICE_INTERSECTOR_H
 #define SLICE_INTERSECTOR_H
 
+#include "rendering/utility/math/SliceIntersectorTypes.h"
+
 #include <glm/mat4x4.hpp>
+#include <glm/vec3.hpp>
 #include <glm/vec4.hpp>
 
-#include <array>
 #include <optional>
 #include <utility>
 
@@ -17,41 +19,8 @@ class SliceIntersector
 {
 public:
 
-    /**
-     * @brief Describes the method used for positioning slices
-     */
-    enum class PositioningMethod
-    {
-        OffsetFromCamera,
-        FrameOrigin,
-        UserDefined
-    };
-
-
-    /**
-     * @brief Describes the method used for aligning slices
-     */
-    enum class AlignmentMethod
-    {
-        CameraZ,
-        FrameX,
-        FrameY,
-        FrameZ,
-        UserDefined
-    };
-
-
-    // There are up to six intersection points between a 3D plane and a 3D AABB.
-    // We store the intersection polygon in vertex buffer using seven vertices:
-    // Six are the intersection vertices themselves (included repeated ones);
-    // plus one more hub vertex at the centroid of the intersection points.
-
     static constexpr int s_numIntersections = 6;
     static constexpr int s_numVertices = 7;
-
-    using IntersectionVertices = std::array< glm::vec3, SliceIntersector::s_numVertices >;
-    using IntersectionVerticesVec4 = std::array< glm::vec4, SliceIntersector::s_numVertices >;
-
 
     explicit SliceIntersector();
 
@@ -65,19 +34,19 @@ public:
 
 
     void setPositioningMethod(
-            const PositioningMethod& method,
+            const intersection::PositioningMethod& method,
             const std::optional<glm::vec3>& p = std::nullopt );
 
-    const PositioningMethod& positioningMethod() const;
+    const intersection::PositioningMethod& positioningMethod() const;
 
     void setAlignmentMethod(
-            const AlignmentMethod& method,
+            const intersection::AlignmentMethod& method,
             const std::optional<glm::vec3>& worldNormal = std::nullopt );
 
-    const AlignmentMethod& alignmentMethod() const;
+    const intersection::AlignmentMethod& alignmentMethod() const;
 
     /// Compute and return the intersection vertices (if they exist) and the plane equation
-    std::pair< std::optional< IntersectionVertices >, glm::vec4 >
+    std::pair< std::optional< intersection::IntersectionVertices >, glm::vec4 >
     computePlaneIntersections(
             const glm::mat4& model_T_camera,
             const glm::mat4& model_T_frame,
@@ -88,8 +57,8 @@ private:
 
     void updatePlaneEquation( const glm::mat4& model_O_camera, const glm::mat4& model_O_frame );
 
-    PositioningMethod m_positioningMethod;
-    AlignmentMethod m_alignmentMethod;
+    intersection::PositioningMethod m_positioningMethod;
+    intersection::AlignmentMethod m_alignmentMethod;
 
     glm::vec3 m_cameraSliceOffset;
     glm::vec3 m_userSlicePosition;

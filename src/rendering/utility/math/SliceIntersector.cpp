@@ -10,8 +10,8 @@
 
 SliceIntersector::SliceIntersector()
     :
-      m_positioningMethod( PositioningMethod::FrameOrigin ),
-      m_alignmentMethod( AlignmentMethod::CameraZ ),
+      m_positioningMethod( intersection::PositioningMethod::FrameOrigin ),
+      m_alignmentMethod( intersection::AlignmentMethod::CameraZ ),
 
       m_cameraSliceOffset( 0.0f, 0.0f, -1.0f ),
       m_userSlicePosition( 0.0f, 0.0f, 0.0f ),
@@ -21,7 +21,7 @@ SliceIntersector::SliceIntersector()
 {}
 
 void SliceIntersector::setPositioningMethod(
-        const PositioningMethod& method,
+        const intersection::PositioningMethod& method,
         const std::optional<glm::vec3>& p )
 {
     m_positioningMethod = method;
@@ -30,28 +30,28 @@ void SliceIntersector::setPositioningMethod(
 
     switch ( m_positioningMethod )
     {
-    case PositioningMethod::UserDefined :
+    case intersection::PositioningMethod::UserDefined :
     {
         m_userSlicePosition = *p;
         break;
     }
-    case PositioningMethod::OffsetFromCamera :
+    case intersection::PositioningMethod::OffsetFromCamera :
     {
         m_cameraSliceOffset = *p;
         break;
     }
-    case PositioningMethod::FrameOrigin :
+    case intersection::PositioningMethod::FrameOrigin :
         break;
     }
 }
 
 void SliceIntersector::setAlignmentMethod(
-        const AlignmentMethod& method,
+        const intersection::AlignmentMethod& method,
         const std::optional<glm::vec3>& worldNormal )
 {
     m_alignmentMethod = method;
 
-    if ( AlignmentMethod::UserDefined == method )
+    if ( intersection::AlignmentMethod::UserDefined == method )
     {
         if ( worldNormal )
         {
@@ -63,7 +63,7 @@ void SliceIntersector::setAlignmentMethod(
     }
 }
 
-std::pair< std::optional< SliceIntersector::IntersectionVertices >, glm::vec4 >
+std::pair< std::optional< intersection::IntersectionVertices >, glm::vec4 >
 SliceIntersector::computePlaneIntersections(
         const glm::mat4& model_O_camera,
         const glm::mat4& model_O_frame,
@@ -72,19 +72,16 @@ SliceIntersector::computePlaneIntersections(
     updatePlaneEquation( model_O_camera, model_O_frame );
 
     return std::make_pair(
-                math::computeAABBoxPlaneIntersections<float>(
-                    modelBoxCorners, m_modelPlaneEquation ),
+                math::computeAABBoxPlaneIntersections<float>( modelBoxCorners, m_modelPlaneEquation ),
                 m_modelPlaneEquation );
 }
 
-const SliceIntersector::PositioningMethod&
-SliceIntersector::positioningMethod() const
+const intersection::PositioningMethod& SliceIntersector::positioningMethod() const
 {
     return m_positioningMethod;
 }
 
-const SliceIntersector::AlignmentMethod&
-SliceIntersector::alignmentMethod() const
+const intersection::AlignmentMethod& SliceIntersector::alignmentMethod() const
 {
     return m_alignmentMethod;
 }
@@ -98,19 +95,19 @@ void SliceIntersector::updatePlaneEquation(
 
     switch ( m_positioningMethod )
     {
-    case PositioningMethod::OffsetFromCamera :
+    case intersection::PositioningMethod::OffsetFromCamera :
     {
         const glm::vec4 p = model_T_camera * glm::vec4{ m_cameraSliceOffset, 1.0f };
         position = glm::vec3{ p / p.w };
         break;
     }
-    case PositioningMethod::FrameOrigin :
+    case intersection::PositioningMethod::FrameOrigin :
     {
         const glm::vec4 p = model_T_frame[3];
         position = glm::vec3{ p / p.w };
         break;
     }
-    case PositioningMethod::UserDefined :
+    case intersection::PositioningMethod::UserDefined :
     {
         position = m_userSlicePosition;
         break;
@@ -119,27 +116,27 @@ void SliceIntersector::updatePlaneEquation(
 
     switch ( m_alignmentMethod )
     {
-    case AlignmentMethod::CameraZ :
+    case intersection::AlignmentMethod::CameraZ :
     {
         normal = glm::vec3( glm::inverseTranspose( model_T_camera )[2] );
         break;
     }
-    case AlignmentMethod::FrameX :
+    case intersection::AlignmentMethod::FrameX :
     {
         normal = glm::vec3( glm::inverseTranspose( model_T_frame )[0] );
         break;
     }
-    case AlignmentMethod::FrameY :
+    case intersection::AlignmentMethod::FrameY :
     {
         normal = glm::vec3( glm::inverseTranspose( model_T_frame )[1] );
         break;
     }
-    case AlignmentMethod::FrameZ :
+    case intersection::AlignmentMethod::FrameZ :
     {
         normal = glm::vec3( glm::inverseTranspose( model_T_frame )[2] );
         break;
     }
-    case AlignmentMethod::UserDefined :
+    case intersection::AlignmentMethod::UserDefined :
     {
         normal = m_userSliceNormal;
         break;

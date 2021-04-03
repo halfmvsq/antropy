@@ -813,7 +813,7 @@ computeAnatomicalLabelPosInfo(
 
         if ( 1 != posLabelHits.size() || 1 != negLabelHits.size() )
         {
-            spdlog::warn( "Exepcted two intersections when computing anatomical label positions for view. "
+            spdlog::warn( "Expected two intersections when computing anatomical label positions for view. "
                           "Got {} and {} intersections in the positive and negative directions, respectively.",
                           posLabelHits.size(), negLabelHits.size() );
             continue;
@@ -1314,7 +1314,7 @@ void renderImageViewIntersections(
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
 
-    nvgStrokeWidth( nvg, 1.0f );
+    nvgStrokeWidth( nvg, 1.25f );
 
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
@@ -1343,7 +1343,7 @@ void renderImageViewIntersections(
         // The last point is the centroid of the intersection. Ignore the centroid and replace it with a
         // duplicate of the first point. We need to double-up that point in order for line stippling to
         // work correctly. Also, no need to close the path with nvgClosePath if the last point is duplicated.
-        worldIntersections->at( SliceIntersector::s_numVertices - 1 ) = worldIntersections->at( 0 );
+        worldIntersections->at( 6 ) = worldIntersections->at( 0 );
 
         const glm::vec3 color = img->settings().borderColor();
         const float opacity = static_cast<float>( img->settings().visibility() ) * img->settings().opacity();

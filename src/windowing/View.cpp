@@ -12,6 +12,7 @@
 #include "logic/camera/PerspectiveProjection.h"
 #include "logic/camera/MathUtility.h"
 
+#include "rendering/utility/math/SliceIntersector.h"
 #include "rendering/utility/UnderlyingEnumType.h"
 
 #include <glm/glm.hpp>
@@ -107,9 +108,7 @@ View::View( Viewport winClipViewport,
       m_cameraZoomSyncGroupUid( cameraZoomSyncGroup ),
 
       m_clipPlaneDepth( 0.0f ),
-      m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } ),
-
-      m_sliceIntersector()
+      m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } )
 {
     const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
 
@@ -118,10 +117,6 @@ View::View( Viewport winClipViewport,
         {
             return CoordinateFrame( sk_origin, smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType ) );
         } );
-
-    // Configure the slice intersector:
-    m_sliceIntersector.setPositioningMethod( SliceIntersector::PositioningMethod::FrameOrigin, std::nullopt );
-    m_sliceIntersector.setAlignmentMethod( SliceIntersector::AlignmentMethod::CameraZ );
 }
 
 
@@ -176,16 +171,14 @@ bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCross
 }
 
 
-std::optional< SliceIntersector::IntersectionVerticesVec4 >
+std::optional< intersection::IntersectionVerticesVec4 >
 View::computeImageSliceIntersection(
         const Image* image,
         const CoordinateFrame& crosshairs ) const
 {
-    if ( ! image ) return std::nullopt;
+    static SliceIntersector intersector;
 
-    SliceIntersector intersector;
-    intersector.setPositioningMethod( SliceIntersector::PositioningMethod::FrameOrigin, std::nullopt );
-    intersector.setAlignmentMethod( SliceIntersector::AlignmentMethod::CameraZ );
+    if ( ! image ) return std::nullopt;
 
     // Compute the intersections in Pixel space by transforming the camera and crosshairs frame
     // from World to Pixel space. Pixel space is needed, because the corners form an AABB in that space.
@@ -194,7 +187,7 @@ View::computeImageSliceIntersection(
 
     const glm::mat4 pixel_T_world = glm::inverse( world_T_pixel );
 
-    std::optional< SliceIntersector::IntersectionVertices > pixelIntersectionPositions =
+    std::optional< intersection::IntersectionVertices > pixelIntersectionPositions =
             intersector.computePlaneIntersections(
                 pixel_T_world * m_camera.world_T_camera(),
                 pixel_T_world * crosshairs.world_T_frame(),
@@ -207,7 +200,7 @@ View::computeImageSliceIntersection(
     }
 
     // Convert Subject intersection positions to World space
-    SliceIntersector::IntersectionVerticesVec4 worldIntersectionPositions;
+    intersection::IntersectionVerticesVec4 worldIntersectionPositions;
 
     for ( uint32_t i = 0; i < SliceIntersector::s_numVertices; ++i )
     {
