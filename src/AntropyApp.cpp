@@ -244,7 +244,7 @@ WindowData& AntropyApp::windowData() { return m_data.windowData(); }
 void AntropyApp::logPreamble()
 {
     spdlog::info( "{} (version {})", ANTROPY_APPNAME_FULL, ANTROPY_VERSION_FULL );
-    spdlog::info( "{}, {], {}", ANTROPY_ORGNAME_LINE1, ANTROPY_ORGNAME_LINE2, ANTROPY_ORGNAME_LINE3 );
+    spdlog::info( "{}, {}, {}", ANTROPY_ORGNAME_LINE1, ANTROPY_ORGNAME_LINE2, ANTROPY_ORGNAME_LINE3 );
 
     spdlog::debug( "Git commit hash: {}", ANTROPY_GIT_COMMIT_SHA1 );
     spdlog::debug( "Git commit timestamp: {}", ANTROPY_GIT_COMMIT_TIMESTAMP );
