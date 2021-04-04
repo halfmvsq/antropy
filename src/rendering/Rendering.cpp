@@ -2656,180 +2656,87 @@ void Rendering::renderImages()
     };
 
     const glm::vec3 worldCrosshairsOrigin = m_appData.state().worldCrosshairs().worldOrigin();
-    const Layout& layout = m_appData.windowData().currentLayout();
 
     const bool renderLandmarksOnTop = m_appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
     const bool renderAnnotationsOnTop = m_appData.renderData().m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
     const bool renderImageIntersections = m_appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections;
 
-    if ( layout.isLightbox() )
+    for ( const auto& view : m_appData.windowData().currentLayout().views() )
     {
-        auto renderImagesForAllCurrentViews =
-                [this, &layout, &worldCrosshairsOrigin, &renderLandmarksOnTop, &renderAnnotationsOnTop,
-                /*&renderImageIntersections,*/ &getImage]
+        if ( ! view.second ) continue;
+
+        auto renderImagesForView = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
+                &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
                 ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
         {
-            for ( const auto& view : layout.views() )
+            if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
+
+            renderPlane( program,
+                         view.second->renderMode(),
+                         m_appData.renderData().m_quad,
+                         *view.second,
+                         worldCrosshairsOrigin,
+                         m_appData.renderData().m_flashlightRadius,
+                         m_appData.renderData().m_flashlightOverlays,
+                         I, getImage, showEdges );
+
+            if ( ! renderLandmarksOnTop )
             {
-                if ( ! view.second ) continue;
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
-
-                renderPlane( program, layout.renderMode(),
-                             m_appData.renderData().m_quad, *view.second, worldCrosshairsOrigin,
-                             m_appData.renderData().m_flashlightRadius,
-                             m_appData.renderData().m_flashlightOverlays,
-                             I, getImage, showEdges );
-
-                if ( ! renderLandmarksOnTop )
-                {
-                    renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
-                    setupOpenGlState();
-                }
-
-                if ( ! renderAnnotationsOnTop )
-                {
-                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
-                    setupOpenGlState();
-                }
-
-                // This breaks image rendering in the layout:
-//                if ( renderImageIntersections )
-//                {
-//                    renderImageViewIntersections( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
-//                    setupOpenGlState();
-//                }
-            }
-        };
-
-        auto renderLandmarksForAllCurrentViews = [this, &layout, &worldCrosshairsOrigin]
-                ( const CurrentImages& I )
-        {
-            for ( const auto& view : layout.views() )
-            {
-                if ( ! view.second ) continue;
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
-
                 renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
                 setupOpenGlState();
             }
-        };
 
-        auto renderAnnotationsForAllCurrentViews = [this, &layout, &worldCrosshairsOrigin]
-                ( const CurrentImages& I )
-        {
-            for ( const auto& view : layout.views() )
+            if ( ! renderAnnotationsOnTop )
             {
-                if ( ! view.second ) continue;
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
-
                 renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
+                setupOpenGlState();
+            }
+
+            if ( renderImageIntersections )
+            {
+                renderImageViewIntersections( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
                 setupOpenGlState();
             }
         };
 
+        auto renderLandmarksForView = [this, view, &worldCrosshairsOrigin] ( const CurrentImages& I )
+        {
+            if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
+
+            renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
+            setupOpenGlState();
+        };
+
+        auto renderAnnotationsForView = [this, view, &worldCrosshairsOrigin] ( const CurrentImages& I )
+        {
+            if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
+
+            renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
+            setupOpenGlState();
+        };
+
         doRenderingAllImagePlanes(
-                    layout.renderMode(),
-                    layout.metricImages(),
-                    layout.renderedImages(),
-                    renderImagesForAllCurrentViews );
+                    view.second->renderMode(),
+                    view.second->metricImages(),
+                    view.second->renderedImages(),
+                    renderImagesForView );
 
         if ( renderLandmarksOnTop )
         {
             doRenderingImageLandmarks(
-                        layout.renderMode(),
-                        layout.metricImages(),
-                        layout.renderedImages(),
-                        renderLandmarksForAllCurrentViews );
+                        view.second->renderMode(),
+                        view.second->metricImages(),
+                        view.second->renderedImages(),
+                        renderLandmarksForView );
         }
 
         if ( renderAnnotationsOnTop )
         {
             doRenderingImageAnnotations(
-                        layout.renderMode(),
-                        layout.metricImages(),
-                        layout.renderedImages(),
-                        renderAnnotationsForAllCurrentViews );
-        }
-    }
-    else
-    {
-        // Loop over all views in the current layout
-        for ( const auto& view : layout.views() )
-        {
-            if ( ! view.second ) continue;
-
-            auto renderImagesForView = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
-                    &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
-                    ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
-            {
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
-
-                renderPlane( program, view.second->renderMode(), m_appData.renderData().m_quad, *view.second,
-                             worldCrosshairsOrigin,
-                             m_appData.renderData().m_flashlightRadius,
-                             m_appData.renderData().m_flashlightOverlays,
-                             I, getImage, showEdges );
-
-                if ( ! renderLandmarksOnTop )
-                {
-                    renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
-                    setupOpenGlState();
-                }
-
-                if ( ! renderAnnotationsOnTop )
-                {
-                    renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
-                    setupOpenGlState();
-                }
-
-                if ( renderImageIntersections )
-                {
-                    renderImageViewIntersections( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
-                    setupOpenGlState();
-                }
-            };
-
-            auto renderLandmarksForView = [this, view, &worldCrosshairsOrigin]
-                    ( const CurrentImages& I )
-            {
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
-
-                renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
-                setupOpenGlState();
-            };
-
-            auto renderAnnotationsForView = [this, view, &worldCrosshairsOrigin]
-                    ( const CurrentImages& I )
-            {
-                if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
-
-                renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
-                setupOpenGlState();
-            };
-
-            doRenderingAllImagePlanes(
                         view.second->renderMode(),
                         view.second->metricImages(),
                         view.second->renderedImages(),
-                        renderImagesForView );
-
-            if ( renderLandmarksOnTop )
-            {
-                doRenderingImageLandmarks(
-                            view.second->renderMode(),
-                            view.second->metricImages(),
-                            view.second->renderedImages(),
-                            renderLandmarksForView );
-            }
-
-            if ( renderAnnotationsOnTop )
-            {
-                doRenderingImageAnnotations(
-                            view.second->renderMode(),
-                            view.second->metricImages(),
-                            view.second->renderedImages(),
-                            renderAnnotationsForView );
-            }
+                        renderAnnotationsForView );
         }
     }
 }

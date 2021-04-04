@@ -12,6 +12,8 @@
 
 #include "ui/UiControls.h"
 
+#include "windowing/ControlFrame.h"
+
 #include <glm/mat4x4.hpp>
 #include <glm/vec3.hpp>
 
@@ -31,7 +33,7 @@ class Image;
  * scene from a single orientation. The view holds its camera and information about the
  * image plane being rendered in it.
  */
-class View
+class View // : public ControlFrame
 {
 public:
 
@@ -48,10 +50,6 @@ public:
      *
      * @param[in] cameraType Camera type of the view
      * @param[in] shaderType Shader type of the view
-     *
-     * @todo Make two offset modes:
-     * 1) integer offset number of slices relative to reference image
-     * 2) absolute mm offset
      */
     View( glm::vec4 winClipViewport,
           ViewOffsetSetting offsetSetting,

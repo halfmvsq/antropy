@@ -1,0 +1,262 @@
+#include "windowing/ControlFrame.h"
+#include "logic/app/Data.h"
+
+
+ControlFrame::ControlFrame(
+        camera::CameraType cameraType,
+        camera::ViewRenderMode shaderType,
+        UiControls uiControls )
+    :
+      m_renderedImageUids(),
+      m_metricImageUids(),
+
+      // Render the first two images by default:
+      m_preferredDefaultRenderedImages( { 0, 1 } ),
+
+      m_shaderType( shaderType ),
+      m_cameraType( cameraType ),
+
+      m_uiControls( std::move( uiControls ) )
+{
+}
+
+bool ControlFrame::isImageRendered( const AppData& appData, size_t index )
+{
+    auto imageUid = appData.imageUid( index );
+    if ( ! imageUid ) return false; // invalid image index
+
+    auto it = std::find( std::begin( m_renderedImageUids ),
+                         std::end( m_renderedImageUids ), *imageUid );
+
+    return ( std::end( m_renderedImageUids ) != it );
+}
+
+void ControlFrame::setImageRendered( const AppData& appData, size_t index, bool visible )
+{
+    auto imageUid = appData.imageUid( index );
+    if ( ! imageUid ) return; // invalid image index
+
+    if ( ! visible )
+    {
+        m_renderedImageUids.remove( *imageUid );
+        return;
+    }
+
+    if ( std::end( m_renderedImageUids ) !=
+         std::find( std::begin( m_renderedImageUids ),
+                    std::end( m_renderedImageUids ), *imageUid ) )
+    {
+        return; // image already exists, so do nothing
+    }
+
+    bool inserted = false;
+
+    for ( auto it = std::begin( m_renderedImageUids );
+          std::end( m_renderedImageUids ) != it; ++it )
+    {
+        if ( const auto i = appData.imageIndex( *it ) )
+        {
+            if ( index < *i )
+            {
+                // Insert the desired image in the right place
+                m_renderedImageUids.insert( it, *imageUid );
+                inserted = true;
+                break;
+            }
+        }
+    }
+
+    if ( ! inserted )
+    {
+        m_renderedImageUids.push_back( *imageUid );
+    }
+}
+
+const std::list<uuids::uuid>& ControlFrame::renderedImages() const
+{
+    return m_renderedImageUids;
+}
+
+void ControlFrame::setRenderedImages(
+        const std::list<uuids::uuid>& imageUids,
+        bool filterByDefaults )
+{
+    if ( filterByDefaults )
+    {
+        m_renderedImageUids.clear();
+        size_t index = 0;
+
+        for ( const auto& imageUid : imageUids )
+        {
+            if ( m_preferredDefaultRenderedImages.count( index ) > 0 )
+            {
+                m_renderedImageUids.push_back( imageUid );
+            }
+            ++index;
+        }
+    }
+    else
+    {
+        m_renderedImageUids = imageUids;
+    }
+}
+
+bool ControlFrame::isImageUsedForMetric( const AppData& appData, size_t index )
+{
+    auto imageUid = appData.imageUid( index );
+    if ( ! imageUid ) return false; // invalid image index
+
+    auto it = std::find( std::begin( m_metricImageUids ),
+                         std::end( m_metricImageUids ), *imageUid );
+
+    return ( std::end( m_metricImageUids ) != it );
+}
+
+void ControlFrame::setImageUsedForMetric(
+        const AppData& appData, size_t index, bool visible )
+{
+    static constexpr size_t MAX_IMAGES = 2;
+
+    auto imageUid = appData.imageUid( index );
+    if ( ! imageUid ) return; // invalid image index
+
+    if ( ! visible )
+    {
+        m_metricImageUids.remove( *imageUid );
+        return;
+    }
+
+    if ( std::end( m_metricImageUids ) !=
+         std::find( std::begin( m_metricImageUids ),
+                    std::end( m_metricImageUids ), *imageUid ) )
+    {
+        return; // image already exists, so do nothing
+    }
+
+    if ( m_metricImageUids.size() >= MAX_IMAGES )
+    {
+        // If trying to add another image UID to list with 2 or more UIDs,
+        // remove the last UID to make room
+        m_metricImageUids.erase( std::prev( std::end( m_metricImageUids ) ) );
+    }
+
+    bool inserted = false;
+
+    for ( auto it = std::begin( m_metricImageUids );
+          std::end( m_metricImageUids ) != it; ++it )
+    {
+        if ( const auto i = appData.imageIndex( *it ) )
+        {
+            if ( index < *i )
+            {
+                // Insert the desired image in the right place
+                m_metricImageUids.insert( it, *imageUid );
+                inserted = true;
+                break;
+            }
+        }
+    }
+
+    if ( ! inserted )
+    {
+        m_metricImageUids.push_back( *imageUid );
+    }
+}
+
+const std::list<uuids::uuid>& ControlFrame::metricImages() const
+{
+    return m_metricImageUids;
+}
+
+void ControlFrame::setMetricImages( const std::list<uuids::uuid>& imageUids )
+{
+    m_metricImageUids = imageUids;
+}
+
+const std::list<uuids::uuid>& ControlFrame::visibleImages() const
+{
+    static const std::list<uuids::uuid> sk_noImages;
+
+    switch ( m_shaderType )
+    {
+    case camera::ViewRenderMode::Image :
+    {
+        return renderedImages();
+    }
+    case camera::ViewRenderMode::Disabled :
+    {
+        return sk_noImages;
+    }
+    default:
+    {
+        return metricImages();
+    }
+    }
+}
+
+void ControlFrame::setPreferredDefaultRenderedImages( std::set<size_t> imageIndices )
+{
+    m_preferredDefaultRenderedImages = std::move( imageIndices );
+}
+
+const std::set<size_t>& ControlFrame::preferredDefaultRenderedImages() const
+{
+    return m_preferredDefaultRenderedImages;
+}
+
+void ControlFrame::updateImageOrdering( uuid_range_t orderedImageUids )
+{
+    std::list<uuids::uuid> newRenderedImageUids;
+    std::list<uuids::uuid> newMetricImageUids;
+
+    // Loop through the images in new order:
+    for ( const auto& imageUid : orderedImageUids )
+    {
+        auto it1 = std::find( std::begin( m_renderedImageUids ),
+                              std::end( m_renderedImageUids ), imageUid );
+
+        if ( std::end( m_renderedImageUids ) != it1 )
+        {
+            // This image is rendered, so place in new order:
+            newRenderedImageUids.push_back( imageUid );
+        }
+
+        auto it2 = std::find( std::begin( m_metricImageUids ),
+                              std::end( m_metricImageUids ), imageUid );
+
+        if ( std::end( m_metricImageUids ) != it2 &&
+             newMetricImageUids.size() < 2 )
+        {
+            // This image is in metric computation, so place in new order:
+            newMetricImageUids.push_back( imageUid );
+        }
+    }
+
+    m_renderedImageUids = newRenderedImageUids;
+    m_metricImageUids = newMetricImageUids;
+}
+
+const UiControls& ControlFrame::uiControls() const
+{
+    return m_uiControls;
+}
+
+camera::CameraType ControlFrame::cameraType() const
+{
+    return m_cameraType;
+}
+
+void ControlFrame::setCameraType( const camera::CameraType& cameraType )
+{
+    m_cameraType = cameraType;
+}
+
+camera::ViewRenderMode ControlFrame::renderMode() const
+{
+    return m_shaderType;
+}
+
+void ControlFrame::setRenderMode( const camera::ViewRenderMode& shaderType )
+{
+    m_shaderType = shaderType;
+}

@@ -3,6 +3,8 @@
 
 #include "common/UuidRange.h"
 #include "ui/UiControls.h"
+
+#include "windowing/ControlFrame.h"
 #include "windowing/View.h"
 
 #include <uuid.h>
@@ -16,7 +18,7 @@ class AppData;
 
 
 /// @brief Represents a set of views rendered together in the window at one time
-class Layout
+class Layout //: public ControlFrame
 {
 public:
 

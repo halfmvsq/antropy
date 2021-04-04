@@ -378,6 +378,7 @@ set( ATROPY_SOURCES
 
     ${SRC_DIR}/ui/imgui/imGuIZMO.quat/imGuIZMOquat.cpp
 
+    ${SRC_DIR}/windowing/ControlFrame.cpp
     ${SRC_DIR}/windowing/GlfwCallbacks.cpp
     ${SRC_DIR}/windowing/GlfwWrapper.cpp
     ${SRC_DIR}/windowing/Layout.cpp
