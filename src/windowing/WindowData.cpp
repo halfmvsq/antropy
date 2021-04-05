@@ -545,8 +545,6 @@ void WindowData::recenterView(
     }
 
     camera::positionCameraForWorldTargetAndFov( view.camera(), worldFov, worldCenter );
-
-    updateView( view );
 }
 
 
@@ -802,76 +800,60 @@ std::vector<uuids::uuid> WindowData::findCurrentViewsWithNormal(
     return viewUids;
 }
 
-void WindowData::recomputeAllViewAspectRatios()
+void WindowData::recomputeAspectRatios()
 {
     for ( auto& layout : m_layouts )
     {
         for ( auto& view : layout.views() )
         {
-            if ( view.second )
+            if ( auto v = view.second )
             {
-                recomputeViewAspectRatio( *view.second );
+                // The view camera's aspect ratio is the product of the main window's
+                // aspect ratio and the view's aspect ratio:
+                const float viewAspect = v->winClipViewport()[2] / v->winClipViewport()[3];
+                v->camera().setAspectRatio( m_viewport.aspectRatio() * viewAspect );
             }
         }
     }
 }
 
-void WindowData::recomputeViewAspectRatio( View& view )
+void WindowData::recomputeAllCorners()
 {
-    // The view camera's aspect ratio is the product of the main window's
-    // aspect ratio and the view's aspect ratio:
-    const float viewAspect = view.winClipViewport()[2] / view.winClipViewport()[3];
-    view.camera().setAspectRatio( m_viewport.aspectRatio() * viewAspect );
-}
+    auto recomputeFrameCorners = [this] ( ControlFrame& frame )
+    {
+        const glm::vec4& frameVP = frame.winClipViewport();
 
-void WindowData::recomputeAllViewCorners()
-{
+        const glm::mat4 mouse_T_ndc =
+                camera::mouse_T_view( m_viewport ) *
+                camera::view_T_ndc( m_viewport );
+
+        const glm::vec4 winClipViewBL{ frameVP[0], frameVP[1], 0.0f, 1.0f };
+        const glm::vec4 winClipViewTR{ frameVP[0] + frameVP[2], frameVP[1] + frameVP[3], 0.0f, 1.0f };
+
+        const glm::vec2 winMouseViewBL{ mouse_T_ndc * winClipViewBL };
+        const glm::vec2 winMouseViewTR{ mouse_T_ndc * winClipViewTR };
+
+        frame.setWinMouseMinMaxCoords(
+                    { glm::vec2{ winMouseViewBL.x, winMouseViewTR.y },
+                      glm::vec2{ winMouseViewTR.x, winMouseViewBL.y } } );
+    };
+
     for ( auto& layout : m_layouts )
     {
-        if ( layout.isLightbox() )
+        recomputeFrameCorners( layout );
+
+        for ( auto& view : layout.views() )
         {
-            recomputeFrameCorners( layout );
-        }
-        else
-        {
-            for ( auto& view : layout.views() )
+            if ( view.second )
             {
-                if ( view.second )
-                {
-                    recomputeFrameCorners( *view.second );
-                }
+                recomputeFrameCorners( *view.second );
             }
         }
     }
-}
-
-void WindowData::recomputeFrameCorners( ControlFrame& frame )
-{
-    const glm::vec4& frameVP = frame.winClipViewport();
-
-    const glm::mat4 mouse_T_ndc =
-            camera::mouse_T_view( m_viewport ) *
-            camera::view_T_ndc( m_viewport );
-
-    const glm::vec4 winClipViewBL{ frameVP[0], frameVP[1], 0.0f, 1.0f };
-    const glm::vec4 winClipViewTR{ frameVP[0] + frameVP[2], frameVP[1] + frameVP[3], 0.0f, 1.0f };
-
-    const glm::vec2 winMouseViewBL{ mouse_T_ndc * winClipViewBL };
-    const glm::vec2 winMouseViewTR{ mouse_T_ndc * winClipViewTR };
-
-    frame.setWinMouseMinMaxCoords(
-                { glm::vec2{ winMouseViewBL.x, winMouseViewTR.y },
-                  glm::vec2{ winMouseViewTR.x, winMouseViewBL.y } } );
 }
 
 void WindowData::updateAllViews()
 {
-    recomputeAllViewAspectRatios();
-    recomputeAllViewCorners();
-}
-
-void WindowData::updateView( View& view )
-{
-    recomputeViewAspectRatio( view );
-    recomputeFrameCorners( view );
+    recomputeAspectRatios();
+    recomputeAllCorners();
 }

@@ -139,16 +139,13 @@ private:
     void setupViews();
 
     // Recompute view aspect ratios
-    void recomputeAllViewAspectRatios();
-    void recomputeViewAspectRatio( View& view );
+    void recomputeAspectRatios();
 
     // Recompute view corners
-    void recomputeAllViewCorners();
-    void recomputeFrameCorners( ControlFrame& frame );
+    void recomputeAllCorners();
 
     // Recompute view aspect ratios and corners
     void updateAllViews();
-    void updateView( View& view );
 
     Viewport m_viewport; // Window viewport (encompassing all views)
     std::vector<Layout> m_layouts; // All view layouts
