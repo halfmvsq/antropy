@@ -68,13 +68,15 @@ public:
 
 protected:
 
-    // Viewport of the view defined in Clip space of the enclosing window,
-    // which spans from bottom left [-1, -1] to top right [1, 1].
-    // A full-window view has viewport (left = -1, bottom = -1, width = 2, height = 2)
+    /// Viewport of the view defined in Clip space of the enclosing window,
+    /// which spans from bottom left [-1, -1] to top right [1, 1].
+    /// A full-window view has viewport (left = -1, bottom = -1, width = 2, height = 2)
     glm::vec4 m_winClipViewport;
 
-    // Transformations between Clip spaces of the view and its enclosing window
+    /// Transformation from view Clip space to Clip space of its enclosing window
     glm::mat4 m_winClip_T_viewClip;
+
+    /// Transformation from the Clip space of the view's enclosing window to Clip space of the view
     glm::mat4 m_viewClip_T_winClip;
 
     /// Uids of images rendered in this frame. They are listed in the order in which they are

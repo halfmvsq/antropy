@@ -142,7 +142,7 @@ private:
     void recomputeAspectRatios();
 
     // Recompute view corners
-    void recomputeAllCorners();
+    void recomputeCorners();
 
     // Recompute view aspect ratios and corners
     void updateAllViews();

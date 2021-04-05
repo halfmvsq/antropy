@@ -269,9 +269,9 @@ void renderLandmarkChildWindow(
         const std::function< void ( const glm::vec3& worldCrosshairsPos ) >& setWorldCrosshairsPos,
         const AllViewsRecenterType& recenterAllViews )
 {
+    static const std::string sk_addNew = std::string( ICON_FK_PLUS ) + " Add new";
     static const std::string sk_showAll = std::string( ICON_FK_EYE ) + " Show all";
     static const std::string sk_hideAll = std::string( ICON_FK_EYE_SLASH ) + " Hide all";
-    static const std::string sk_addNew = std::string( ICON_FK_PLUS ) + " Add new";
 
     static const ImGuiColorEditFlags sk_colorEditFlags =
             ImGuiColorEditFlags_NoInputs |
@@ -305,22 +305,6 @@ void renderLandmarkChildWindow(
 
     if ( ImGui::BeginMenuBar() )
     {
-        if ( ImGui::MenuItem( sk_showAll.c_str() ) )
-        {
-            for ( auto& p : points )
-            {
-                p.second.setVisibility( true );
-            }
-        }
-
-        if ( ImGui::MenuItem( sk_hideAll.c_str() ) )
-        {
-            for ( auto& p : points )
-            {
-                p.second.setVisibility( false );
-            }
-        }
-
         if ( ImGui::MenuItem( sk_addNew.c_str() ) )
         {
             // Add new landmark at crosshairs position in the correct space
@@ -349,6 +333,22 @@ void renderLandmarkChildWindow(
 
             // Scroll child window to the end of the list of landmarks
             scrollToBottomOfLmList = true;
+        }
+
+        if ( ImGui::MenuItem( sk_showAll.c_str() ) )
+        {
+            for ( auto& p : points )
+            {
+                p.second.setVisibility( true );
+            }
+        }
+
+        if ( ImGui::MenuItem( sk_hideAll.c_str() ) )
+        {
+            for ( auto& p : points )
+            {
+                p.second.setVisibility( false );
+            }
         }
 
         ImGui::EndMenuBar();
@@ -384,7 +384,6 @@ void renderLandmarkChildWindow(
             }
         }
 
-//        ImGui::Dummy( ImVec2( 1.0f, 0.0f ) );
         ImGui::SameLine();
 
         ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 1.0f, 4.0f ) );

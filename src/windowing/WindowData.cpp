@@ -50,7 +50,8 @@ Layout createFourUpLayout()
         auto view = std::make_shared<View>(
                     glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0f },
                     offsetSetting,
-                    CameraType::Coronal, ViewRenderMode::Image,
+                    CameraType::Coronal,
+                    ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -63,7 +64,8 @@ Layout createFourUpLayout()
         auto view = std::make_shared<View>(
                     glm::vec4{ -1.0f, 0.0f, 1.0f, 1.0f },
                     offsetSetting,
-                    CameraType::Sagittal, ViewRenderMode::Image,
+                    CameraType::Sagittal,
+                    ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -76,7 +78,8 @@ Layout createFourUpLayout()
         auto view = std::make_shared<View>(
                     glm::vec4{ -1.0f, -1.0f, 1.0f, 1.0f },
                     offsetSetting,
-                    CameraType::ThreeD, ViewRenderMode::Disabled,
+                    CameraType::ThreeD,
+                    ViewRenderMode::Disabled,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
 
@@ -89,7 +92,8 @@ Layout createFourUpLayout()
         auto view = std::make_shared<View>(
                     glm::vec4{ 0.0f, -1.0f, 1.0f, 1.0f },
                     offsetSetting,
-                    CameraType::Axial, ViewRenderMode::Image,
+                    CameraType::Axial,
+                    ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -125,7 +129,8 @@ Layout createTriLayout()
         auto view = std::make_shared<View>(
                     glm::vec4{ -1.0f, -1.0f, 1.5f, 2.0f },
                     offsetSetting,
-                    CameraType::Axial, ViewRenderMode::Image,
+                    CameraType::Axial,
+                    ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
 
@@ -137,7 +142,8 @@ Layout createTriLayout()
         auto view = std::make_shared<View>(
                     glm::vec4{ 0.5f, -1.0f, 0.5f, 1.0f },
                     offsetSetting,
-                    CameraType::Coronal, ViewRenderMode::Image,
+                    CameraType::Coronal,
+                    ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -150,7 +156,8 @@ Layout createTriLayout()
         auto view = std::make_shared<View>(
                     glm::vec4{ 0.5f, 0.0f, 0.5f, 1.0f },
                     offsetSetting,
-                    CameraType::Sagittal, ViewRenderMode::Image,
+                    CameraType::Sagittal,
+                    ViewRenderMode::Image,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -209,9 +216,12 @@ Layout createTriTopBottomLayout( size_t numRows )
             auto view = std::make_shared<View>(
                         glm::vec4{ -1.0f, bottom, 2.0f/3.0f, height },
                         offsetSetting,
-                        CameraType::Axial, ViewRenderMode::Image,
+                        CameraType::Axial,
+                        ViewRenderMode::Image,
                         uiControls,
-                        axiRotationSyncGroupUid, axiTranslationSyncGroupUid, axiZoomSyncGroupUid );
+                        axiRotationSyncGroupUid,
+                        axiTranslationSyncGroupUid,
+                        axiZoomSyncGroupUid );
 
             view->setPreferredDefaultRenderedImages( { r } );
 
@@ -228,7 +238,8 @@ Layout createTriTopBottomLayout( size_t numRows )
             auto view = std::make_shared<View>(
                         glm::vec4{ -1.0f/3.0f, bottom, 2.0f/3.0f, height },
                         offsetSetting,
-                        CameraType::Coronal, ViewRenderMode::Image,
+                        CameraType::Coronal,
+                        ViewRenderMode::Image,
                         uiControls,
                         corRotationSyncGroupUid, corTranslationSyncGroupUid, corZoomSyncGroupUid );
 
@@ -246,7 +257,8 @@ Layout createTriTopBottomLayout( size_t numRows )
             auto view = std::make_shared<View>(
                         glm::vec4{ 1.0f/3.0f, bottom, 2.0f/3.0f, height },
                         offsetSetting,
-                        CameraType::Sagittal, ViewRenderMode::Image,
+                        CameraType::Sagittal,
+                        ViewRenderMode::Image,
                         uiControls,
                         sagRotationSyncGroupUid, sagTranslationSyncGroupUid, sagZoomSyncGroupUid );
 
@@ -369,10 +381,7 @@ void WindowData::setupViews()
 
 void WindowData::addGridLayout( int width, int height, bool offsetViews, bool isLightbox )
 {
-    m_layouts.emplace_back(
-                createGridLayout( width, height, offsetViews, isLightbox,
-                                  camera::CameraType::Axial ) );
-
+    m_layouts.emplace_back( createGridLayout( width, height, offsetViews, isLightbox, camera::CameraType::Axial ) );
     updateAllViews();
 }
 
@@ -817,7 +826,7 @@ void WindowData::recomputeAspectRatios()
     }
 }
 
-void WindowData::recomputeAllCorners()
+void WindowData::recomputeCorners()
 {
     auto recomputeFrameCorners = [this] ( ControlFrame& frame )
     {
@@ -855,5 +864,5 @@ void WindowData::recomputeAllCorners()
 void WindowData::updateAllViews()
 {
     recomputeAspectRatios();
-    recomputeAllCorners();
+    recomputeCorners();
 }
