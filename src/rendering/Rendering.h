@@ -20,6 +20,8 @@
 
 class AppData;
 class GLTexture;
+class View;
+
 struct NVGcontext;
 
 
@@ -111,21 +113,15 @@ private:
 
 
     void doRenderingAllImagePlanes(
-            const camera::ViewRenderMode& shaderType,
-            const std::list<uuids::uuid>& metricImages,
-            const std::list<uuids::uuid>& renderedImages,
+            const View& view,
             const std::function< void ( GLShaderProgram&, const CurrentImages& I, bool showEdges ) > renderFunc );
 
     void doRenderingImageLandmarks(
-            const camera::ViewRenderMode& shaderType,
-            const std::list<uuids::uuid>& metricImages,
-            const std::list<uuids::uuid>& renderedImages,
+            const View& view,
             const std::function< void ( const CurrentImages& I ) > renderFunc );
 
     void doRenderingImageAnnotations(
-            const camera::ViewRenderMode& shaderType,
-            const std::list<uuids::uuid>& metricImages,
-            const std::list<uuids::uuid>& renderedImages,
+            const View& view,
             const std::function< void ( const CurrentImages& I ) > renderFunc );
 
     // Bind/unbind images, segmentations, color maps, and label tables

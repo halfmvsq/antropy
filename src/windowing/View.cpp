@@ -95,8 +95,7 @@ View::View( glm::vec4 winClipViewport,
       m_cameraTranslationSyncGroupUid( cameraTranslationSyncGroup ),
       m_cameraZoomSyncGroupUid( cameraZoomSyncGroup ),
 
-      m_clipPlaneDepth( 0.0f ),
-      m_sliceIntersector()
+      m_clipPlaneDepth( 0.0f )
 {
     const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
 
@@ -105,10 +104,6 @@ View::View( glm::vec4 winClipViewport,
         {
             return CoordinateFrame( sk_origin, smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType ) );
         } );
-
-    // Configure the slice intersector:
-    m_sliceIntersector.setPositioningMethod( intersection::PositioningMethod::FrameOrigin, std::nullopt );
-    m_sliceIntersector.setAlignmentMethod( intersection::AlignmentMethod::CameraZ );
 }
 
 
@@ -177,7 +172,7 @@ bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCross
 std::optional< intersection::IntersectionVerticesVec4 >
 View::computeImageSliceIntersection(
         const Image* image,
-        const CoordinateFrame& crosshairs )
+        const CoordinateFrame& crosshairs ) const
 {
     if ( ! image ) return std::nullopt;
 
@@ -188,8 +183,13 @@ View::computeImageSliceIntersection(
 
     const glm::mat4 pixel_T_world = glm::inverse( world_T_pixel );
 
+    // Object for intersecting the view plane with the 3D images
+    SliceIntersector sliceIntersector;
+    sliceIntersector.setPositioningMethod( intersection::PositioningMethod::FrameOrigin, std::nullopt );
+    sliceIntersector.setAlignmentMethod( intersection::AlignmentMethod::CameraZ );
+
     std::optional< intersection::IntersectionVertices > pixelIntersectionPositions =
-            m_sliceIntersector.computePlaneIntersections(
+            sliceIntersector.computePlaneIntersections(
                 pixel_T_world * m_camera.world_T_camera(),
                 pixel_T_world * crosshairs.world_T_frame(),
                 image->header().pixelBBoxCorners() ).first;

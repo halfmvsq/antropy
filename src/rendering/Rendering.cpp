@@ -500,11 +500,11 @@ createLabelColorTableTextures( const AppData& appData )
 }
 
 
-void renderPlane(
+void renderImageQuad(
         GLShaderProgram& program,
         const camera::ViewRenderMode& shaderType,
         RenderData::Quad& quad,
-        View& view,
+        const View& view,
         const glm::vec3& worldOrigin,
         float flashlightRadius,
         bool flashlightOverlays,
@@ -973,7 +973,6 @@ void drawText(
 
 void renderLandmarks(
         NVGcontext* nvg,
-        const Viewport& windowVP,
         const glm::vec3& worldCrosshairs,
         AppData& appData,
         const View& view,
@@ -982,6 +981,8 @@ void renderLandmarks(
 {
     static constexpr float sk_minSize = 4.0f;
     static constexpr float sk_maxSize = 128.0f;
+
+    const Viewport& windowVP = appData.windowData().viewport();
 
     // Convert a 3D position from World space to the view's Mouse space
     auto convertWorldToMousePos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
@@ -1152,12 +1153,13 @@ void renderLandmarks(
 
 void renderAnnotations(
         NVGcontext* nvg,
-        const Viewport& windowVP,
         const glm::vec3& worldCrosshairs,
         AppData& appData,
         const View& view,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
 {
+    const Viewport& windowVP = appData.windowData().viewport();
+
     // Convert a 3D position from World space to the view's Mouse space
     auto convertWorldToMousePos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
     {
@@ -1296,13 +1298,14 @@ void renderAnnotations(
 
 void renderImageViewIntersections(
         NVGcontext* nvg,
-        const Viewport& windowVP,
         AppData& appData,
-        View& view,
+        const View& view,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
 {
     // Line segment stipple length in pixels
     constexpr float sk_stippleLen = 16.0f;
+
+    const Viewport& windowVP = appData.windowData().viewport();
 
     auto mouse_T_world = [&view, &windowVP] ( const glm::vec4& worldPos ) -> glm::vec2
     {
@@ -2391,9 +2394,7 @@ Rendering::bindMetricImageTextures(
 
 
 void Rendering::doRenderingAllImagePlanes(
-        const camera::ViewRenderMode& shaderType,
-        const std::list<uuids::uuid>& metricImages,
-        const std::list<uuids::uuid>& renderedImages,
+        const View& view,
         const std::function< void ( GLShaderProgram&, const CurrentImages&, bool showEdges ) > renderFunc )
 {
     static std::list< std::reference_wrapper<GLTexture> > boundImageTextures;
@@ -2402,8 +2403,11 @@ void Rendering::doRenderingAllImagePlanes(
     static const RenderData::ImageUniforms sk_defaultImageUniforms;
 
     auto& renderData = m_appData.renderData();
+    const bool modSegOpacity = renderData.m_modulateSegOpacityWithImageOpacity;
 
-    const bool modSegOpacity = m_appData.renderData().m_modulateSegOpacityWithImageOpacity;
+    const auto shaderType = view.renderMode();
+    const auto metricImages = view.metricImages();
+    const auto renderedImages = view.renderedImages();
 
 
     if ( camera::ViewRenderMode::Image == shaderType ||
@@ -2460,7 +2464,7 @@ void Rendering::doRenderingAllImagePlanes(
                 P.setSamplerUniform( "imgCmapTex", msk_imgCmapTexSampler.index );
                 P.setSamplerUniform( "segLabelCmapTex", msk_labelTableTexSampler.index );
 
-                P.setUniform( "numSquares", static_cast<float>( m_appData.renderData().m_numCheckerboardSquares ) );
+                P.setUniform( "numSquares", static_cast<float>( renderData.m_numCheckerboardSquares ) );
                 P.setUniform( "imgTexture_T_world", U.imgTexture_T_world );
                 P.setUniform( "segTexture_T_world", U.segTexture_T_world );
                 P.setUniform( "imgSlopeIntercept", U.slopeIntercept );
@@ -2593,11 +2597,13 @@ void Rendering::doRenderingAllImagePlanes(
 
 
 void Rendering::doRenderingImageLandmarks(
-        const camera::ViewRenderMode& shaderType,
-        const std::list<uuids::uuid>& metricImages,
-        const std::list<uuids::uuid>& renderedImages,
+        const View& view,
         const std::function< void ( const CurrentImages& ) > renderFunc )
 {
+    const auto shaderType = view.renderMode();
+    const auto metricImages = view.metricImages();
+    const auto renderedImages = view.renderedImages();
+
     if ( camera::ViewRenderMode::Image == shaderType ||
          camera::ViewRenderMode::Checkerboard == shaderType ||
          camera::ViewRenderMode::Quadrants == shaderType ||
@@ -2635,11 +2641,12 @@ void Rendering::doRenderingImageLandmarks(
 
 
 void Rendering::doRenderingImageAnnotations(
-        const camera::ViewRenderMode& /*shaderType*/,
-        const std::list<uuids::uuid>& /*metricImages*/,
-        const std::list<uuids::uuid>& /*renderedImages*/,
+        const View& /*view*/,
         const std::function< void ( const CurrentImages& ) > /*renderFunc*/ )
 {
+//    const auto shaderType = view.renderMode();
+//    const auto metricImages = view.metricImages();
+//    const auto renderedImages = view.renderedImages();
 }
 
 void Rendering::renderImages()
@@ -2661,82 +2668,68 @@ void Rendering::renderImages()
     const bool renderAnnotationsOnTop = m_appData.renderData().m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
     const bool renderImageIntersections = m_appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections;
 
-    for ( const auto& view : m_appData.windowData().currentLayout().views() )
+    for ( const auto& viewPair : m_appData.windowData().currentLayout().views() )
     {
-        if ( ! view.second ) continue;
+        if ( ! viewPair.second ) continue;
 
-        auto renderImagesForView = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
+        View& view = *( viewPair.second );
+
+        if ( ! view.updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
+
+        auto renderOneImage = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
                 &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
                 ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
         {
-            if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
-
-            renderPlane( program,
-                         view.second->renderMode(),
-                         m_appData.renderData().m_quad,
-                         *view.second,
-                         worldCrosshairsOrigin,
-                         m_appData.renderData().m_flashlightRadius,
-                         m_appData.renderData().m_flashlightOverlays,
-                         I, getImage, showEdges );
+            renderImageQuad( program,
+                             view.renderMode(),
+                             m_appData.renderData().m_quad,
+                             view,
+                             worldCrosshairsOrigin,
+                             m_appData.renderData().m_flashlightRadius,
+                             m_appData.renderData().m_flashlightOverlays,
+                             I, getImage, showEdges );
 
             if ( ! renderLandmarksOnTop )
             {
-                renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
+                renderLandmarks( m_nvg, worldCrosshairsOrigin, m_appData, view, I );
                 setupOpenGlState();
             }
 
             if ( ! renderAnnotationsOnTop )
             {
-                renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
+                renderAnnotations( m_nvg, worldCrosshairsOrigin, m_appData, view, I );
                 setupOpenGlState();
             }
 
             if ( renderImageIntersections )
             {
-                renderImageViewIntersections( m_nvg, m_appData.windowData().viewport(), m_appData, *view.second, I );
+                renderImageViewIntersections( m_nvg, m_appData, view, I );
                 setupOpenGlState();
             }
         };
 
-        auto renderLandmarksForView = [this, view, &worldCrosshairsOrigin] ( const CurrentImages& I )
-        {
-            if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
-
-            renderLandmarks( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
-            setupOpenGlState();
-        };
-
-        auto renderAnnotationsForView = [this, view, &worldCrosshairsOrigin] ( const CurrentImages& I )
-        {
-            if ( ! view.second->updateImageSlice( m_appData, worldCrosshairsOrigin ) ) return;
-
-            renderAnnotations( m_nvg, m_appData.windowData().viewport(), worldCrosshairsOrigin, m_appData, *view.second, I );
-            setupOpenGlState();
-        };
-
-        doRenderingAllImagePlanes(
-                    view.second->renderMode(),
-                    view.second->metricImages(),
-                    view.second->renderedImages(),
-                    renderImagesForView );
+        doRenderingAllImagePlanes( view, renderOneImage );
 
         if ( renderLandmarksOnTop )
         {
-            doRenderingImageLandmarks(
-                        view.second->renderMode(),
-                        view.second->metricImages(),
-                        view.second->renderedImages(),
-                        renderLandmarksForView );
+            auto renderLandmarksForView = [this, view, &worldCrosshairsOrigin] ( const CurrentImages& I )
+            {
+                renderLandmarks( m_nvg, worldCrosshairsOrigin, m_appData, view, I );
+                setupOpenGlState();
+            };
+
+            doRenderingImageLandmarks( view, renderLandmarksForView );
         }
 
         if ( renderAnnotationsOnTop )
         {
-            doRenderingImageAnnotations(
-                        view.second->renderMode(),
-                        view.second->metricImages(),
-                        view.second->renderedImages(),
-                        renderAnnotationsForView );
+            auto renderAnnotationsForView = [this, view, &worldCrosshairsOrigin] ( const CurrentImages& I )
+            {
+                renderAnnotations( m_nvg, worldCrosshairsOrigin, m_appData, view, I );
+                setupOpenGlState();
+            };
+
+            doRenderingImageAnnotations( view, renderAnnotationsForView );
         }
     }
 }

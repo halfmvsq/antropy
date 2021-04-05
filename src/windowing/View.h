@@ -5,7 +5,7 @@
 #include "common/Types.h"
 
 #include "logic/camera/Camera.h"
-#include "rendering/utility/math/SliceIntersector.h"
+#include "rendering/utility/math/SliceIntersectorTypes.h"
 #include "windowing/ControlFrame.h"
 
 #include <glm/mat4x4.hpp>
@@ -62,7 +62,7 @@ public:
     bool updateImageSlice( const AppData& appData, const glm::vec3& worldCrosshairs );
 
     std::optional< intersection::IntersectionVerticesVec4 >
-    computeImageSliceIntersection( const Image* image, const CoordinateFrame& crosshairs );
+    computeImageSliceIntersection( const Image* image, const CoordinateFrame& crosshairs ) const;
 
     float clipPlaneDepth() const;
 
@@ -77,22 +77,19 @@ private:
 
     bool updateImageSliceIntersection( const AppData& appData, const glm::vec3& worldCrosshairs );
 
-    // View offset setting
+    /// View offset setting
     ViewOffsetSetting m_offset;
 
     camera::ProjectionType m_projectionType;
     camera::Camera m_camera;
 
-    // ID of the camera synchronization groups to which this view belongs
+    /// ID of the camera synchronization groups to which this view belongs
     std::optional<uuids::uuid> m_cameraRotationSyncGroupUid;
     std::optional<uuids::uuid> m_cameraTranslationSyncGroupUid;
     std::optional<uuids::uuid> m_cameraZoomSyncGroupUid;
 
-    // Depth (z component) of any point on the image plane to be rendered (defined in Clip space)
+    /// Depth (z component) of any point on the image plane to be rendered (defined in Clip space)
     float m_clipPlaneDepth;
-
-    /// Object for intersecting the view plane with the 3D images
-    SliceIntersector m_sliceIntersector;
 };
 
 #endif // VIEW_H
