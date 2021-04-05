@@ -4,7 +4,7 @@
 
 ControlFrame::ControlFrame(
         camera::CameraType cameraType,
-        camera::ViewRenderMode shaderType,
+        camera::ViewRenderMode renderMode,
         UiControls uiControls )
     :
       m_renderedImageUids(),
@@ -13,7 +13,7 @@ ControlFrame::ControlFrame(
       // Render the first two images by default:
       m_preferredDefaultRenderedImages( { 0, 1 } ),
 
-      m_shaderType( shaderType ),
+      m_renderMode( renderMode ),
       m_cameraType( cameraType ),
 
       m_uiControls( std::move( uiControls ) )
@@ -31,7 +31,8 @@ bool ControlFrame::isImageRendered( const AppData& appData, size_t index )
     return ( std::end( m_renderedImageUids ) != it );
 }
 
-void ControlFrame::setImageRendered( const AppData& appData, size_t index, bool visible )
+void ControlFrame::setImageRendered(
+        const AppData& appData, size_t index, bool visible )
 {
     auto imageUid = appData.imageUid( index );
     if ( ! imageUid ) return; // invalid image index
@@ -115,7 +116,8 @@ bool ControlFrame::isImageUsedForMetric( const AppData& appData, size_t index )
 void ControlFrame::setImageUsedForMetric(
         const AppData& appData, size_t index, bool visible )
 {
-    static constexpr size_t MAX_IMAGES = 2;
+    // Maximum number of images that are used for metric computations in a view
+    static constexpr size_t MAX_METRIC_IMAGES = 2;
 
     auto imageUid = appData.imageUid( index );
     if ( ! imageUid ) return; // invalid image index
@@ -133,10 +135,10 @@ void ControlFrame::setImageUsedForMetric(
         return; // image already exists, so do nothing
     }
 
-    if ( m_metricImageUids.size() >= MAX_IMAGES )
+    if ( m_metricImageUids.size() >= MAX_METRIC_IMAGES )
     {
         // If trying to add another image UID to list with 2 or more UIDs,
-        // remove the last UID to make room
+        // remove the last UID to make room:
         m_metricImageUids.erase( std::prev( std::end( m_metricImageUids ) ) );
     }
 
@@ -168,7 +170,8 @@ const std::list<uuids::uuid>& ControlFrame::metricImages() const
     return m_metricImageUids;
 }
 
-void ControlFrame::setMetricImages( const std::list<uuids::uuid>& imageUids )
+void ControlFrame::setMetricImages(
+        const std::list<uuids::uuid>& imageUids )
 {
     m_metricImageUids = imageUids;
 }
@@ -177,7 +180,7 @@ const std::list<uuids::uuid>& ControlFrame::visibleImages() const
 {
     static const std::list<uuids::uuid> sk_noImages;
 
-    switch ( m_shaderType )
+    switch ( m_renderMode )
     {
     case camera::ViewRenderMode::Image :
     {
@@ -192,16 +195,6 @@ const std::list<uuids::uuid>& ControlFrame::visibleImages() const
         return metricImages();
     }
     }
-}
-
-void ControlFrame::setPreferredDefaultRenderedImages( std::set<size_t> imageIndices )
-{
-    m_preferredDefaultRenderedImages = std::move( imageIndices );
-}
-
-const std::set<size_t>& ControlFrame::preferredDefaultRenderedImages() const
-{
-    return m_preferredDefaultRenderedImages;
 }
 
 void ControlFrame::updateImageOrdering( uuid_range_t orderedImageUids )
@@ -236,9 +229,16 @@ void ControlFrame::updateImageOrdering( uuid_range_t orderedImageUids )
     m_metricImageUids = newMetricImageUids;
 }
 
-const UiControls& ControlFrame::uiControls() const
+void ControlFrame::setPreferredDefaultRenderedImages(
+        std::set<size_t> imageIndices )
 {
-    return m_uiControls;
+    m_preferredDefaultRenderedImages = std::move( imageIndices );
+}
+
+const std::set<size_t>&
+ControlFrame::preferredDefaultRenderedImages() const
+{
+    return m_preferredDefaultRenderedImages;
 }
 
 camera::CameraType ControlFrame::cameraType() const
@@ -253,10 +253,15 @@ void ControlFrame::setCameraType( const camera::CameraType& cameraType )
 
 camera::ViewRenderMode ControlFrame::renderMode() const
 {
-    return m_shaderType;
+    return m_renderMode;
 }
 
 void ControlFrame::setRenderMode( const camera::ViewRenderMode& shaderType )
 {
-    m_shaderType = shaderType;
+    m_renderMode = shaderType;
+}
+
+const UiControls& ControlFrame::uiControls() const
+{
+    return m_uiControls;
 }

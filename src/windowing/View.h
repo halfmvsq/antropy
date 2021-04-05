@@ -3,15 +3,9 @@
 
 #include "common/CoordinateFrame.h"
 #include "common/Types.h"
-#include "common/UuidRange.h"
 
 #include "logic/camera/Camera.h"
-#include "logic/camera/CameraTypes.h"
-
 #include "rendering/utility/math/SliceIntersector.h"
-
-#include "ui/UiControls.h"
-
 #include "windowing/ControlFrame.h"
 
 #include <glm/mat4x4.hpp>
@@ -24,7 +18,6 @@
 #include <list>
 #include <utility>
 
-class AppData;
 class Image;
 
 
@@ -33,7 +26,7 @@ class Image;
  * scene from a single orientation. The view holds its camera and information about the
  * image plane being rendered in it.
  */
-class View // : public ControlFrame
+class View : public ControlFrame
 {
 public:
 
@@ -54,11 +47,17 @@ public:
     View( glm::vec4 winClipViewport,
           ViewOffsetSetting offsetSetting,
           camera::CameraType cameraType,
-          camera::ViewRenderMode shaderType,
+          camera::ViewRenderMode renderMode,
           UiControls uiControls,
           std::optional<uuids::uuid> cameraRotationSyncGroupUid,
           std::optional<uuids::uuid> translationSyncGroup,
           std::optional<uuids::uuid> zoomSyncGroup );
+
+    void setCameraType( const camera::CameraType& newCameraType ) override;
+
+    const camera::Camera& camera() const;
+    camera::Camera& camera();
+
 
     /// Update the view's camera based on the crosshairs World-space position.
     /// @return True iff successful view update
@@ -83,42 +82,6 @@ public:
     std::optional<uuids::uuid> cameraZoomSyncGroupUid() const;
 
 
-    /**** START COMMON FUNCTIONALITY WITH LAYOUT ****/
-    const camera::Camera& camera() const;
-    camera::Camera& camera();
-
-    camera::CameraType cameraType() const;
-    void setCameraType( const camera::CameraType& cameraType );
-
-    camera::ViewRenderMode renderMode() const;
-    void setRenderMode( const camera::ViewRenderMode& shaderType );
-
-    bool isImageRendered( const AppData& appData, size_t index );
-    void setImageRendered( const AppData& appData, size_t index, bool visible );
-
-    const std::list<uuids::uuid>& renderedImages() const;
-    void setRenderedImages( const std::list<uuids::uuid>& imageUids, bool filterByDefaults );
-
-    bool isImageUsedForMetric( const AppData& appData, size_t index );
-    void setImageUsedForMetric( const AppData& appData, size_t index, bool visible );
-
-    const std::list<uuids::uuid>& metricImages() const;
-    void setMetricImages( const std::list<uuids::uuid>& imageUids );
-
-    // This one accounts for both rendered and metric images.
-    const std::list<uuids::uuid>& visibleImages() const;
-
-    void setPreferredDefaultRenderedImages( std::set<size_t> imageIndices );
-    const std::set<size_t>& preferredDefaultRenderedImages() const;
-
-    // Call this when image order changes in order to update rendered and metric images:
-    void updateImageOrdering( uuid_range_t orderedImageUids );
-
-    const UiControls& uiControls() const;
-
-    /**** END COMMON FUNCTIONALITY WITH LAYOUT ****/
-
-
 private:
 
     bool updateImageSliceIntersection( const AppData& appData, const glm::vec3& worldCrosshairs );
@@ -135,27 +98,8 @@ private:
     // View offset setting
     ViewOffsetSetting m_offset;
 
-
-    /**** START COMMON FUNCTIONALITY WITH LAYOUT ****/
-
-    // Uids of images rendered in this view, in order
-    std::list<uuids::uuid> m_renderedImageUids;
-
-    // Uids of images used for metric calculation in this view, in order
-    std::list<uuids::uuid> m_metricImageUids;
-
-    // What images does this view prefer to render by default?
-    std::set<size_t> m_preferredDefaultRenderedImages;
-
-    // Camera data
-    camera::ViewRenderMode m_shaderType;
-    camera::CameraType m_cameraType;
     camera::ProjectionType m_projectionType;
     camera::Camera m_camera;
-
-    UiControls m_uiControls;
-    /**** END COMMON FUNCTIONALITY WITH LAYOUT ****/
-
 
     // ID of the camera synchronization groups to which this view belongs
     std::optional<uuids::uuid> m_cameraRotationSyncGroupUid;
