@@ -32,9 +32,6 @@ public:
     const uuids::uuid& uid() const;
     bool isLightbox() const;
 
-    void setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners );
-    const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords() const;
-
     void recenter();
 
     std::unordered_map< uuids::uuid, std::shared_ptr<View> >& views();
@@ -67,9 +64,6 @@ private:
     /// If true, then this layout has UI controls that affect all of its views,
     /// rather than each view having its own UI controls
     bool m_isLightbox;
-
-    /// Min and max corners of the view in coordinates of the enclosing window
-    std::pair< glm::vec2, glm::vec2 > m_winMouseViewMinMaxCorners;
 };
 
 #endif // LAYOUT_H

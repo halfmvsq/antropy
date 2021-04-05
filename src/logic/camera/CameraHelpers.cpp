@@ -617,13 +617,13 @@ glm::mat4 view_T_ndc( const Viewport& viewport )
 glm::vec2 view_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )
 {
     return glm::vec2( viewport.left() + mousePos.x,
-                      viewport.bottom() + ( viewport.height() - 1 ) - mousePos.y );
+                      viewport.bottom() + viewport.height() - mousePos.y );
 }
 
 glm::vec2 mouse_T_view( const Viewport& viewport, const glm::vec2& viewPos )
 {
     return glm::vec2( viewPos.x - viewport.left(),
-                      viewport.bottom() + ( viewport.height() - 1 ) - viewPos.y );
+                      viewport.bottom() + viewport.height() - viewPos.y );
 }
 
 glm::mat4 mouse_T_view( const Viewport& viewport )

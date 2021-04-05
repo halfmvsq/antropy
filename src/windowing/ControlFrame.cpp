@@ -1,12 +1,22 @@
 #include "windowing/ControlFrame.h"
+
 #include "logic/app/Data.h"
+#include "logic/camera/CameraHelpers.h"
+
+#include <glm/glm.hpp>
 
 
 ControlFrame::ControlFrame(
+        glm::vec4 winClipViewport,
         camera::CameraType cameraType,
         camera::ViewRenderMode renderMode,
         UiControls uiControls )
     :
+      m_winClipViewport( std::move( winClipViewport ) ),
+
+      m_winClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport ) ),
+      m_viewClip_T_winClip( glm::inverse( m_winClip_T_viewClip ) ),
+
       m_renderedImageUids(),
       m_metricImageUids(),
 
@@ -16,7 +26,8 @@ ControlFrame::ControlFrame(
       m_renderMode( renderMode ),
       m_cameraType( cameraType ),
 
-      m_uiControls( std::move( uiControls ) )
+      m_uiControls( std::move( uiControls ) ),
+      m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } )
 {
 }
 
@@ -170,8 +181,7 @@ const std::list<uuids::uuid>& ControlFrame::metricImages() const
     return m_metricImageUids;
 }
 
-void ControlFrame::setMetricImages(
-        const std::list<uuids::uuid>& imageUids )
+void ControlFrame::setMetricImages( const std::list<uuids::uuid>& imageUids )
 {
     m_metricImageUids = imageUids;
 }
@@ -229,39 +239,26 @@ void ControlFrame::updateImageOrdering( uuid_range_t orderedImageUids )
     m_metricImageUids = newMetricImageUids;
 }
 
-void ControlFrame::setPreferredDefaultRenderedImages(
-        std::set<size_t> imageIndices )
-{
-    m_preferredDefaultRenderedImages = std::move( imageIndices );
-}
+void ControlFrame::setPreferredDefaultRenderedImages( std::set<size_t> imageIndices )
+{ m_preferredDefaultRenderedImages = std::move( imageIndices ); }
 
-const std::set<size_t>&
-ControlFrame::preferredDefaultRenderedImages() const
-{
-    return m_preferredDefaultRenderedImages;
-}
+const std::set<size_t>& ControlFrame::preferredDefaultRenderedImages() const
+{ return m_preferredDefaultRenderedImages; }
 
-camera::CameraType ControlFrame::cameraType() const
-{
-    return m_cameraType;
-}
+const glm::vec4& ControlFrame::winClipViewport() const { return m_winClipViewport; }
+const glm::mat4& ControlFrame::winClip_T_viewClip() const { return m_winClip_T_viewClip; }
+const glm::mat4& ControlFrame::viewClip_T_winClip() const { return m_viewClip_T_winClip; }
 
-void ControlFrame::setCameraType( const camera::CameraType& cameraType )
-{
-    m_cameraType = cameraType;
-}
+camera::CameraType ControlFrame::cameraType() const { return m_cameraType; }
+void ControlFrame::setCameraType( const camera::CameraType& cameraType ) { m_cameraType = cameraType; }
 
-camera::ViewRenderMode ControlFrame::renderMode() const
-{
-    return m_renderMode;
-}
+camera::ViewRenderMode ControlFrame::renderMode() const { return m_renderMode; }
+void ControlFrame::setRenderMode( const camera::ViewRenderMode& shaderType ) { m_renderMode = shaderType; }
 
-void ControlFrame::setRenderMode( const camera::ViewRenderMode& shaderType )
-{
-    m_renderMode = shaderType;
-}
+const UiControls& ControlFrame::uiControls() const { return m_uiControls; }
 
-const UiControls& ControlFrame::uiControls() const
-{
-    return m_uiControls;
-}
+void ControlFrame::setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners )
+{ m_winMouseViewMinMaxCorners = std::move( corners ); }
+
+const std::pair< glm::vec2, glm::vec2 >& ControlFrame::winMouseMinMaxCoords() const
+{ return m_winMouseViewMinMaxCorners; }

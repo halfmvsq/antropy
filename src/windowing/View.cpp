@@ -84,12 +84,7 @@ View::View( glm::vec4 winClipViewport,
             std::optional<uuids::uuid> cameraTranslationSyncGroup,
             std::optional<uuids::uuid> cameraZoomSyncGroup )
     :
-      ControlFrame( cameraType, renderMode, uiControls ),
-
-      m_winClipViewport( std::move( winClipViewport ) ),
-
-      m_winClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport ) ),
-      m_viewClip_T_winClip( glm::inverse( m_winClip_T_viewClip ) ),
+      ControlFrame( winClipViewport, cameraType, renderMode, uiControls ),
 
       m_offset( std::move( offsetSetting ) ),
 
@@ -101,8 +96,6 @@ View::View( glm::vec4 winClipViewport,
       m_cameraZoomSyncGroupUid( cameraZoomSyncGroup ),
 
       m_clipPlaneDepth( 0.0f ),
-      m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } ),
-
       m_sliceIntersector()
 {
     const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
@@ -149,7 +142,10 @@ bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCross
         const float eyeToTargetOffset = sk_pushBackFraction *
                 ( m_camera.farDistance() - m_camera.nearDistance() );
 
-        camera::setWorldTarget( m_camera, worldCameraOrigin + worldCameraToPlaneDistance * worldCameraFront, eyeToTargetOffset );
+        camera::setWorldTarget(
+                    m_camera,
+                    worldCameraOrigin + worldCameraToPlaneDistance * worldCameraFront,
+                    eyeToTargetOffset );
 
         warnCount = 0; // Reset warning counter
     }
@@ -214,16 +210,6 @@ View::computeImageSliceIntersection(
     }
 
     return worldIntersectionPositions;
-}
-
-void View::setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners )
-{
-    m_winMouseViewMinMaxCorners = std::move( corners );
-}
-
-const std::pair< glm::vec2, glm::vec2 >& View::winMouseMinMaxCoords() const
-{
-    return m_winMouseViewMinMaxCorners;
 }
 
 void View::setCameraType( const camera::CameraType& newCameraType )
@@ -293,13 +279,9 @@ View::cameraTranslationSyncGroupUid() const { return m_cameraTranslationSyncGrou
 std::optional<uuids::uuid>
 View::cameraZoomSyncGroupUid() const { return m_cameraZoomSyncGroupUid; }
 
-const glm::vec4& View::winClipViewport() const { return m_winClipViewport; }
 float View::clipPlaneDepth() const { return m_clipPlaneDepth; }
 
 const ViewOffsetSetting& View::offsetSetting() const { return m_offset; }
-
-const glm::mat4& View::winClip_T_viewClip() const { return m_winClip_T_viewClip; }
-const glm::mat4& View::viewClip_T_winClip() const { return m_viewClip_T_winClip; }
 
 const camera::Camera& View::camera() const { return m_camera; }
 camera::Camera& View::camera() { return m_camera; }

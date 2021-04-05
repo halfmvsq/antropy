@@ -6,8 +6,13 @@
 #include "logic/camera/CameraTypes.h"
 #include "ui/UiControls.h"
 
+#include <glm/mat4x4.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec4.hpp>
+
 #include <list>
 #include <set>
+#include <utility>
 
 class AppData;
 
@@ -17,11 +22,16 @@ class ControlFrame
 public:
 
     ControlFrame(
+            glm::vec4 winClipViewport,
             camera::CameraType cameraType,
             camera::ViewRenderMode renderMode,
             UiControls uiControls );
 
     virtual ~ControlFrame() = default;
+
+    const glm::vec4& winClipViewport() const;
+    const glm::mat4& winClip_T_viewClip() const;
+    const glm::mat4& viewClip_T_winClip() const;
 
     camera::CameraType cameraType() const;
     virtual void setCameraType( const camera::CameraType& cameraType );
@@ -52,8 +62,20 @@ public:
 
     const UiControls& uiControls() const;
 
+    void setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners );
+    const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords() const;
+
 
 protected:
+
+    // Viewport of the view defined in Clip space of the enclosing window,
+    // which spans from bottom left [-1, -1] to top right [1, 1].
+    // A full-window view has viewport (left = -1, bottom = -1, width = 2, height = 2)
+    glm::vec4 m_winClipViewport;
+
+    // Transformations between Clip spaces of the view and its enclosing window
+    glm::mat4 m_winClip_T_viewClip;
+    glm::mat4 m_viewClip_T_winClip;
 
     /// Uids of images rendered in this frame. They are listed in the order in which they are
     /// rendered, with image 0 at the bottom.
@@ -75,6 +97,9 @@ protected:
 
     /// What UI controls are show in the frame?
     UiControls m_uiControls;
+
+    /// Min and max corners of the view in coordinates of the enclosing window
+    std::pair< glm::vec2, glm::vec2 > m_winMouseViewMinMaxCorners;
 };
 
 #endif // CONTROL_FRAME_H

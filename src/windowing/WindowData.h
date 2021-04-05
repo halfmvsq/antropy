@@ -3,7 +3,9 @@
 
 #include "common/UuidRange.h"
 #include "common/Viewport.h"
+
 #include "ui/UiControls.h"
+
 #include "windowing/Layout.h"
 #include "windowing/View.h"
 
@@ -142,7 +144,7 @@ private:
 
     // Recompute view corners
     void recomputeAllViewCorners();
-    void recomputeViewCorners( View& view );
+    void recomputeFrameCorners( ControlFrame& frame );
 
     // Recompute view aspect ratios and corners
     void updateAllViews();

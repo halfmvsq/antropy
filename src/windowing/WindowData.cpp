@@ -401,7 +401,6 @@ void WindowData::removeLayout( size_t index )
     m_layouts.erase( std::begin( m_layouts ) + static_cast<long>( index ) );
 }
 
-
 void WindowData::setDefaultRenderedImagesForLayout(
         Layout& layout, uuid_range_t orderedImageUids )
 {
@@ -438,7 +437,6 @@ void WindowData::setDefaultRenderedImagesForLayout(
         view.second->setMetricImages( metricImages );
     }
 }
-
 
 void WindowData::setDefaultRenderedImagesForAllLayouts( uuid_range_t orderedImageUids )
 {
@@ -479,7 +477,6 @@ void WindowData::setDefaultRenderedImagesForAllLayouts( uuid_range_t orderedImag
     }
 }
 
-
 void WindowData::updateImageOrdering( uuid_range_t orderedImageUids )
 {
     for ( auto& layout : m_layouts )
@@ -497,7 +494,6 @@ void WindowData::updateImageOrdering( uuid_range_t orderedImageUids )
         }
     }
 }
-
 
 void WindowData::recenterAllViews(
         const glm::vec3& worldCenter,
@@ -517,7 +513,6 @@ void WindowData::recenterAllViews(
     }
 }
 
-
 void WindowData::recenterView(
         const uuids::uuid& viewUid,
         const glm::vec3& worldCenter,
@@ -530,7 +525,6 @@ void WindowData::recenterView(
         recenterView( *view, worldCenter, worldFov, resetZoom, resetObliqueOrientation );
     }
 }
-
 
 void WindowData::recenterView(
         View& view,
@@ -832,26 +826,11 @@ void WindowData::recomputeViewAspectRatio( View& view )
 
 void WindowData::recomputeAllViewCorners()
 {
-    // Bottom-left and top-right coordinates in Clip space:
-    static const glm::vec4 s_clipViewBL{ -1, -1, 0, 1 };
-    static const glm::vec4 s_clipViewTR{ 1, 1, 0, 1 };
-
     for ( auto& layout : m_layouts )
     {
         if ( layout.isLightbox() )
         {
-            const glm::vec4 winClipViewBL = s_clipViewBL;
-            const glm::vec2 winPixelViewBL = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewBL } );
-            const glm::vec2 winMouseViewBL = camera::mouse_T_view( m_viewport, winPixelViewBL );
-
-            const glm::vec4 winClipViewTR = s_clipViewTR;
-            const glm::vec2 winPixelViewTR = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewTR } );
-            const glm::vec2 winMouseViewTR = camera::mouse_T_view( m_viewport, winPixelViewTR );
-
-            const glm::vec2 cornerMin = glm::min( winMouseViewBL, winMouseViewTR );
-            const glm::vec2 cornerMax = glm::max( winMouseViewBL, winMouseViewTR );
-
-            layout.setWinMouseMinMaxCoords( { cornerMin, cornerMax } );
+            recomputeFrameCorners( layout );
         }
         else
         {
@@ -859,29 +838,30 @@ void WindowData::recomputeAllViewCorners()
             {
                 if ( view.second )
                 {
-                    recomputeViewCorners( *view.second );
+                    recomputeFrameCorners( *view.second );
                 }
             }
         }
     }
 }
 
-void WindowData::recomputeViewCorners( View& view )
+void WindowData::recomputeFrameCorners( ControlFrame& frame )
 {
-    const glm::vec4& vp = view.winClipViewport();
+    const glm::vec4& frameVP = frame.winClipViewport();
 
-    const glm::vec4 winClipViewBL{ vp[0], vp[1], 0, 1 };
-    const glm::vec2 winPixelViewBL = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewBL } );
-    const glm::vec2 winMouseViewBL = camera::mouse_T_view( m_viewport, winPixelViewBL );
+    const glm::mat4 mouse_T_ndc =
+            camera::mouse_T_view( m_viewport ) *
+            camera::view_T_ndc( m_viewport );
 
-    const glm::vec4 winClipViewTR{ vp[0] + vp[2], vp[1] + vp[3], 0, 1 };
-    const glm::vec2 winPixelViewTR = camera::view_T_ndc( m_viewport, glm::vec2{ winClipViewTR } );
-    const glm::vec2 winMouseViewTR = camera::mouse_T_view( m_viewport, winPixelViewTR );
+    const glm::vec4 winClipViewBL{ frameVP[0], frameVP[1], 0.0f, 1.0f };
+    const glm::vec4 winClipViewTR{ frameVP[0] + frameVP[2], frameVP[1] + frameVP[3], 0.0f, 1.0f };
 
-    const glm::vec2 cornerMin = glm::min( winMouseViewBL, winMouseViewTR );
-    const glm::vec2 cornerMax = glm::max( winMouseViewBL, winMouseViewTR );
+    const glm::vec2 winMouseViewBL{ mouse_T_ndc * winClipViewBL };
+    const glm::vec2 winMouseViewTR{ mouse_T_ndc * winClipViewTR };
 
-    view.setWinMouseMinMaxCoords( { cornerMin, cornerMax } );
+    frame.setWinMouseMinMaxCoords(
+                { glm::vec2{ winMouseViewBL.x, winMouseViewTR.y },
+                  glm::vec2{ winMouseViewTR.x, winMouseViewBL.y } } );
 }
 
 void WindowData::updateAllViews()
@@ -893,5 +873,5 @@ void WindowData::updateAllViews()
 void WindowData::updateView( View& view )
 {
     recomputeViewAspectRatio( view );
-    recomputeViewCorners( view );
+    recomputeFrameCorners( view );
 }

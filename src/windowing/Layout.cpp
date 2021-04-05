@@ -3,11 +3,22 @@
 #include "logic/app/Data.h"
 
 
+namespace
+{
+
+// Viewport of a full window, defined in window Clip space:
+static const glm::vec4 sk_winClipFullWindowViewport{ -1.0f, -1.0f, 2.0f, 2.0f };
+
+}
+
+
 Layout::Layout( bool isLightbox )
     :
-      ControlFrame( camera::CameraType::Axial,
-                    camera::ViewRenderMode::Image,
-                    UiControls( isLightbox ) ),
+      ControlFrame(
+          sk_winClipFullWindowViewport,
+          camera::CameraType::Axial,
+          camera::ViewRenderMode::Image,
+          UiControls( isLightbox ) ),
 
       m_uid( generateRandomUuid() ),
       m_views(),
@@ -16,8 +27,7 @@ Layout::Layout( bool isLightbox )
       m_cameraTranslationSyncGroups(),
       m_cameraZoomSyncGroups(),
 
-      m_isLightbox( isLightbox ),
-      m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } )
+      m_isLightbox( isLightbox )
 {
     // Render the first image by default:
     m_preferredDefaultRenderedImages = { 0 };
@@ -79,14 +89,6 @@ void Layout::updateViews()
 
 const uuids::uuid& Layout::uid() const { return m_uid; }
 bool Layout::isLightbox() const { return m_isLightbox; }
-
-void Layout::setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners )
-{
-    m_winMouseViewMinMaxCorners = std::move( corners );
-}
-
-const std::pair< glm::vec2, glm::vec2 >&
-Layout::winMouseMinMaxCoords() const { return m_winMouseViewMinMaxCorners; }
 
 std::unordered_map< uuids::uuid, std::shared_ptr<View> >&
 Layout::views() { return m_views; }
