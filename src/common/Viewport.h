@@ -42,6 +42,7 @@ public:
     /// @param width Width in device-independent pixel units
     /// @param height Height coordinate in device-independent pixel units
     Viewport( float left, float bottom, float width, float height );
+    Viewport( glm::vec4 viewportAsVec4 );
 
     Viewport( const Viewport& ) = default;
     Viewport& operator=( const Viewport& ) = default;

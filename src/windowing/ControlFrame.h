@@ -62,9 +62,6 @@ public:
 
     const UiControls& uiControls() const;
 
-    void setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners );
-    const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords() const;
-
 
 protected:
 
@@ -99,9 +96,6 @@ protected:
 
     /// What UI controls are show in the frame?
     UiControls m_uiControls;
-
-    /// Min and max corners of the view in coordinates of the enclosing window
-    std::pair< glm::vec2, glm::vec2 > m_winMouseViewMinMaxCorners;
 };
 
 #endif // CONTROL_FRAME_H

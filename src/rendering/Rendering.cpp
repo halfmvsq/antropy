@@ -763,12 +763,16 @@ computeAnatomicalLabelPosInfo(
             camera::view_T_ndc( windowVP ) *
             view.winClip_T_viewClip();
 
-    const glm::mat3 mouse_T_viewClip_IT = glm::inverseTranspose( glm::mat3{ mouse_T_viewClip } );
+    const glm::mat3 mouse_T_viewClip_IT =
+            glm::inverseTranspose( glm::mat3{ mouse_T_viewClip } );
 
     auto labelPosInfo = computeAnatomicalLabelsForView( view, world_T_refSubject );
 
-    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
-    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+    auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
+                view.winClipViewport(), windowVP.getAsVec4() );
+
+    const glm::vec2 viewBL = winMinMax.first;
+    const glm::vec2 viewTR = winMinMax.second;
 
     const float viewWidth = viewTR.x - viewBL.x;
     const float viewHeight = viewTR.y - viewBL.y;
@@ -852,6 +856,7 @@ computeAnatomicalLabelPosInfo(
  */
 void renderAnatomicalLabels(
         NVGcontext* nvg,
+        const Viewport& windowVP,
         const View& view,
         const glm::vec4& color,
         const std::list<AnatomicalLabelPosInfo>& labelPosInfo )
@@ -861,8 +866,11 @@ void renderAnatomicalLabels(
     // Anatomical direction labels
     static const std::array< std::string, 6 > labels{ "L", "P", "S", "R", "A", "I" };
 
-    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
-    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+    auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
+                view.winClipViewport(), windowVP.getAsVec4() );
+
+    const glm::vec2 viewBL = winMinMax.first;
+    const glm::vec2 viewTR = winMinMax.second;
 
     const float viewWidth = viewTR.x - viewBL.x;
     const float viewHeight = viewTR.y - viewBL.y;
@@ -1000,8 +1008,11 @@ void renderLandmarks(
 
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
-    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
-    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+    auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
+                view.winClipViewport(), windowVP.getAsVec4() );
+
+    const glm::vec2 viewBL = winMinMax.first;
+    const glm::vec2 viewTR = winMinMax.second;
 
     const float viewWidth = viewTR.x - viewBL.x;
     const float viewHeight = viewTR.y - viewBL.y;
@@ -1180,8 +1191,11 @@ void renderAnnotations(
 
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
-    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
-    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+    auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
+                view.winClipViewport(), windowVP.getAsVec4() );
+
+    const glm::vec2 viewBL = winMinMax.first;
+    const glm::vec2 viewTR = winMinMax.second;
 
     const float viewWidth = viewTR.x - viewBL.x;
     const float viewHeight = viewTR.y - viewBL.y;
@@ -1319,8 +1333,11 @@ void renderImageViewIntersections(
 
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
-    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
-    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+    auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
+                view.winClipViewport(), windowVP.getAsVec4() );
+
+    const glm::vec2 viewBL = winMinMax.first;
+    const glm::vec2 viewTR = winMinMax.second;
 
     const float viewWidth = viewTR.x - viewBL.x;
     const float viewHeight = viewTR.y - viewBL.y;
@@ -1419,23 +1436,31 @@ void renderImageViewIntersections(
 }
 
 
-void renderViewOutline( NVGcontext* nvg, const View& view, bool drawActiveOutline )
+void renderViewOutline(
+        NVGcontext* nvg,
+        const Viewport& windowVP,
+        const View& view,
+        bool drawActiveOutline )
 {
     static constexpr float k_padOuter = 0.0f;
 //    static constexpr float k_padInner = 2.0f;
     static constexpr float k_padActive = 3.0f;
 
-    const auto& C = view.winMouseMinMaxCoords();
+    auto winMinMaxCoords = camera::computeWindowMinMaxCoordsOfFrame(
+                view.winClipViewport(), windowVP.getAsVec4() );
 
-    auto drawRectangle = [&nvg, &C] ( float pad, float width, const NVGcolor& color )
+    auto drawRectangle = [&nvg, &winMinMaxCoords]
+            ( float pad, float width, const NVGcolor& color )
     {
         nvgStrokeWidth( nvg, width );
         nvgStrokeColor( nvg, color );
 
         nvgBeginPath( nvg );
-        nvgRect( nvg, C.first.x + pad, C.first.y + pad,
-                 C.second.x - C.first.x - 2.0f * pad,
-                 C.second.y - C.first.y - 2.0f * pad );
+
+        nvgRect( nvg, winMinMaxCoords.first.x + pad, winMinMaxCoords.first.y + pad,
+                 winMinMaxCoords.second.x - winMinMaxCoords.first.x - 2.0f * pad,
+                 winMinMaxCoords.second.y - winMinMaxCoords.first.y - 2.0f * pad );
+
         nvgStroke( nvg );
     };
 
@@ -1462,6 +1487,7 @@ void renderViewOutline( NVGcontext* nvg, const View& view, bool drawActiveOutlin
  */
 void renderCrosshairsOverlay(
         NVGcontext* nvg,
+        const Viewport& windowVP,
         const View& view,
         const glm::vec4& color,
         const std::list<AnatomicalLabelPosInfo>& labelPosInfo )
@@ -1497,8 +1523,11 @@ void renderCrosshairsOverlay(
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, color.a ) );
     }
 
-    const glm::vec2 viewBL = view.winMouseMinMaxCoords().first;
-    const glm::vec2 viewTR = view.winMouseMinMaxCoords().second;
+    auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
+                view.winClipViewport(), windowVP.getAsVec4() );
+
+    const glm::vec2 viewBL = winMinMax.first;
+    const glm::vec2 viewTR = winMinMax.second;
 
     const float viewWidth = viewTR.x - viewBL.x;
     const float viewHeight = viewTR.y - viewBL.y;
@@ -2799,13 +2828,13 @@ void Rendering::renderVectorOverlays()
                 const auto labelPosInfo = computeAnatomicalLabelPosInfo(
                             windowVP, *view, world_T_refSubject, worldCrosshairs );
 
-                renderCrosshairsOverlay( m_nvg, *view, m_appData.renderData().m_crosshairsColor, labelPosInfo );
-                renderAnatomicalLabels( m_nvg, *view, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
+                renderCrosshairsOverlay( m_nvg, windowVP, *view, m_appData.renderData().m_crosshairsColor, labelPosInfo );
+                renderAnatomicalLabels( m_nvg, windowVP, *view, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
             }
 
             const bool drawActiveOutline = ( annotating && activeViewUid && ( *activeViewUid == viewUid ) );
 
-            renderViewOutline( m_nvg, *view, drawActiveOutline );
+            renderViewOutline( m_nvg, windowVP, *view, drawActiveOutline );
         }
 
         renderWindowOutline( m_nvg, windowVP );

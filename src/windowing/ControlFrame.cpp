@@ -26,8 +26,7 @@ ControlFrame::ControlFrame(
       m_renderMode( renderMode ),
       m_cameraType( cameraType ),
 
-      m_uiControls( std::move( uiControls ) ),
-      m_winMouseViewMinMaxCorners( { {0, 0}, {0, 0} } )
+      m_uiControls( std::move( uiControls ) )
 {
 }
 
@@ -256,9 +255,3 @@ camera::ViewRenderMode ControlFrame::renderMode() const { return m_renderMode; }
 void ControlFrame::setRenderMode( const camera::ViewRenderMode& shaderType ) { m_renderMode = shaderType; }
 
 const UiControls& ControlFrame::uiControls() const { return m_uiControls; }
-
-void ControlFrame::setWinMouseMinMaxCoords( std::pair< glm::vec2, glm::vec2 > corners )
-{ m_winMouseViewMinMaxCorners = std::move( corners ); }
-
-const std::pair< glm::vec2, glm::vec2 >& ControlFrame::winMouseMinMaxCoords() const
-{ return m_winMouseViewMinMaxCorners; }

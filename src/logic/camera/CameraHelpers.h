@@ -9,7 +9,7 @@
 #include <array>
 #include <memory>
 #include <optional>
-
+#include <utility>
 
 class CoordinateFrame;
 class Viewport;
@@ -338,8 +338,19 @@ float computeSmallestWorldDepthOffset( const camera::Camera& camera, const glm::
  */
 glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& winClipVP );
 
-
 glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera );
+
+
+/**
+ * @brief Compute the min and max coordinates of a frame
+ * @param winClipFrameViewport Viewport of the frame defined in window Clip space
+ * @param windowViewport Viewport of the window
+ * @return Min and max coordinates of the frame in window space
+ */
+std::pair< glm::vec2, glm::vec2 >
+computeWindowMinMaxCoordsOfFrame(
+        const glm::vec4& winClipFrameViewport,
+        const glm::vec4& windowViewport );
 
 } // namespace camera
 

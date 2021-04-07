@@ -595,7 +595,7 @@ void ImGuiWrapper::render()
 
         renderViewSettingsComboWindow(
                     currentLayout.uid(),
-                    currentLayout.winMouseMinMaxCoords(),
+                    camera::computeWindowMinMaxCoordsOfFrame( currentLayout.winClipViewport(), m_appData.windowData().viewport().getAsVec4() ),
                     currentLayout.uiControls(),
                     true,
                     false,
@@ -620,7 +620,7 @@ void ImGuiWrapper::render()
 
         renderViewOrientationToolWindow(
                     currentLayout.uid(),
-                    currentLayout.winMouseMinMaxCoords(),
+                    camera::computeWindowMinMaxCoordsOfFrame( currentLayout.winClipViewport(), m_appData.windowData().viewport().getAsVec4() ),
                     currentLayout.uiControls(),
                     true,
                     currentLayout.cameraType(),
@@ -654,7 +654,7 @@ void ImGuiWrapper::render()
 
             renderViewSettingsComboWindow(
                         viewUid,
-                        view->winMouseMinMaxCoords(),
+                        camera::computeWindowMinMaxCoordsOfFrame( view->winClipViewport(), m_appData.windowData().viewport().getAsVec4() ),
                         view->uiControls(),
                         false,
                         true,
@@ -679,7 +679,7 @@ void ImGuiWrapper::render()
 
             renderViewOrientationToolWindow(
                     viewUid,
-                    view->winMouseMinMaxCoords(),
+                    camera::computeWindowMinMaxCoordsOfFrame( view->winClipViewport(), m_appData.windowData().viewport().getAsVec4() ),
                     view->uiControls(),
                     false,
                     view->cameraType(),

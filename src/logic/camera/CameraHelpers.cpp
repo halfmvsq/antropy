@@ -909,4 +909,29 @@ glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera )
     return glm::quat_cast( rotation_camera_T_world );
 }
 
+
+std::pair< glm::vec2, glm::vec2 >
+computeWindowMinMaxCoordsOfFrame(
+        const glm::vec4& winClipFrameViewport,
+        const glm::vec4& windowViewport )
+{
+    const glm::mat4 mouse_T_ndc =
+            camera::mouse_T_view( windowViewport ) *
+            camera::view_T_ndc( windowViewport );
+
+    const glm::vec4 winClipViewBL{ winClipFrameViewport[0],
+                                   winClipFrameViewport[1],
+                                   0.0f, 1.0f };
+
+    const glm::vec4 winClipViewTR{ winClipFrameViewport[0] + winClipFrameViewport[2],
+                                   winClipFrameViewport[1] + winClipFrameViewport[3],
+                                   0.0f, 1.0f };
+
+    const glm::vec2 winMouseViewBL{ mouse_T_ndc * winClipViewBL };
+    const glm::vec2 winMouseViewTR{ mouse_T_ndc * winClipViewTR };
+
+    return { glm::vec2{ winMouseViewBL.x, winMouseViewTR.y },
+             glm::vec2{ winMouseViewTR.x, winMouseViewBL.y } };
+}
+
 } // namespace camera

@@ -809,7 +809,7 @@ std::vector<uuids::uuid> WindowData::findCurrentViewsWithNormal(
     return viewUids;
 }
 
-void WindowData::recomputeAspectRatios()
+void WindowData::recomputeCameraAspectRatios()
 {
     for ( auto& layout : m_layouts )
     {
@@ -826,43 +826,7 @@ void WindowData::recomputeAspectRatios()
     }
 }
 
-void WindowData::recomputeCorners()
-{
-    auto recomputeFrameCorners = [this] ( ControlFrame& frame )
-    {
-        const glm::vec4& frameVP = frame.winClipViewport();
-
-        const glm::mat4 mouse_T_ndc =
-                camera::mouse_T_view( m_viewport ) *
-                camera::view_T_ndc( m_viewport );
-
-        const glm::vec4 winClipViewBL{ frameVP[0], frameVP[1], 0.0f, 1.0f };
-        const glm::vec4 winClipViewTR{ frameVP[0] + frameVP[2], frameVP[1] + frameVP[3], 0.0f, 1.0f };
-
-        const glm::vec2 winMouseViewBL{ mouse_T_ndc * winClipViewBL };
-        const glm::vec2 winMouseViewTR{ mouse_T_ndc * winClipViewTR };
-
-        frame.setWinMouseMinMaxCoords(
-                    { glm::vec2{ winMouseViewBL.x, winMouseViewTR.y },
-                      glm::vec2{ winMouseViewTR.x, winMouseViewBL.y } } );
-    };
-
-    for ( auto& layout : m_layouts )
-    {
-        recomputeFrameCorners( layout );
-
-        for ( auto& view : layout.views() )
-        {
-            if ( view.second )
-            {
-                recomputeFrameCorners( *view.second );
-            }
-        }
-    }
-}
-
 void WindowData::updateAllViews()
 {
-    recomputeAspectRatios();
-    recomputeCorners();
+    recomputeCameraAspectRatios();
 }

@@ -139,10 +139,7 @@ private:
     void setupViews();
 
     // Recompute view aspect ratios
-    void recomputeAspectRatios();
-
-    // Recompute view corners
-    void recomputeCorners();
+    void recomputeCameraAspectRatios();
 
     // Recompute view aspect ratios and corners
     void updateAllViews();

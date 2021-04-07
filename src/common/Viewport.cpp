@@ -13,6 +13,12 @@ Viewport::Viewport( float left, float bottom, float width, float height )
 {
 }
 
+Viewport::Viewport( glm::vec4 viewportAsVec4 )
+    :
+      Viewport( viewportAsVec4[0], viewportAsVec4[1],
+                viewportAsVec4[2], viewportAsVec4[3] )
+{}
+
 Viewport::Viewport()
     :
       Viewport( 0.0f, 0.0f, 1.0f, 1.0f )
