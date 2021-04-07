@@ -121,6 +121,7 @@ void renderToolbar(
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
 
     ImGui::PushStyleColor( ImGuiCol_TitleBgCollapsed, activeColor );
@@ -520,8 +521,9 @@ void renderToolbar(
     ImGui::PopStyleColor( 1 );
 
     // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
-    // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
-    ImGui::PopStyleVar( 5 );
+    // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding,
+    // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
+    ImGui::PopStyleVar( 6 );
 
     ImGui::PopID();
 
@@ -642,6 +644,7 @@ void renderSegToolbar(
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
 
     ImGui::PushStyleColor( ImGuiCol_TitleBgCollapsed, activeColor );
@@ -924,6 +927,7 @@ void renderSegToolbar(
         ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4.0f, 3.0f ) );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.0f );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 2.0f );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 4.0f );
 
         if ( ImGui::BeginPopup( "brushSizePopup" ) )
@@ -1034,8 +1038,9 @@ void renderSegToolbar(
         }
 
         // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
-        // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
-        ImGui::PopStyleVar( 5 );
+        // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding,
+        // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
+        ImGui::PopStyleVar( 6 );
 
 
 
@@ -1117,6 +1122,7 @@ void renderSegToolbar(
         ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4.0f, 3.0f ) );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.0f );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 2.0f );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 4.0f );
 
         if ( ImGui::BeginPopup( "segSyncPopup" ) )
@@ -1209,9 +1215,9 @@ void renderSegToolbar(
         }
 
         // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
-        // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
-        ImGui::PopStyleVar( 5 );
-
+        // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding,
+        // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
+        ImGui::PopStyleVar( 6 );
 
         ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
 
@@ -1224,12 +1230,13 @@ void renderSegToolbar(
         ImGui::End(); // End toolbar
     }
 
+    // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
+    // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding,
+    // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
+    ImGui::PopStyleVar( 6 );
+
     // ImGuiCol_TitleBgCollapsed
     ImGui::PopStyleColor( 1 );
-
-    // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
-    // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding, ImGuiStyleVar_WindowRounding
-    ImGui::PopStyleVar( 5 );
 
     ImGui::PopID();
 }

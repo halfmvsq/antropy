@@ -44,7 +44,7 @@ void renderViewSettingsComboWindow(
 
         const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
         const UiControls& uiControls,
-        bool hasFrameAndBackground,
+        bool /*hasFrameAndBackground*/,
         bool showApplyToAllButton,
 
         const std::function< size_t(void) >& getNumImages,

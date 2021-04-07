@@ -97,8 +97,9 @@ void applyCustomDarkStyle()
 {
     ImGuiStyle& style = ImGui::GetStyle();
 
-    style.ChildRounding = 0;
-    style.FrameRounding = 0;
+    style.ChildRounding = 2;
+    style.FrameRounding = 2;
+    style.GrabRounding = 2;
     style.PopupRounding = 2;
     style.TabRounding = 2;
     style.WindowRounding = 4;

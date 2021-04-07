@@ -47,7 +47,7 @@ void renderViewSettingsComboWindow(
 
         const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
         const UiControls& uiControls,
-        bool hasFrameAndBackground,
+        bool /*hasFrameAndBackground*/,
         bool showApplyToAllButton,
 
         const std::function< size_t(void) >& getNumImages,
@@ -125,10 +125,10 @@ void renderViewSettingsComboWindow(
 
         ImGuiWindowFlags windowFlags = sk_defaultWindowFlags;
 
-        if ( ! hasFrameAndBackground )
-        {
+//        if ( ! hasFrameAndBackground )
+//        {
             windowFlags |= ImGuiWindowFlags_NoBackground;
-        }
+//        }
 
         ImGui::SetNextWindowBgAlpha( 0.3f );
 
@@ -407,7 +407,7 @@ void renderViewOrientationToolWindow(
         const uuids::uuid& viewOrLayoutUid,
         const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
         const UiControls& /*uiControls*/,
-        bool hasFrameAndBackground,
+        bool /*hasFrameAndBackground*/,
         const camera::CameraType& cameraType,
         const std::function< glm::quat () >& getViewCameraRotation,
         const std::function< void ( const glm::quat& camera_T_world_rotationDelta ) >& setViewCameraRotation,
@@ -446,10 +446,10 @@ void renderViewOrientationToolWindow(
 
     ImGuiWindowFlags windowFlags = sk_defaultWindowFlags;
 
-    if ( ! hasFrameAndBackground )
-    {
+//    if ( ! hasFrameAndBackground )
+//    {
         windowFlags |= ImGuiWindowFlags_NoBackground;
-    }
+//    }
 
     const glm::vec2 bottomLeft( winMouseMinMaxCoords.first.x + sk_framePad.x,
                                 winMouseMinMaxCoords.second.y - sk_framePad.y );
