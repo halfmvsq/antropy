@@ -13,6 +13,8 @@
 
 #include "rendering/Rendering.h"
 
+#include "windowing/GlfwWrapper.h"
+
 #include <GridCut/GridGraph_3D_6C.h>
 
 #include <spdlog/spdlog.h>
@@ -43,9 +45,11 @@ static constexpr float k_viewAABBoxScaleFactor = 1.03f;
 
 CallbackHandler::CallbackHandler(
         AppData& appData,
+        GlfwWrapper& glfwWrapper,
         Rendering& rendering )
     :
       m_appData( appData ),
+      m_glfw( glfwWrapper ),
       m_rendering( rendering )
 {
 }
@@ -336,10 +340,11 @@ void CallbackHandler::doCrosshairsMove(
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
 
     const auto& windowVP = m_appData.windowData().viewport();
-    const glm::vec4 winClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ),
-                view->clipPlaneDepth(), 1 };
 
+    const glm::vec4 winClipPos{ camera::ndc2d_T_view( windowVP, currWindowPos ), view->clipPlaneDepth(), 1 };
     const glm::vec4 viewClipPos = view->viewClip_T_winClip() * winClipPos;
+
+//    spdlog::trace( "view = {}, winClipPos = {}, viewClipPos = {}", *viewUid, glm::to_string(winClipPos), glm::to_string(viewClipPos) );
 
     if ( glm::any( glm::greaterThan( glm::abs( glm::vec2{ viewClipPos } ), sk_maxClip ) ) )
     {
@@ -1790,6 +1795,11 @@ void CallbackHandler::setMouseMode( MouseMode mode )
 {
     m_appData.state().setMouseMode( mode );
 //    return m_glfw.cursor( mode );
+}
+
+void CallbackHandler::toggleFullScreenMode( bool forceWindowMode )
+{
+    m_glfw.toggleFullScreenMode( forceWindowMode );
 }
 
 

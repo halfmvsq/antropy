@@ -113,6 +113,13 @@ public:
     /// Set ratio of framebuffer to window unit coordinates
     void setDeviceScaleRatio( const glm::vec2& ratio );
 
+    /// Set the window position in screen space. This does not move the window,
+    /// but just saves the window position after a move event, in case it needs
+    /// to be restored later.
+    void setWindowPosition( int posX, int posY );
+    const glm::ivec2& getWindowPosition() const;
+
+
     /// Get view UIDs in a camera rotation synchronization group
     uuid_range_t cameraRotationGroupViewUids( const uuids::uuid& syncGroupUid ) const;
 
@@ -144,7 +151,12 @@ private:
     // Recompute view aspect ratios and corners
     void updateAllViews();
 
-    Viewport m_viewport; // Window viewport (encompassing all views)
+    // Window viewport (encompassing all views)
+    Viewport m_viewport;
+
+    // Window position in screen space
+    glm::ivec2 m_windowPosition;
+
     std::vector<Layout> m_layouts; // All view layouts
     size_t m_currentLayout; // Index of the layout currently on display
 

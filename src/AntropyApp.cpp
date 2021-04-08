@@ -108,7 +108,7 @@ AntropyApp::AntropyApp()
 
       m_data(), // Requires OpenGL context
       m_rendering( m_data ), // Requires OpenGL context
-      m_callbackHandler( m_data, m_rendering ),
+      m_callbackHandler( m_data, m_glfw, m_rendering ),
       m_imgui( m_glfw.window(), m_data, m_callbackHandler ) // Requires OpenGL context
 //      m_IPCHandler()
 {   
@@ -210,9 +210,8 @@ void AntropyApp::run()
 void AntropyApp::resize( float width, float height )
 {
     m_data.windowData().setViewport( 0.0f, 0.0f, width, height );
-    m_rendering.setDeviceViewport( m_data.windowData().viewport().getDeviceAsVec4() );
+    m_rendering.setDeviceViewport( glm::ivec4{ m_data.windowData().viewport().getDeviceAsVec4() } );
 }
-
 
 void AntropyApp::render()
 {

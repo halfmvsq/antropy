@@ -9,6 +9,7 @@
 
 
 class AppData;
+class GlfwWrapper;
 class Rendering;
 
 struct GLFWcursor;
@@ -26,7 +27,7 @@ public:
     };
 
 
-    CallbackHandler( AppData&, Rendering& );
+    CallbackHandler( AppData&, GlfwWrapper&, Rendering& );
     ~CallbackHandler() = default;
 
     /// Clears all voxels in the segmentation, setting them to 0
@@ -171,6 +172,8 @@ public:
 
     void setMouseMode( MouseMode );
 
+    void toggleFullScreenMode( bool forceWindowMode = false );
+
     /// Set whether manual transformation are locked on an image and all of its segmentations
     bool setLockManualImageTransformation( const uuids::uuid& imageUid, bool locked );
 
@@ -181,6 +184,7 @@ public:
 private:
 
     AppData& m_appData;
+    GlfwWrapper& m_glfw;
     Rendering& m_rendering;
 };
 

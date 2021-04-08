@@ -29,7 +29,9 @@ public:
 
     virtual ~ControlFrame() = default;
 
+    void setWinClipViewport( glm::vec4 winClipViewport );
     const glm::vec4& winClipViewport() const;
+
     const glm::mat4& winClip_T_viewClip() const;
     const glm::mat4& viewClip_T_winClip() const;
 

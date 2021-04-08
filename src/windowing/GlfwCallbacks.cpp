@@ -53,6 +53,20 @@ void windowCloseCallback( GLFWwindow* window )
 }
 
 
+void windowPositionCallback( GLFWwindow* window, int winPosX, int winPosY )
+{
+    auto app = reinterpret_cast<AntropyApp*>( glfwGetWindowUserPointer( window ) );
+    if ( ! app )
+    {
+        spdlog::warn( "App is null in window size callback" );
+        return;
+    }
+
+    // Save the window position. This does not affect rendering at all,
+    // so no render is required.
+    app->windowData().setWindowPosition( winPosX, winPosY );
+}
+
 void windowSizeCallback( GLFWwindow* window, int winWidth, int winHeight )
 {
     auto app = reinterpret_cast<AntropyApp*>( glfwGetWindowUserPointer( window ) );
@@ -96,6 +110,8 @@ void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY )
 
     const glm::vec2 currWinPos = camera::view_T_mouse(
                 app->windowData().viewport(), { mousePosX, mousePosY } );
+
+    spdlog::trace( "mousePosY = {}, curWinPos = {}", mousePosY, currWinPos.y );
 
     if ( ! s_lastWinPos )
     {
@@ -433,6 +449,9 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
     case GLFW_KEY_O: handler.cycleOverlayAndUiVisibility(); break;
 
     case GLFW_KEY_C: handler.recenterViews( app->appData().state().recenteringMode(), true, false, true ); break;
+
+    case GLFW_KEY_F4: handler.toggleFullScreenMode(); break;
+    case GLFW_KEY_ESCAPE: handler.toggleFullScreenMode( true ); break;
 
     case GLFW_KEY_PAGE_DOWN:
     {

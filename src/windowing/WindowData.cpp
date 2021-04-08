@@ -360,6 +360,7 @@ Layout createGridLayout(
 WindowData::WindowData()
     :
       m_viewport( 0, 0, 800, 800 ),
+      m_windowPosition( 0, 0 ),
       m_layouts(),
       m_currentLayout( 0 ),
       m_activeViewUid( std::nullopt )
@@ -715,6 +716,19 @@ void WindowData::setDeviceScaleRatio( const glm::vec2& scale )
     updateAllViews();
 }
 
+void WindowData::setWindowPosition( int posX, int posY )
+{
+    if ( posX >= 0 && posY >= 0 )
+    {
+        m_windowPosition = glm::ivec2{ posX, posY };
+    }
+}
+
+const glm::ivec2& WindowData::getWindowPosition() const
+{
+    return m_windowPosition;
+}
+
 uuid_range_t WindowData::cameraRotationGroupViewUids(
         const uuids::uuid& syncGroupUid ) const
 {
@@ -819,6 +833,14 @@ void WindowData::recomputeCameraAspectRatios()
             {
                 // The view camera's aspect ratio is the product of the main window's
                 // aspect ratio and the view's aspect ratio:
+                const float h = v->winClipViewport()[3];
+
+                if ( glm::epsilonEqual( h, 0.0f, glm::epsilon<float>() ) )
+                {
+                    spdlog::error( "View {} has zero height: setting it to 1.", view.first );
+                    v->setWinClipViewport( glm::vec4{ glm::vec3{ v->winClipViewport() }, 1.0f } );
+                }
+
                 const float viewAspect = v->winClipViewport()[2] / v->winClipViewport()[3];
                 v->camera().setAspectRatio( m_viewport.aspectRatio() * viewAspect );
             }

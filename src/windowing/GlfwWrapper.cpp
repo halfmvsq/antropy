@@ -26,7 +26,12 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
       m_waitTimoutSeconds( 1.0 / 30.0 ),
 
       m_renderScene( nullptr ),
-      m_renderGui( nullptr )
+      m_renderGui( nullptr ),
+
+      m_backupWindowPosX( 0 ),
+      m_backupWindowPosY( 0 ),
+      m_backupWindowWidth( 1 ),
+      m_backupWindowHeight( 1 )
 {
     if ( ! app )
     {
@@ -88,12 +93,6 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
         glfwGetMonitorWorkarea( monitor, &xpos, &ypos, &width, &height );
     }
 
-//    if ( const GLFWvidmode* videoMode = monitor ? glfwGetVideoMode( monitor ) : nullptr )
-//    {
-//        width = videoMode->width;
-//        height = videoMode->height;
-//    }
-
     m_window = glfwCreateWindow( width, height, "Antropy", nullptr, nullptr );
 
     if ( ! m_window )
@@ -112,9 +111,12 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
 
     // Set callbacks
     glfwSetErrorCallback( errorCallback );
+
     glfwSetWindowContentScaleCallback( m_window, windowContentScaleCallback );
     glfwSetWindowCloseCallback( m_window, windowCloseCallback );
+    glfwSetWindowPosCallback( m_window, windowPositionCallback );
     glfwSetWindowSizeCallback( m_window, windowSizeCallback );
+
     glfwSetCursorPosCallback( m_window, cursorPosCallback );
     glfwSetMouseButtonCallback( m_window, mouseButtonCallback );
     glfwSetScrollCallback( m_window, scrollCallback );
@@ -176,9 +178,11 @@ void GlfwWrapper::setWaitTimeout( double waitTimoutSeconds )
 
 void GlfwWrapper::init()
 {
-    int width, height;
-    glfwGetWindowSize( m_window, &width, &height );
-    windowSizeCallback( m_window, width, height );
+    glfwGetWindowPos( m_window, &m_backupWindowPosX, &m_backupWindowPosY );
+    windowPositionCallback( m_window, m_backupWindowPosX, m_backupWindowPosY );
+
+    glfwGetWindowSize( m_window, &m_backupWindowWidth, &m_backupWindowHeight );
+    windowSizeCallback( m_window, m_backupWindowWidth, m_backupWindowHeight );
 
     float xscale, yscale;
     glfwGetWindowContentScale( m_window, &xscale, &yscale );
@@ -291,4 +295,87 @@ void GlfwWrapper::setWindowTitleStatus( const std::string& status )
         const std::string statusString( s_antropy + std::string(" [") + status + std::string("]") );
         glfwSetWindowTitle( m_window, statusString.c_str() );
     }
+}
+
+void GlfwWrapper::toggleFullScreenMode( bool forceWindowMode )
+{
+    const bool isFullScreen = ( nullptr != glfwGetWindowMonitor( m_window ) );
+
+    if ( forceWindowMode || isFullScreen )
+    {
+        // Restore windowed mode with backup of position and size:
+        glfwSetWindowMonitor( m_window, nullptr,
+                              m_backupWindowPosX, m_backupWindowPosY,
+                              m_backupWindowWidth, m_backupWindowHeight, 0 );
+    }
+    else if ( ! isFullScreen )
+    {
+        // Switch to full-screen mode after backing up position and size:
+        glfwGetWindowPos( m_window, &m_backupWindowPosX, &m_backupWindowPosY );
+        glfwGetWindowSize( m_window, &m_backupWindowWidth, &m_backupWindowHeight );
+
+        GLFWmonitor* monitor = currentMonitor();
+
+        if ( ! monitor )
+        {
+            // Try the primary monitor instead:
+            monitor = glfwGetPrimaryMonitor();
+
+            if ( ! monitor )
+            {
+                spdlog::error( "Null monitor upon setting full-screen mode." );
+                return;
+            }
+        }
+
+        const GLFWvidmode* mode = glfwGetVideoMode( monitor );
+
+        if ( ! mode )
+        {
+            spdlog::error( "Null video mode upon setting full-screen mode." );
+            return;
+        }
+
+        glfwSetWindowMonitor( m_window, monitor, 0, 0, mode->width, mode->height, 0 );
+    }
+}
+
+GLFWmonitor* GlfwWrapper::currentMonitor() const
+{
+    int nmonitors, i;
+    int wx, wy, ww, wh;
+    int mx, my, mw, mh;
+    int overlap, bestoverlap;
+    GLFWmonitor *bestmonitor;
+    GLFWmonitor **monitors;
+
+    const GLFWvidmode* mode;
+
+    bestoverlap = 0;
+    bestmonitor = NULL;
+
+    glfwGetWindowPos( m_window, &wx, &wy );
+    glfwGetWindowSize( m_window, &ww, &wh );
+
+    monitors = glfwGetMonitors(&nmonitors);
+
+    for (i = 0; i < nmonitors; i++)
+    {
+        mode = glfwGetVideoMode(monitors[i]);
+        glfwGetMonitorPos(monitors[i], &mx, &my);
+
+        mw = mode->width;
+        mh = mode->height;
+
+        overlap = std::max( 0, std::min( wx + ww, mx + mw ) - std::max( wx, mx ) ) *
+                std::max( 0, std::min( wy + wh, my + mh ) - std::max( wy, my ) );
+
+        if (bestoverlap < overlap)
+        {
+            bestoverlap = overlap;
+            bestmonitor = monitors[i];
+        }
+    }
+
+    return bestmonitor;
 }

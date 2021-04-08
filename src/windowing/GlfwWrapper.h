@@ -10,8 +10,9 @@
 
 class AntropyApp;
 
-struct GLFWwindow;
 struct GLFWcursor;
+struct GLFWmonitor;
+struct GLFWwindow;
 
 
 /**
@@ -107,11 +108,16 @@ public:
 
     void setWindowTitleStatus( const std::string& status );
 
+    void toggleFullScreenMode( bool forceWindowMode = false );
+
 
 private:
 
     // Process user interaction input between render calls.
     void processInput();
+
+    // Returns the current monitor containing the window
+    GLFWmonitor* currentMonitor() const;
 
     // GLFW window that is owned by this class:
     GLFWwindow* m_window;
@@ -128,6 +134,14 @@ private:
     // Rendering callbacks:
     std::function<void()> m_renderScene;
     std::function<void()> m_renderGui;
+
+    // Backups of window position and size, which are restored when changing
+    // from full-screen to windowed mode
+    int m_backupWindowPosX;
+    int m_backupWindowPosY;
+
+    int m_backupWindowWidth;
+    int m_backupWindowHeight;
 };
 
 #endif // GLFW_WRAPPER_H

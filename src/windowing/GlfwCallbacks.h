@@ -6,6 +6,7 @@ struct GLFWwindow;
 void errorCallback( int error, const char* description );
 void windowContentScaleCallback( GLFWwindow* window, float fbToWinScaleX, float fbToWinScaleY );
 void windowCloseCallback( GLFWwindow* window );
+void windowPositionCallback( GLFWwindow* window, int winPosX, int winPosY );
 void windowSizeCallback( GLFWwindow* window, int winWidth, int winHeight );
 void cursorPosCallback( GLFWwindow* window, double mousePosX, double mousePosY );
 void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods );

@@ -2071,13 +2071,10 @@ void Rendering::render()
 }
 
 
-void Rendering::setDeviceViewport( const glm::vec4& deviceViewport  )
+void Rendering::setDeviceViewport( const glm::ivec4& deviceViewport  )
 {
     // Set the OpenGL viewport in device units:
-    glViewport( static_cast<GLint>( deviceViewport[0] ),
-                static_cast<GLint>( deviceViewport[1] ),
-                static_cast<GLint>( deviceViewport[2] ),
-                static_cast<GLint>( deviceViewport[3] ) );
+    glViewport( deviceViewport[0], deviceViewport[1], deviceViewport[2], deviceViewport[3] );
 }
 
 

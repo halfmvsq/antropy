@@ -244,7 +244,9 @@ void ControlFrame::setPreferredDefaultRenderedImages( std::set<size_t> imageIndi
 const std::set<size_t>& ControlFrame::preferredDefaultRenderedImages() const
 { return m_preferredDefaultRenderedImages; }
 
+void ControlFrame::setWinClipViewport( glm::vec4 winClipViewport ) { m_winClipViewport = std::move( winClipViewport ); }
 const glm::vec4& ControlFrame::winClipViewport() const { return m_winClipViewport; }
+
 const glm::mat4& ControlFrame::winClip_T_viewClip() const { return m_winClip_T_viewClip; }
 const glm::mat4& ControlFrame::viewClip_T_winClip() const { return m_viewClip_T_winClip; }
 
