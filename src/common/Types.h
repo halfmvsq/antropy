@@ -84,7 +84,9 @@ struct ComponentStats
 };
 
 
-/// @brief Image interpolation (resampling) mode for rendering
+/**
+ * @brief Image interpolation (resampling) mode for rendering
+ */
 enum class InterpolationMode
 {
     NearestNeighbor,
@@ -92,7 +94,9 @@ enum class InterpolationMode
 };
 
 
-/// @brief The current mouse mode
+/**
+ * @brief The current mouse mode
+ */
 enum class MouseMode
 {
     Pointer, //!< Move the crosshairs
@@ -107,7 +111,10 @@ enum class MouseMode
     ImageScale //!< Scale the active image in 2D
 };
 
-/// Array of all available mouse modes in the Toolbar
+
+/**
+ * @brief Array of all available mouse modes in the Toolbar
+ */
 inline std::array<MouseMode, 9> const AllMouseModes = {
     MouseMode::Pointer,
     MouseMode::WindowLevel,
@@ -128,7 +135,9 @@ std::string typeString( const MouseMode& mouseMode );
 const char* toolbarButtonIcon( const MouseMode& mouseMode );
 
 
-/// @brief How should view zooming behave?
+/**
+ * @brief How should view zooming behave?
+ */
 enum class ZoomBehavior
 {
     ToCrosshairs, //!< Zoom to/from the crosshairs position
@@ -137,7 +146,20 @@ enum class ZoomBehavior
 };
 
 
-/// Describes a type of image selection
+/**
+ * @brief Defines axis constraints for mouse/pointer rotation interactions
+ */
+enum class AxisConstraint
+{
+    X,
+    Y,
+    Z
+};
+
+
+/**
+ * @brief Describes a type of image selection
+ */
 enum class ImageSelection
 {
     /// The unique reference image that defines the World coordinate system.

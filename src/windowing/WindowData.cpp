@@ -360,7 +360,9 @@ Layout createGridLayout(
 WindowData::WindowData()
     :
       m_viewport( 0, 0, 800, 800 ),
-      m_windowPosition( 0, 0 ),
+      m_windowPos( 0, 0 ),
+      m_windowSize( 800, 800 ),
+
       m_layouts(),
       m_currentLayout( 0 ),
       m_activeViewUid( std::nullopt )
@@ -616,12 +618,12 @@ WindowData::currentViewUidAtCursor( const glm::vec2& windowPos ) const
 {
     if ( m_layouts.empty() ) return std::nullopt;
 
-    const glm::vec2 winClipPos = camera::ndc2d_T_view( m_viewport, windowPos );
+    const glm::vec2 winClipPos = camera::windowNdc2d_T_windowPixels( m_viewport, windowPos );
 
     for ( const auto& view : m_layouts.at( m_currentLayout ).views() )
     {
         if ( ! view.second ) continue;
-        const glm::vec4& winClipVp = view.second->winClipViewport();
+        const glm::vec4& winClipVp = view.second->windowClipViewport();
 
         if ( ( winClipVp[0] <= winClipPos.x ) &&
              ( winClipPos.x < winClipVp[0] + winClipVp[2] ) &&
@@ -693,13 +695,6 @@ const Viewport& WindowData::viewport() const
     return m_viewport;
 }
 
-void WindowData::resizeViewport( float width, float height )
-{
-    m_viewport.setWidth( width );
-    m_viewport.setHeight( height );
-    updateAllViews();
-}
-
 void WindowData::setViewport( float left, float bottom, float width, float height )
 {
     m_viewport.setLeft( left );
@@ -716,17 +711,24 @@ void WindowData::setDeviceScaleRatio( const glm::vec2& scale )
     updateAllViews();
 }
 
-void WindowData::setWindowPosition( int posX, int posY )
+void WindowData::setWindowPos( int posX, int posY )
 {
-    if ( posX >= 0 && posY >= 0 )
-    {
-        m_windowPosition = glm::ivec2{ posX, posY };
-    }
+    m_windowPos = glm::ivec2{ posX, posY };
 }
 
-const glm::ivec2& WindowData::getWindowPosition() const
+const glm::ivec2& WindowData::getWindowPos() const
 {
-    return m_windowPosition;
+    return m_windowPos;
+}
+
+void WindowData::setWindowSize( int width, int height )
+{
+    m_windowSize = glm::ivec2{ width, height };
+}
+
+const glm::ivec2& WindowData::getWindowSize() const
+{
+    return m_windowSize;
 }
 
 uuid_range_t WindowData::cameraRotationGroupViewUids(
@@ -833,15 +835,15 @@ void WindowData::recomputeCameraAspectRatios()
             {
                 // The view camera's aspect ratio is the product of the main window's
                 // aspect ratio and the view's aspect ratio:
-                const float h = v->winClipViewport()[3];
+                const float h = v->windowClipViewport()[3];
 
                 if ( glm::epsilonEqual( h, 0.0f, glm::epsilon<float>() ) )
                 {
                     spdlog::error( "View {} has zero height: setting it to 1.", view.first );
-                    v->setWinClipViewport( glm::vec4{ glm::vec3{ v->winClipViewport() }, 1.0f } );
+                    v->setWindowClipViewport( glm::vec4{ glm::vec3{ v->windowClipViewport() }, 1.0f } );
                 }
 
-                const float viewAspect = v->winClipViewport()[2] / v->winClipViewport()[3];
+                const float viewAspect = v->windowClipViewport()[2] / v->windowClipViewport()[3];
                 v->camera().setAspectRatio( m_viewport.aspectRatio() * viewAspect );
             }
         }

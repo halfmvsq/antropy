@@ -52,6 +52,9 @@ template< typename T >
 using gvec4 = glm::vec<4, T, glm::highp>;
 
 template< typename T >
+using gmat3 = glm::mat<3, 3, T, glm::highp>;
+
+template< typename T >
 using gmat4 = glm::mat<4, 4, T, glm::highp>;
 
 template< class U >
@@ -210,6 +213,38 @@ template< typename T >
 int sgn( const T& val )
 {
     return ( T(0) < val) - (val < T(0) );
+}
+
+
+template< typename T >
+bool areMatricesEqual( const gmat3<T>& A, const gmat3<T>& B )
+{
+    static constexpr float EPS = glm::epsilon<float>();
+
+    if ( glm::any( glm::epsilonNotEqual( A[0], B[0], EPS ) ) ||
+         glm::any( glm::epsilonNotEqual( A[1], B[1], EPS ) ) ||
+         glm::any( glm::epsilonNotEqual( A[2], B[2], EPS ) ) )
+    {
+        return false;
+    }
+
+    return true;
+}
+
+template< typename T >
+bool areMatricesEqual( const gmat4<T>& A, const gmat4<T>& B )
+{
+    static constexpr float EPS = glm::epsilon<float>();
+
+    if ( glm::any( glm::epsilonNotEqual( A[0], B[0], EPS ) ) ||
+         glm::any( glm::epsilonNotEqual( A[1], B[1], EPS ) ) ||
+         glm::any( glm::epsilonNotEqual( A[2], B[2], EPS ) ) ||
+         glm::any( glm::epsilonNotEqual( A[3], B[3], EPS ) ) )
+    {
+        return false;
+    }
+
+    return true;
 }
 
 

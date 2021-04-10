@@ -519,7 +519,7 @@ void renderImageQuad(
     }
 
     // Set the view transformation uniforms that are common to all programs:
-    program.setUniform( "view_T_clip", view.winClip_T_viewClip() );
+    program.setUniform( "view_T_clip", view.windowClip_T_viewClip() );
     program.setUniform( "world_T_clip", camera::world_T_clip( view.camera() ) );
     program.setUniform( "clipDepth", view.clipPlaneDepth() );
 
@@ -623,6 +623,7 @@ static const NVGcolor s_grey50( nvgRGBA( 127, 127, 127, 255 ) );
 static const NVGcolor s_grey60( nvgRGBA( 153, 153, 153, 255 ) );
 static const NVGcolor s_grey75( nvgRGBA( 195, 195, 195, 255 ) );
 static const NVGcolor s_yellow( nvgRGBA( 255, 255, 0, 255 ) );
+static const NVGcolor s_red( nvgRGBA( 255, 0, 0, 255 ) );
 
 
 void renderWindowOutline( NVGcontext* nvg, const Viewport& windowVP )
@@ -759,9 +760,9 @@ computeAnatomicalLabelPosInfo(
     static constexpr bool sk_doBothXhairDirs = true;
 
     const glm::mat4 mouse_T_viewClip =
-            camera::mouse_T_view( windowVP ) *
-            camera::view_T_ndc( windowVP ) *
-            view.winClip_T_viewClip();
+            camera::mouse_T_view( windowVP.height() ) *
+            camera::view_T_ndc_IGNORE_LB( windowVP ) *
+            view.windowClip_T_viewClip();
 
     const glm::mat3 mouse_T_viewClip_IT =
             glm::inverseTranspose( glm::mat3{ mouse_T_viewClip } );
@@ -769,7 +770,7 @@ computeAnatomicalLabelPosInfo(
     auto labelPosInfo = computeAnatomicalLabelsForView( view, world_T_refSubject );
 
     auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
-                view.winClipViewport(), windowVP.getAsVec4() );
+                view.windowClipViewport(), windowVP.getAsVec4() );
 
     const glm::vec2 viewBL = winMinMax.first;
     const glm::vec2 viewTR = winMinMax.second;
@@ -867,7 +868,7 @@ void renderAnatomicalLabels(
     static const std::array< std::string, 6 > labels{ "L", "P", "S", "R", "A", "I" };
 
     auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
-                view.winClipViewport(), windowVP.getAsVec4() );
+                view.windowClipViewport(), windowVP.getAsVec4() );
 
     const glm::vec2 viewBL = winMinMax.first;
     const glm::vec2 viewTR = winMinMax.second;
@@ -993,15 +994,15 @@ void renderLandmarks(
     const Viewport& windowVP = appData.windowData().viewport();
 
     // Convert a 3D position from World space to the view's Mouse space
-    auto convertWorldToMousePos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
+    auto convertWorldToMousePos = [&view, &windowVP/*, &wholeWindowHeight*/] ( const glm::vec3& worldPos ) -> glm::vec2
     {
         const glm::vec4 winClipPos =
-                view.winClip_T_viewClip() *
+                view.windowClip_T_viewClip() *
                 camera::clip_T_world( view.camera() ) *
                 glm::vec4{ worldPos, 1.0f };
 
-        const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
-        const glm::vec2 mousePos = camera::mouse_T_view( windowVP, pixelPos );
+        const glm::vec2 pixelPos = camera::view_T_ndc_IGNORE_LB( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
+        const glm::vec2 mousePos = camera::mouse_T_view( windowVP.height(), pixelPos );
         return mousePos;
     };
 
@@ -1009,7 +1010,7 @@ void renderLandmarks(
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
     auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
-                view.winClipViewport(), windowVP.getAsVec4() );
+                view.windowClipViewport(), windowVP.getAsVec4() );
 
     const glm::vec2 viewBL = winMinMax.first;
     const glm::vec2 viewTR = winMinMax.second;
@@ -1172,15 +1173,16 @@ void renderAnnotations(
     const Viewport& windowVP = appData.windowData().viewport();
 
     // Convert a 3D position from World space to the view's Mouse space
-    auto convertWorldToMousePos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
+    auto convertWorldToMousePos = [&view, &windowVP]
+            ( const glm::vec3& worldPos ) -> glm::vec2
     {
         const glm::vec4 winClipPos =
-                view.winClip_T_viewClip() *
+                view.windowClip_T_viewClip() *
                 camera::clip_T_world( view.camera() ) *
                 glm::vec4{ worldPos, 1.0f };
 
-        const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
-        const glm::vec2 mousePos = camera::mouse_T_view( windowVP, pixelPos );
+        const glm::vec2 pixelPos = camera::view_T_ndc_IGNORE_LB( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
+        const glm::vec2 mousePos = camera::mouse_T_view( windowVP.height(), pixelPos );
         return mousePos;
     };
 
@@ -1192,7 +1194,7 @@ void renderAnnotations(
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
     auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
-                view.winClipViewport(), windowVP.getAsVec4() );
+                view.windowClipViewport(), windowVP.getAsVec4() );
 
     const glm::vec2 viewBL = winMinMax.first;
     const glm::vec2 viewTR = winMinMax.second;
@@ -1321,11 +1323,11 @@ void renderImageViewIntersections(
 
     const Viewport& windowVP = appData.windowData().viewport();
 
-    auto mouse_T_world = [&view, &windowVP] ( const glm::vec4& worldPos ) -> glm::vec2
+    auto mouse_T_world = [&view, &windowVP/*, wholeWindowHeight*/] ( const glm::vec4& worldPos ) -> glm::vec2
     {
-        const glm::vec4 winClipPos = view.winClip_T_viewClip() * camera::clip_T_world( view.camera() ) * worldPos;
-        const glm::vec2 pixelPos = camera::view_T_ndc( windowVP, glm::vec2{ winClipPos } );
-        return camera::mouse_T_view( windowVP, pixelPos );
+        const glm::vec4 winClipPos = view.windowClip_T_viewClip() * camera::clip_T_world( view.camera() ) * worldPos;
+        const glm::vec2 pixelPos = camera::view_T_ndc_IGNORE_LB( windowVP, glm::vec2{ winClipPos } );
+        return camera::mouse_T_view( windowVP.height(), pixelPos );
     };
 
     nvgLineCap( nvg, NVG_BUTT );
@@ -1334,7 +1336,7 @@ void renderImageViewIntersections(
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
     auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
-                view.winClipViewport(), windowVP.getAsVec4() );
+                view.windowClipViewport(), windowVP.getAsVec4() );
 
     const glm::vec2 viewBL = winMinMax.first;
     const glm::vec2 viewTR = winMinMax.second;
@@ -1447,7 +1449,7 @@ void renderViewOutline(
     static constexpr float k_padActive = 3.0f;
 
     auto winMinMaxCoords = camera::computeWindowMinMaxCoordsOfFrame(
-                view.winClipViewport(), windowVP.getAsVec4() );
+                view.windowClipViewport(), windowVP.getAsVec4() );
 
     auto drawRectangle = [&nvg, &winMinMaxCoords]
             ( float pad, float width, const NVGcolor& color )
@@ -1524,7 +1526,7 @@ void renderCrosshairsOverlay(
     }
 
     auto winMinMax = camera::computeWindowMinMaxCoordsOfFrame(
-                view.winClipViewport(), windowVP.getAsVec4() );
+                view.windowClipViewport(), windowVP.getAsVec4() );
 
     const glm::vec2 viewBL = winMinMax.first;
     const glm::vec2 viewTR = winMinMax.second;

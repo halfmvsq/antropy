@@ -581,15 +581,12 @@ glm::vec3 worldTranslationPerpendicularToWorldAxis(
 }
 
 
-glm::vec4 ndc_T_view( const Viewport& viewport, const glm::vec2& viewPos )
+glm::vec2 windowNdc2d_T_windowPixels(
+        const Viewport& windowViewport,
+        const glm::vec2& windowPixelPos )
 {
-    return glm::vec4( ndc2d_T_view( viewport, viewPos ), -1.0f, 1.0f );
-}
-
-glm::vec2 ndc2d_T_view( const Viewport& viewport, const glm::vec2& viewPos )
-{
-    return glm::vec2( 2.0f * ( viewPos.x - viewport.left() ) / viewport.width() - 1.0f,
-                      2.0f * ( viewPos.y - viewport.bottom() ) / viewport.height() - 1.0f );
+    return glm::vec2( 2.0f * ( windowPixelPos.x - windowViewport.left() ) / windowViewport.width() - 1.0f,
+                      2.0f * ( windowPixelPos.y - windowViewport.bottom() ) / windowViewport.height() - 1.0f );
 }
 
 glm::vec2 viewDevice_T_ndc( const Viewport& viewport, const glm::vec2& ndcPos )
@@ -603,6 +600,12 @@ glm::vec2 view_T_ndc( const Viewport& viewport, const glm::vec2& ndcPos )
                       ( ndcPos.y + 1.0f ) * viewport.height() / 2.0f + viewport.bottom() );
 }
 
+glm::vec2 view_T_ndc_IGNORE_LB( const Viewport& viewport, const glm::vec2& ndcPos )
+{
+    return glm::vec2( ( ndcPos.x + 1.0f ) * viewport.width() / 2.0f,
+                      ( ndcPos.y + 1.0f ) * viewport.height() / 2.0f );
+}
+
 glm::mat4 view_T_ndc( const Viewport& viewport )
 {
     return glm::mat4{
@@ -614,52 +617,72 @@ glm::mat4 view_T_ndc( const Viewport& viewport )
     };
 }
 
-glm::vec2 view_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )
+glm::mat4 view_T_ndc_IGNORE_LB( const Viewport& viewport )
 {
-    return glm::vec2( viewport.left() + mousePos.x,
-                      viewport.bottom() + viewport.height() - mousePos.y );
+    return glm::mat4{
+        glm::vec4{ viewport.width() / 2.0f, 0.0f, 0.0f, 0.0f },
+        glm::vec4{ 0.0f, viewport.height() / 2.0f, 0.0f, 0.0f },
+        glm::vec4{ 0.0f, 0.0f, 1.0f, 0.0f },
+        glm::vec4{ viewport.width() / 2.0f,
+                   viewport.height() / 2.0f, 1.0f, 1.0f }
+    };
 }
 
-glm::vec2 mouse_T_view( const Viewport& viewport, const glm::vec2& viewPos )
+glm::mat4 view_T_ndc_TEST( const Viewport& viewport )
 {
-    return glm::vec2( viewPos.x - viewport.left(),
-                      viewport.bottom() + viewport.height() - viewPos.y );
+    return glm::mat4{
+        glm::vec4{ viewport.width() / 2.0f, 0.0f, 0.0f, 0.0f },
+        glm::vec4{ 0.0f, viewport.height() / 2.0f, 0.0f, 0.0f },
+        glm::vec4{ 0.0f, 0.0f, 1.0f, 0.0f },
+        glm::vec4{ viewport.left() + viewport.width() / 2.0f,
+                   viewport.bottom() + viewport.height() / 2.0f, 1.0f, 1.0f }
+    };
 }
 
-glm::mat4 mouse_T_view( const Viewport& viewport )
+glm::vec2 window_T_mindow( float wholeWindowHeight, const glm::vec2& mousePos )
+{
+    return glm::vec2( mousePos.x, wholeWindowHeight - mousePos.y );
+}
+
+glm::vec2 mouse_T_view( float wholeWindowHeight, const glm::vec2& viewPos )
+{
+    return glm::vec2( viewPos.x, wholeWindowHeight - viewPos.y );
+}
+
+glm::mat4 mouse_T_view( float wholeWindowHeight )
 {
     return glm::mat4{
         glm::vec4{ 1.0f, 0.0f, 0.0f, 0.0f },
         glm::vec4{ 0.0f, -1.0f, 0.0f, 0.0f },
         glm::vec4{ 0.0f, 0.0f, 1.0f, 0.0f },
-        glm::vec4{ -viewport.left(), viewport.bottom() + viewport.height(), 0.0f, 1.0f }
+        glm::vec4{ 0.0f, wholeWindowHeight, 0.0f, 1.0f }
     };
 }
 
-glm::vec4 ndc_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )
-{
-    return ndc_T_view( viewport, view_T_mouse( viewport, mousePos ) );
-}
+//glm::vec4 ndc_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )
+//{
+//    return ndc_T_view( viewport, view_T_mouse( viewport, mousePos ) );
+//}
 
-glm::vec2 ndc2d_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )
-{
-    return ndc2d_T_view( viewport, view_T_mouse( viewport, mousePos ) );
-}
+//glm::vec2 ndc2d_T_mouse( const Viewport& viewport, const glm::vec2& mousePos )
+//{
+//    return ndc2d_T_view( viewport, view_T_mouse( viewport, mousePos ) );
+//}
 
 
-glm::mat4 get_ndc_T_view( const Viewport& viewport )
-{
-    const glm::vec4 scaleX( 2.0f / viewport.width(), 0.0f, 0.0f, 0.0f );
-    const glm::vec4 scaleY( 0.0f, 2.0f / viewport.height(), 0.0f, 0.0f );
-    const glm::vec4 scaleZ( 0.0f, 0.0f, 1.0f, 0.0f );
+//glm::mat4 get_ndc_T_view( const Viewport& viewport )
+//{
+//    const glm::vec4 scaleX( 2.0f / viewport.width(), 0.0f, 0.0f, 0.0f );
+//    const glm::vec4 scaleY( 0.0f, 2.0f / viewport.height(), 0.0f, 0.0f );
+//    const glm::vec4 scaleZ( 0.0f, 0.0f, 1.0f, 0.0f );
 
-    const glm::vec4 translation(
-                -2.0f * viewport.left() / viewport.width() - 1.0f,
-                -2.0f * viewport.bottom() / viewport.height() - 1.0f,
-                -1.0f, 1.0f );
+//    const glm::vec4 translation(
+//                -2.0f * viewport.left() / viewport.width() - 1.0f,
+//                -2.0f * viewport.bottom() / viewport.height() - 1.0f,
+//                -1.0f, 1.0f );
 
-    return glm::mat4( scaleX, scaleY, scaleZ, translation );
-}
+//    return glm::mat4( scaleX, scaleY, scaleZ, translation );
+//}
 
 
 std::optional< glm::vec3 > worldCameraPlaneIntersection(
@@ -831,7 +854,7 @@ glm::vec4 world_T_view( const Viewport& viewport, const camera::Camera& camera,
                         const glm::vec2& viewPos, float ndcZ )
 {
     /// @note Maybe replace ndcZ with focal distance in clip space?
-    const glm::vec4 clipPos{ ndc2d_T_view( viewport, viewPos ), ndcZ, 1.0f };
+    const glm::vec4 clipPos{ windowNdc2d_T_windowPixels( viewport, viewPos ), ndcZ, 1.0f };
     const glm::vec4 worldPos = camera.world_T_camera() * camera.camera_T_clip() * clipPos;
     return worldPos / worldPos.w;
 }
@@ -916,7 +939,33 @@ computeWindowMinMaxCoordsOfFrame(
         const glm::vec4& windowViewport )
 {
     const glm::mat4 mouse_T_ndc =
-            camera::mouse_T_view( windowViewport ) *
+            camera::mouse_T_view( windowViewport[3] ) *
+            camera::view_T_ndc_IGNORE_LB( windowViewport );
+
+    const glm::vec4 winClipViewBL{ winClipFrameViewport[0],
+                                   winClipFrameViewport[1],
+                                   0.0f, 1.0f };
+
+    const glm::vec4 winClipViewTR{ winClipFrameViewport[0] + winClipFrameViewport[2],
+                                   winClipFrameViewport[1] + winClipFrameViewport[3],
+                                   0.0f, 1.0f };
+
+    const glm::vec2 winMouseViewBL{ mouse_T_ndc * winClipViewBL };
+    const glm::vec2 winMouseViewTR{ mouse_T_ndc * winClipViewTR };
+
+    return { glm::vec2{ winMouseViewBL.x, winMouseViewTR.y },
+             glm::vec2{ winMouseViewTR.x, winMouseViewBL.y } };
+}
+
+
+std::pair< glm::vec2, glm::vec2 >
+computeWindowMinMaxCoordsOfFrameForImGui(
+        const glm::vec4& winClipFrameViewport,
+        const glm::vec4& windowViewport,
+        float wholeWindowHeight )
+{
+    const glm::mat4 mouse_T_ndc =
+            camera::mouse_T_view( wholeWindowHeight ) *
             camera::view_T_ndc( windowViewport );
 
     const glm::vec4 winClipViewBL{ winClipFrameViewport[0],

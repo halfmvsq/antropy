@@ -221,21 +221,28 @@ glm::vec3 worldTranslationPerpendicularToWorldAxis(
         const Camera&, const glm::vec2& ndcOldPos, const glm::vec2& ndcNewPos, float ndcZ,
         const glm::vec3& worldAxis );
 
-
-glm::vec4 ndc_T_view( const Viewport&, const glm::vec2& viewPos );
-glm::vec2 ndc2d_T_view( const Viewport&, const glm::vec2& viewPos );
+/**
+ * @brief Transform position from Window Pixel space to 2D Window NDC
+ * @param windowViewport
+ * @param windowPixelPos
+ * @return
+ */
+glm::vec2 windowNdc2d_T_windowPixels( const Viewport& windowViewport, const glm::vec2& windowPixelPos );
 
 glm::vec2 viewDevice_T_ndc( const Viewport&, const glm::vec2& ndcPos );
 glm::vec2 view_T_ndc( const Viewport&, const glm::vec2& ndcPos );
+glm::vec2 view_T_ndc_IGNORE_LB( const Viewport&, const glm::vec2& ndcPos );
 glm::mat4 view_T_ndc( const Viewport& );
-glm::vec2 view_T_mouse( const Viewport&, const glm::vec2& mousePos );
-glm::vec2 mouse_T_view( const Viewport&, const glm::vec2& viewPos );
-glm::mat4 mouse_T_view( const Viewport& );
+glm::mat4 view_T_ndc_IGNORE_LB( const Viewport& );
 
-glm::vec4 ndc_T_mouse( const Viewport&, const glm::vec2& mousePos );
-glm::vec2 ndc2d_T_mouse( const Viewport&, const glm::vec2& mousePos );
+glm::vec2 window_T_mindow( float wholeWindowHeight, const glm::vec2& mousePos );
+glm::vec2 mouse_T_view( float wholeWindowHeight, const glm::vec2& viewPos );
+glm::mat4 mouse_T_view( float wholeWindowHeight );
 
-glm::mat4 get_ndc_T_view( const Viewport& );
+//glm::vec4 ndc_T_mouse( const Viewport&, const glm::vec2& mousePos );
+//glm::vec2 ndc2d_T_mouse( const Viewport&, const glm::vec2& mousePos );
+
+//glm::mat4 get_ndc_T_view( const Viewport& );
 
 
 /**
@@ -351,6 +358,13 @@ std::pair< glm::vec2, glm::vec2 >
 computeWindowMinMaxCoordsOfFrame(
         const glm::vec4& winClipFrameViewport,
         const glm::vec4& windowViewport );
+
+
+std::pair< glm::vec2, glm::vec2 >
+computeWindowMinMaxCoordsOfFrameForImGui(
+        const glm::vec4& winClipFrameViewport,
+        const glm::vec4& windowViewport,
+        float wholeWindowHeight );
 
 } // namespace camera
 

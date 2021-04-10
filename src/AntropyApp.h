@@ -48,8 +48,8 @@ public:
     /// Run the render loop
     void run();
 
-    /// Resize the framebuffer
-    void resize( float width, float height );
+    /// Resize the window
+    void resize( int width, int height );
 
     /// Render one frame
     void render();
@@ -57,12 +57,7 @@ public:
     /// Asynchronously load images and notify render loop when done
     void loadImagesFromParams( const InputParams& );
 
-
-    /// Load an image from disk.
-    /// @return Uid and flag if loaded.
-    /// False indcates that it was already loaded and that we are returning an existing image.
-    std::pair< std::optional<uuids::uuid>, bool >
-    loadImage( const std::string& fileName, bool ignoreIfAlreadyLoaded );
+    bool loadSerializedImage( const serialize::Image& );
 
     /// Load a segmentation from disk. If its header does not match the given image, then it is not loaded
     /// @return Uid and flag if loaded.
@@ -111,7 +106,11 @@ private:
 
     void setCallbacks();
 
-    bool loadSerializedImage( const serialize::Image& );
+    /// Load an image from disk.
+    /// @return Uid and flag if loaded.
+    /// False indcates that it was already loaded and that we are returning an existing image.
+    std::pair< std::optional<uuids::uuid>, bool >
+    loadImage( const std::string& fileName, bool ignoreIfAlreadyLoaded );
 
     /// Create a blank segmentation with the same header as the given image
     std::optional<uuids::uuid> createBlankSeg(

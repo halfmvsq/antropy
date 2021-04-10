@@ -104,20 +104,19 @@ public:
     /// Get the window viewport
     const Viewport& viewport() const;
 
-    /// Resize the window viewport (in device-independent pixel units)
-    void resizeViewport( float width, float height );
-
     /// Set the window viewport (in device-independent pixel units)
     void setViewport( float left, float bottom, float width, float height );
 
     /// Set ratio of framebuffer to window unit coordinates
     void setDeviceScaleRatio( const glm::vec2& ratio );
 
-    /// Set the window position in screen space. This does not move the window,
-    /// but just saves the window position after a move event, in case it needs
-    /// to be restored later.
-    void setWindowPosition( int posX, int posY );
-    const glm::ivec2& getWindowPosition() const;
+    /// Set/get the window position in screen space. This does not move the window.
+    void setWindowPos( int posX, int posY );
+    const glm::ivec2& getWindowPos() const;
+
+    /// Set/get the whole window size
+    void setWindowSize( int width, int height );
+    const glm::ivec2& getWindowSize() const;
 
 
     /// Get view UIDs in a camera rotation synchronization group
@@ -154,8 +153,11 @@ private:
     // Window viewport (encompassing all views)
     Viewport m_viewport;
 
-    // Window position in screen space
-    glm::ivec2 m_windowPosition;
+    // Window position in screen space with (0, 0) at bottom left corner of the screen
+    glm::ivec2 m_windowPos;
+
+    // Whole window size
+    glm::ivec2 m_windowSize;
 
     std::vector<Layout> m_layouts; // All view layouts
     size_t m_currentLayout; // Index of the layout currently on display

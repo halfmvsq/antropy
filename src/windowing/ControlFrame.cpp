@@ -14,8 +14,8 @@ ControlFrame::ControlFrame(
     :
       m_winClipViewport( std::move( winClipViewport ) ),
 
-      m_winClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport ) ),
-      m_viewClip_T_winClip( glm::inverse( m_winClip_T_viewClip ) ),
+      m_windowClip_T_viewClip( camera::compute_windowClip_T_viewClip( m_winClipViewport ) ),
+      m_viewClip_T_windowClip( glm::inverse( m_windowClip_T_viewClip ) ),
 
       m_renderedImageUids(),
       m_metricImageUids(),
@@ -244,11 +244,11 @@ void ControlFrame::setPreferredDefaultRenderedImages( std::set<size_t> imageIndi
 const std::set<size_t>& ControlFrame::preferredDefaultRenderedImages() const
 { return m_preferredDefaultRenderedImages; }
 
-void ControlFrame::setWinClipViewport( glm::vec4 winClipViewport ) { m_winClipViewport = std::move( winClipViewport ); }
-const glm::vec4& ControlFrame::winClipViewport() const { return m_winClipViewport; }
+void ControlFrame::setWindowClipViewport( glm::vec4 winClipViewport ) { m_winClipViewport = std::move( winClipViewport ); }
+const glm::vec4& ControlFrame::windowClipViewport() const { return m_winClipViewport; }
 
-const glm::mat4& ControlFrame::winClip_T_viewClip() const { return m_winClip_T_viewClip; }
-const glm::mat4& ControlFrame::viewClip_T_winClip() const { return m_viewClip_T_winClip; }
+const glm::mat4& ControlFrame::windowClip_T_viewClip() const { return m_windowClip_T_viewClip; }
+const glm::mat4& ControlFrame::viewClip_T_windowClip() const { return m_viewClip_T_windowClip; }
 
 camera::CameraType ControlFrame::cameraType() const { return m_cameraType; }
 void ControlFrame::setCameraType( const camera::CameraType& cameraType ) { m_cameraType = cameraType; }

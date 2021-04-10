@@ -8,6 +8,7 @@
 #include "image/ImageUtility.h"
 
 #include "logic/annotation/LandmarkGroup.h"
+#include "logic/camera/MathUtility.h"
 #include "logic/interaction/events/MouseEvent.h"
 //#include "logic/ipc/IPCMessage.h"
 
@@ -207,8 +208,10 @@ void AntropyApp::run()
 }
 
 
-void AntropyApp::resize( float width, float height )
+void AntropyApp::resize( int width, int height )
 {
+    m_data.windowData().setWindowSize( width, height );
+    //m_data.windowData().setViewport( 50.0f, 50.0f, width - 100.0f, height - 100.0f );
     m_data.windowData().setViewport( 0.0f, 0.0f, width, height );
     m_rendering.setDeviceViewport( glm::ivec4{ m_data.windowData().viewport().getDeviceAsVec4() } );
 }
@@ -293,6 +296,8 @@ AntropyApp::loadSegmentation(
         const std::string& fileName,
         const std::optional<uuids::uuid>& matchingImageUid )
 {
+    static constexpr float EPS = glm::epsilon<float>();
+
     // Return value indicating that segmentation was not loaded:
     static const std::pair< std::optional<uuids::uuid>, bool > sk_noSegLoaded{ std::nullopt, false };
 
@@ -300,18 +305,21 @@ AntropyApp::loadSegmentation(
     for ( const auto& segUid : m_data.segUidsOrdered() )
     {
         const Image* seg = m_data.seg( segUid );
-        if ( ! seg ) continue;
-
-        if ( seg->header().fileName() == fileName )
+        if ( seg && seg->header().fileName() == fileName )
         {
             spdlog::info( "Segmentation from file {} has already been loaded as {}", fileName, segUid );
             return { segUid, false };
         }
     }
 
+    // Creating an image as a segmentation will convert the pixel components to the most
+    // suitable unsigned integer type
     Image seg( fileName,
                Image::ImageRepresentation::Segmentation,
                Image::MultiComponentBufferType::SeparateImages );
+
+    // Set the default opacity:
+    seg.settings().setOpacity( 0.5 );
 
     spdlog::info( "Read segmentation image from file {}", fileName );
 
@@ -322,16 +330,13 @@ AntropyApp::loadSegmentation(
     spdlog::info( "Header:\n{}", seg.header() );
     spdlog::info( "Transformation:\n{}", seg.transformations() );
 
-    const Image* matchImg = ( matchingImageUid )
-            ? m_data.image( *matchingImageUid ) : nullptr;
+    const Image* matchImg = ( matchingImageUid ) ? m_data.image( *matchingImageUid ) : nullptr;
 
     if ( ! matchImg )
     {
         // No valid image was provided to match with this segmentation.
-        // Just try to add the segmentation.
-        const auto segUid = m_data.addSeg( std::move(seg) );
-
-        if ( segUid )
+        // Add just the segmentation without pairing it to an image.
+        if ( const auto segUid = m_data.addSeg( std::move(seg) ) )
         {
             return { *segUid, true };
         }
@@ -341,27 +346,11 @@ AntropyApp::loadSegmentation(
         }
     }
 
-    // Set the default opacity:
-    seg.settings().setOpacity( 0.5 );
-
     // Compare header of segmentation with header of its matching image:
     const auto& imgTx = matchImg->transformations();
     const auto& segTx = seg.transformations();
 
-
-    // This check should be performed after affine_T_subject has been set for both the image
-    // and its segmentation:
-//    if ( imgTx.get_affine_T_subject() != segTx.get_affine_T_subject() )
-//    {
-//        spdlog::warn( "The affine_T_subject transformations for image {} "
-//                      "and segmentation do not match", *matchingImageUid );
-//        spdlog::error( "The segmentation from file {} will not be loaded", fileName );
-//        return sk_noSegAdded;
-//    }
-
-
-    /// @todo Turn these equality checks into glm::epsilonEquals checks
-    if ( imgTx.subject_T_texture() != segTx.subject_T_texture() )
+    if ( ! math::areMatricesEqual( imgTx.subject_T_texture(), segTx.subject_T_texture() ) )
     {
         spdlog::warn( "The subject_T_texture transformations for image {} "
                       "and segmentation from file {} do not match", *matchingImageUid, fileName );
@@ -369,21 +358,21 @@ AntropyApp::loadSegmentation(
         const auto& imgHdr = matchImg->header();
         const auto& segHdr = seg.header();
 
-        if ( imgHdr.origin() != segHdr.origin() )
+        if ( glm::any( glm::epsilonNotEqual( imgHdr.origin(), segHdr.origin(), EPS ) ) )
         {
             spdlog::warn( "The origins of image ({}) and segmentation ({}) do not match",
                           glm::to_string( imgHdr.origin() ),
                           glm::to_string( segHdr.origin() ) );
         }
 
-        if ( imgHdr.spacing() != segHdr.spacing() )
+        if ( glm::any( glm::epsilonNotEqual( imgHdr.spacing(), segHdr.spacing(), EPS ) ) )
         {
             spdlog::warn( "The voxel spacings of image ({}) and segmentation ({}) do not match",
                           glm::to_string( imgHdr.spacing() ),
                           glm::to_string( segHdr.spacing() ) );
         }
 
-        if ( imgHdr.directions() != segHdr.directions() )
+        if ( ! math::areMatricesEqual( imgHdr.directions(), segHdr.directions() ) )
         {
             spdlog::warn( "The direction vectors of image ({}) and segmentation ({}) do not match",
                           glm::to_string( imgHdr.directions() ),

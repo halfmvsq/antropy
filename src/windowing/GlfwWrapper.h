@@ -116,7 +116,8 @@ private:
     // Process user interaction input between render calls.
     void processInput();
 
-    // Returns the current monitor containing the window
+    // Returns the "current monitor" of the window. This is evaluated
+    // as the monitor with the largest overlap with the window.
     GLFWmonitor* currentMonitor() const;
 
     // GLFW window that is owned by this class:

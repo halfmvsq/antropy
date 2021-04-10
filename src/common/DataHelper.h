@@ -48,7 +48,8 @@ std::vector<uuids::uuid> selectImages(
 float sliceScrollDistance(
         const AppData&,
         const glm::vec3& worldCameraFrontDir,
-        const ImageSelection&, const View* view );
+        const ImageSelection&,
+        const View* view );
 
 float sliceScrollDistance(
         const glm::vec3& worldCameraFrontDir,

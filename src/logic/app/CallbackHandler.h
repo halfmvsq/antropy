@@ -6,127 +6,253 @@
 #include <uuid.h>
 
 #include <glm/fwd.hpp>
+#include <glm/vec2.hpp>
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 
 
 class AppData;
 class GlfwWrapper;
 class Rendering;
+class View;
 
 struct GLFWcursor;
 
 
+/**
+ * @brief Handles UI callbacks to the application
+ */
 class CallbackHandler
 {
 public:
 
-    enum class AxisConstraint
-    {
-        X,
-        Y,
-        Z
-    };
-
-
     CallbackHandler( AppData&, GlfwWrapper&, Rendering& );
     ~CallbackHandler() = default;
 
-    /// Clears all voxels in the segmentation, setting them to 0
+    /**
+     * @brief Clears all voxels in a segmentation, setting them to 0
+     * @param segUid
+     * @return
+     */
     bool clearSegVoxels( const uuids::uuid& segUid );
 
+    /**
+     * @brief executeGridCutSegmentation
+     * @param imageUid
+     * @param seedSegUid
+     * @param resultSegUid
+     * @return
+     */
     bool executeGridCutSegmentation(
             const uuids::uuid& imageUid,
             const uuids::uuid& seedSegUid,
             const uuids::uuid& resultSegUid );
 
-    /// Move the crosshairs
+    /**
+     * @brief Move the crosshairs
+     * @param windowLastPos
+     * @param windowCurrPos
+     */
     void doCrosshairsMove(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos );
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos );
 
-    /// Scroll the crosshairs
+    /**
+     * @brief Scroll the crosshairs
+     * @param windowCurrPos
+     * @param scrollOffset
+     */
     void doCrosshairsScroll(
-            const glm::vec2& currWindowPos,
+            const glm::vec2& windowCurrPos,
             const glm::vec2& scrollOffset );
 
-    /// Segment the image
+    /**
+     * @brief Segment the image
+     * @param windowLastPos
+     * @param windowCurrPos
+     * @param leftButton
+     */
     void doSegment(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos,
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos,
             bool leftButton );
 
-    /// Annotate
+    /**
+     * @brief doAnnotate
+     * @param windowLastPos
+     * @param windowCurrPos
+     */
     void doAnnotate(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos );
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos );
 
-    /// Adjust image window/level
+    /**
+     * @brief Adjust image window/level
+     * @param windowLastPos
+     * @param windowCurrPos
+     */
     void doWindowLevel(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos );
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos );
 
-    /// Adjust image opacity
+    /**
+     * @brief Adjust image opacity
+     * @param windowLastPos
+     * @param windowCurrPos
+     */
     void doOpacity(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos );
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos );
 
-    /// 2D translation of the camera
+    /**
+     * @brief 2D translation of the camera (panning)
+     * @param windowLastPos
+     * @param windowCurrPos
+     * @param windowStartPos
+     */
     void doCameraTranslate2d(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos,
-            const glm::vec2& startWindowPos );
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos,
+            const glm::vec2& windowStartPos );
 
-    /// 2D rotation of the camera
+    /**
+     * @brief 2D rotation of the camera
+     * @param windowLastPos
+     * @param windowCurrPos
+     * @param windowStartPos
+     */
     void doCameraRotate2d(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos,
-            const glm::vec2& startWindowPos );
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos,
+            const glm::vec2& windowStartPos );
 
-    /// 3d rotation of the camera
+    /**
+     * @brief 3D rotation of the camera
+     * @param windowLastPos
+     * @param windowCurrPos
+     * @param windowStartPos
+     * @param constraint
+     */
     void doCameraRotate3d(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos,
-            const glm::vec2& startWindowPos,
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos,
+            const glm::vec2& windowStartPos,
             const std::optional<AxisConstraint>& constraint );
 
-    /// 3d rotation of the camera
+    /**
+     * @brief 3D rotation of the camera
+     * @param viewUid
+     * @param camera_T_world_rotationDelta
+     */
     void doCameraRotate3d(
             const uuids::uuid& viewUid,
             const glm::quat& camera_T_world_rotationDelta );
 
-    /// 2D zoom of the camera
+    /**
+     * @brief 2D zoom of the camera
+     * @param windowLastPos
+     * @param windowCurrPos
+     * @param windowStartPos
+     * @param zoomBehavior
+     * @param syncZoomForAllViews
+     */
     void doCameraZoomDrag(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos,
-            const glm::vec2& startWindowPos,
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos,
+            const glm::vec2& windowStartPos,
             const ZoomBehavior& zoomBehavior,
             bool syncZoomForAllViews );
 
+    /**
+     * @brief doCameraZoomScroll
+     * @param scrollOffset
+     * @param windowStartPos
+     * @param zoomBehavior
+     * @param syncZoomForAllViews
+     */
     void doCameraZoomScroll(
             const glm::vec2& scrollOffset,
-            const glm::vec2& startWindowPos,
+            const glm::vec2& windowStartPos,
             const ZoomBehavior& zoomBehavior,
             bool syncZoomForAllViews );
 
-    /// Image rotation
+    /**
+     * @brief Image rotation
+     * @param windowLastPos
+     * @param windowCurrPos
+     * @param windowStartPos
+     * @param inPlane
+     */
     void doImageRotate(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos,
-            const glm::vec2& startWindowPos,
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos,
+            const glm::vec2& windowStartPos,
             bool inPlane );
 
-    /// Image translation
+    /**
+     * @brief Image translation
+     * @param windowLastPos
+     * @param windowCurrPos
+     * @param windowStartPos
+     * @param inPlane
+     */
     void doImageTranslate(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos,
-            const glm::vec2& startWindowPos,
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos,
+            const glm::vec2& windowStartPos,
             bool inPlane );
 
-    /// Image scale
+    /**
+     * @brief Image scale
+     * @param windowLastPos
+     * @param windowCurrPos
+     * @param windowStartPos
+     * @param constrainIsotropic
+     */
     void doImageScale(
-            const glm::vec2& lastWindowPos,
-            const glm::vec2& currWindowPos,
-            const glm::vec2& startWindowPos,
+            const glm::vec2& windowLastPos,
+            const glm::vec2& windowCurrPos,
+            const glm::vec2& windowStartPos,
             bool constrainIsotropic );
+
+    /**
+     * @brief scrollViewSlice
+     * @param windowCurrPos
+     * @param numSlices
+     */
+    void scrollViewSlice(
+            const glm::vec2& windowCurrPos,
+            int numSlices );
+
+    /**
+     * @brief moveCrosshairsOnViewSlice
+     * @param windowCurrPos
+     * @param stepX
+     * @param stepY
+     */
+    void moveCrosshairsOnViewSlice(
+            const glm::vec2& windowCurrPos,
+            int stepX, int stepY );
+
+    /**
+     * @brief Recenter all views on the selected images. Optionally recenter crosshairs there too.
+     * @param recenterCrosshairs
+     * @param recenterOnCurrentCrosshairsPos
+     * @param resetObliqueOrientation
+     */
+    void recenterViews(
+            const ImageSelection&,
+            bool recenterCrosshairs,
+            bool recenterOnCurrentCrosshairsPos,
+            bool resetObliqueOrientation );
+
+    /**
+     * @brief Recenter one view
+     * @param viewUid
+     */
+    void recenterView(
+            const ImageSelection&,
+            const uuids::uuid& viewUid );
 
     void flipImageInterpolation();
     void toggleImageVisibility();
@@ -147,26 +273,6 @@ public:
 
     void cycleBrushSize( int i );
 
-    void scrollViewSlice(
-            const glm::vec2& currWindowPos,
-            int numSlices );
-
-    void moveCrosshairsOnViewSlice(
-            const glm::vec2& currWindowPos,
-            int stepX, int stepY );
-
-    /// Recenter all views on the selected images. Optionally recenter crosshairs there too.
-    void recenterViews(
-            const ImageSelection&,
-            bool recenterCrosshairs,
-            bool recenterOnCurrentCrosshairsPos,
-            bool resetObliqueOrientation );
-
-    /// Recenter one view
-    void recenterView(
-            const ImageSelection&,
-            const uuids::uuid& viewUid );
-
     bool showOverlays() const;
     void setShowOverlays( bool );
 
@@ -186,6 +292,37 @@ private:
     AppData& m_appData;
     GlfwWrapper& m_glfw;
     Rendering& m_rendering;
+
+    /**
+     * @brief When a view is hit by a mouse/pointer click, this structure is used to
+     * return data about the view that was hit, including its ID, a reference to the view,
+     * and the hit position in Clip space of the view.
+     */
+    struct ViewHitData
+    {
+        ViewHitData( View& view, uuids::uuid viewUid )
+            : m_view( view ), m_viewUid( viewUid ) {}
+
+        View& m_view;
+        uuids::uuid m_viewUid;
+
+        glm::vec2 m_windowClipLastPos;
+        glm::vec2 m_windowClipCurrPos;
+
+        glm::vec4 m_viewClipLastPos;
+        glm::vec4 m_viewClipCurrPos;
+
+        glm::vec4 m_worldCurrPos;
+        glm::vec3 m_worldFrontAxis;
+    };
+
+    std::optional<ViewHitData> getViewHit(
+            const glm::vec2& windowPixelLastPos,
+            const glm::vec2& windowPixelCurrPos,
+            bool requireViewToBeActive = true,
+            const std::optional<glm::vec2> windowPixelStartPos = std::nullopt,
+            bool hitBasedOnStartPos = false );
+
 };
 
 #endif // CALLBACK_HANDLER_H

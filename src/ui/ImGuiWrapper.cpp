@@ -585,6 +585,8 @@ void ImGuiWrapper::render()
 
     Layout& currentLayout = m_appData.windowData().currentLayout();
 
+    const float wholeWindowHeight = m_appData.windowData().getWindowSize().y;
+
     if ( m_appData.guiData().m_renderUiOverlays && currentLayout.isLightbox() )
     {
         // Per-layout UI controls:
@@ -595,7 +597,7 @@ void ImGuiWrapper::render()
 
         renderViewSettingsComboWindow(
                     currentLayout.uid(),
-                    camera::computeWindowMinMaxCoordsOfFrame( currentLayout.winClipViewport(), m_appData.windowData().viewport().getAsVec4() ),
+                    camera::computeWindowMinMaxCoordsOfFrameForImGui( currentLayout.windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
                     currentLayout.uiControls(),
                     true,
                     false,
@@ -620,7 +622,7 @@ void ImGuiWrapper::render()
 
         renderViewOrientationToolWindow(
                     currentLayout.uid(),
-                    camera::computeWindowMinMaxCoordsOfFrame( currentLayout.winClipViewport(), m_appData.windowData().viewport().getAsVec4() ),
+                    camera::computeWindowMinMaxCoordsOfFrameForImGui( currentLayout.windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
                     currentLayout.uiControls(),
                     true,
                     currentLayout.cameraType(),
@@ -654,7 +656,7 @@ void ImGuiWrapper::render()
 
             renderViewSettingsComboWindow(
                         viewUid,
-                        camera::computeWindowMinMaxCoordsOfFrame( view->winClipViewport(), m_appData.windowData().viewport().getAsVec4() ),
+                        camera::computeWindowMinMaxCoordsOfFrameForImGui( view->windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
                         view->uiControls(),
                         false,
                         true,
@@ -679,7 +681,7 @@ void ImGuiWrapper::render()
 
             renderViewOrientationToolWindow(
                     viewUid,
-                    camera::computeWindowMinMaxCoordsOfFrame( view->winClipViewport(), m_appData.windowData().viewport().getAsVec4() ),
+                    camera::computeWindowMinMaxCoordsOfFrameForImGui( view->windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
                     view->uiControls(),
                     false,
                     view->cameraType(),

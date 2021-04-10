@@ -29,11 +29,11 @@ public:
 
     virtual ~ControlFrame() = default;
 
-    void setWinClipViewport( glm::vec4 winClipViewport );
-    const glm::vec4& winClipViewport() const;
+    void setWindowClipViewport( glm::vec4 winClipViewport );
+    const glm::vec4& windowClipViewport() const;
 
-    const glm::mat4& winClip_T_viewClip() const;
-    const glm::mat4& viewClip_T_winClip() const;
+    const glm::mat4& windowClip_T_viewClip() const;
+    const glm::mat4& viewClip_T_windowClip() const;
 
     camera::CameraType cameraType() const;
     virtual void setCameraType( const camera::CameraType& cameraType );
@@ -73,10 +73,10 @@ protected:
     glm::vec4 m_winClipViewport;
 
     /// Transformation from view Clip space to Clip space of its enclosing window
-    glm::mat4 m_winClip_T_viewClip;
+    glm::mat4 m_windowClip_T_viewClip;
 
     /// Transformation from the Clip space of the view's enclosing window to Clip space of the view
-    glm::mat4 m_viewClip_T_winClip;
+    glm::mat4 m_viewClip_T_windowClip;
 
     /// Uids of images rendered in this frame. They are listed in the order in which they are
     /// rendered, with image 0 at the bottom.

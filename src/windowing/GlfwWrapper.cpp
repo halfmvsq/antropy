@@ -109,7 +109,7 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
     // Make window's context current on this thread
     glfwMakeContextCurrent( m_window );
 
-    // Set callbacks
+    // Set callbacks:
     glfwSetErrorCallback( errorCallback );
 
     glfwSetWindowContentScaleCallback( m_window, windowContentScaleCallback );
@@ -118,16 +118,17 @@ GlfwWrapper::GlfwWrapper( AntropyApp* app, int glMajorVersion, int glMinorVersio
     glfwSetWindowSizeCallback( m_window, windowSizeCallback );
 
     glfwSetCursorPosCallback( m_window, cursorPosCallback );
+    glfwSetDropCallback( m_window, dropCallback );
+    glfwSetKeyCallback( m_window, keyCallback );
     glfwSetMouseButtonCallback( m_window, mouseButtonCallback );
     glfwSetScrollCallback( m_window, scrollCallback );
-    glfwSetKeyCallback( m_window, keyCallback );
-    glfwSetDropCallback( m_window, dropCallback );
 
     spdlog::debug( "Set GLFW callbacks" );
 
     // Create cursors: not currently used
-    m_mouseModeToCursor.emplace(
-                MouseMode::WindowLevel, glfwCreateStandardCursor( GLFW_RESIZE_ALL_CURSOR ) );
+    GLFWcursor* cursor = glfwCreateStandardCursor( GLFW_RESIZE_ALL_CURSOR );
+    m_mouseModeToCursor.emplace( MouseMode::WindowLevel, cursor );
+
     spdlog::debug( "Created GLFW cursors" );
 
 //    glfwSetWindowIcon( window, 1, GLFWimage() );
@@ -315,21 +316,13 @@ void GlfwWrapper::toggleFullScreenMode( bool forceWindowMode )
         glfwGetWindowSize( m_window, &m_backupWindowWidth, &m_backupWindowHeight );
 
         GLFWmonitor* monitor = currentMonitor();
-
         if ( ! monitor )
         {
-            // Try the primary monitor instead:
-            monitor = glfwGetPrimaryMonitor();
-
-            if ( ! monitor )
-            {
-                spdlog::error( "Null monitor upon setting full-screen mode." );
-                return;
-            }
+            spdlog::error( "Null monitor upon setting full-screen mode." );
+            return;
         }
 
         const GLFWvidmode* mode = glfwGetVideoMode( monitor );
-
         if ( ! mode )
         {
             spdlog::error( "Null video mode upon setting full-screen mode." );
@@ -342,40 +335,55 @@ void GlfwWrapper::toggleFullScreenMode( bool forceWindowMode )
 
 GLFWmonitor* GlfwWrapper::currentMonitor() const
 {
-    int nmonitors, i;
-    int wx, wy, ww, wh;
-    int mx, my, mw, mh;
-    int overlap, bestoverlap;
-    GLFWmonitor *bestmonitor;
-    GLFWmonitor **monitors;
+    // The current monitor is the one with the largest overlap with the window.
+    // Initialize to the primary monitor.
+    GLFWmonitor* currentMonitor = glfwGetPrimaryMonitor();
+    int largestOverlap = 0;
 
-    const GLFWvidmode* mode;
+    int winPosX, winPosY, winWidth, winHeight;
+    glfwGetWindowPos( m_window, &winPosX, &winPosY );
+    glfwGetWindowSize( m_window, &winWidth, &winHeight );
 
-    bestoverlap = 0;
-    bestmonitor = NULL;
+    int numMonitors;
+    GLFWmonitor** monitors = glfwGetMonitors( &numMonitors );
 
-    glfwGetWindowPos( m_window, &wx, &wy );
-    glfwGetWindowSize( m_window, &ww, &wh );
-
-    monitors = glfwGetMonitors(&nmonitors);
-
-    for (i = 0; i < nmonitors; i++)
+    for ( int i = 0; i < numMonitors; ++i )
     {
-        mode = glfwGetVideoMode(monitors[i]);
-        glfwGetMonitorPos(monitors[i], &mx, &my);
-
-        mw = mode->width;
-        mh = mode->height;
-
-        overlap = std::max( 0, std::min( wx + ww, mx + mw ) - std::max( wx, mx ) ) *
-                std::max( 0, std::min( wy + wh, my + mh ) - std::max( wy, my ) );
-
-        if (bestoverlap < overlap)
+        if ( ! monitors[i] )
         {
-            bestoverlap = overlap;
-            bestmonitor = monitors[i];
+            spdlog::debug( "Monitor {} is null", i );
+            continue;
+        }
+
+        const GLFWvidmode* mode = glfwGetVideoMode( monitors[i] );
+        if ( ! mode )
+        {
+            spdlog::debug( "Video mode for monitor {} is null", i );
+            continue;
+        }
+
+        int monitorPosX, monitorPosY;
+        glfwGetMonitorPos( monitors[i], &monitorPosX, &monitorPosY );
+
+        const int monitorWidth = mode->width;
+        const int monitorHeight = mode->height;
+
+        const int overlapX = std::max(
+                    std::min( winPosX + winWidth, monitorPosX + monitorWidth ) -
+                    std::max( winPosX, monitorPosX ), 0 );
+
+        const int overlapY = std::max(
+                    std::min( winPosY + winHeight, monitorPosY + monitorHeight ) -
+                    std::max( winPosY, monitorPosY ), 0 );
+
+        const int overlap = overlapX * overlapY;
+
+        if ( largestOverlap < overlap )
+        {
+            largestOverlap = overlap;
+            currentMonitor = monitors[i];
         }
     }
 
-    return bestmonitor;
+    return currentMonitor;
 }
