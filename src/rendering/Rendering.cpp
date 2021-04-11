@@ -677,18 +677,18 @@ struct AnatomicalLabelPosInfo
     int labelIndex;
 
     /// Mouse crosshairs center position (in Mouse space)
-    glm::vec2 mouseXhairCenterPos{ 0.0f, 0.0f };
+    glm::vec2 miewportXhairCenterPos{ 0.0f, 0.0f };
 
     /// Normalized direction vector of the label (in View Clip space)
     glm::vec2 viewClipDir{ 0.0f, 0.0f };
 
     /// Position of the label and the opposite label of its pair (in Mouse space)
-    std::array<glm::vec2, 2> mouseLabelPositions;
+    std::array<glm::vec2, 2> miewportLabelPositions;
 
     /// Positions of the crosshair-view intersections (in Mouse space).
     /// Equal to std::nullopt if there is no intersection of the crosshair with the
     /// view AABB for this label.
-    std::optional< std::array<glm::vec2, 2> > mouseXhairPositions = std::nullopt;
+    std::optional< std::array<glm::vec2, 2> > miewportXhairPositions = std::nullopt;
 };
 
 
@@ -748,10 +748,11 @@ computeAnatomicalLabelsForView(
 
 std::list<AnatomicalLabelPosInfo>
 computeAnatomicalLabelPosInfo(
+        const camera::FrameBounds& miewportViewBounds,
         const Viewport& windowVP,
         const View& view,
         const glm::mat4& world_T_refSubject,
-        const glm::vec4& worldCrosshairs )
+        const glm::vec3& worldCrosshairs )
 {
     // Compute intersections of the anatomical label ray with the view box:
     static constexpr bool sk_doBothLabelDirs = false;
@@ -759,61 +760,56 @@ computeAnatomicalLabelPosInfo(
     // Compute intersections of the crosshair ray with the view box:
     static constexpr bool sk_doBothXhairDirs = true;
 
-    const glm::mat4 mouse_T_viewClip =
+    const glm::mat4 miewport_T_viewClip =
             camera::miewport_T_viewport( windowVP.height() ) *
             camera::viewport_T_windowClip( windowVP ) *
             view.windowClip_T_viewClip();
 
-    const glm::mat3 mouse_T_viewClip_IT =
-            glm::inverseTranspose( glm::mat3{ mouse_T_viewClip } );
+    const glm::mat3 miewport_T_viewClip_IT = glm::inverseTranspose( glm::mat3{ miewport_T_viewClip } );
 
     auto labelPosInfo = computeAnatomicalLabelsForView( view, world_T_refSubject );
 
-    auto winMinMax = camera::computeMiewportMinMaxCornersOfFrame(
-                view.windowClipViewport(), windowVP.getAsVec4() );
-
-    const glm::vec2 viewBL = winMinMax.first;
-    const glm::vec2 viewTR = winMinMax.second;
-
-    const float viewWidth = viewTR.x - viewBL.x;
-    const float viewHeight = viewTR.y - viewBL.y;
-
-    // Scaling to account for aspect ratio
-    const float aspectRatio = viewWidth / viewHeight;
+    const float aspectRatio = miewportViewBounds.bounds.width / miewportViewBounds.bounds.height;
 
     const glm::vec2 aspectRatioScale = ( aspectRatio < 1.0f )
             ? glm::vec2{ aspectRatio, 1.0f }
             : glm::vec2{ 1.0f, 1.0f / aspectRatio };
 
-    const glm::vec2 mouseViewCenterPos = 0.5f * ( viewBL + viewTR );
+    const glm::vec2 miewportMinCorner( miewportViewBounds.bounds.xoffset, miewportViewBounds.bounds.yoffset );
+    const glm::vec2 miewportSize( miewportViewBounds.bounds.width, miewportViewBounds.bounds.height );
+    const glm::vec2 miewportCenter = miewportMinCorner + 0.5f * miewportSize;
 
-    glm::vec4 viewClipXhairPos = camera::clip_T_world( view.camera() ) * worldCrosshairs;
+    glm::vec4 viewClipXhairPos = camera::clip_T_world( view.camera() ) * glm::vec4{ worldCrosshairs, 1.0f };
     viewClipXhairPos /= viewClipXhairPos.w;
 
-    glm::vec4 mouseXhairPos = mouse_T_viewClip * viewClipXhairPos;
-    mouseXhairPos /= mouseXhairPos.w;
+    glm::vec4 miewportXhairPos = miewport_T_viewClip * viewClipXhairPos;
+    miewportXhairPos /= miewportXhairPos.w;
 
     for ( auto& label : labelPosInfo )
     {
         const glm::vec3 viewClipXhairDir{ label.viewClipDir.x, label.viewClipDir.y, 0.0f };
 
-        label.mouseXhairCenterPos = glm::vec2{ mouseXhairPos };
+        label.miewportXhairCenterPos = glm::vec2{ miewportXhairPos };
 
-        glm::vec2 mouseXhairDir{ mouse_T_viewClip_IT * viewClipXhairDir };
-        mouseXhairDir.x *= aspectRatioScale.x;
-        mouseXhairDir.y *= aspectRatioScale.y;
-        mouseXhairDir = glm::normalize( mouseXhairDir );
+        glm::vec2 miewportXhairDir{ miewport_T_viewClip_IT * viewClipXhairDir };
+        miewportXhairDir.x *= aspectRatioScale.x;
+        miewportXhairDir.y *= aspectRatioScale.y;
+        miewportXhairDir = glm::normalize( miewportXhairDir );
 
         // Intersections for the positive label (L, P, or S):
         const auto posLabelHits = math::computeRayAABoxIntersections(
-                    mouseViewCenterPos, mouseXhairDir,
-                    viewBL, viewTR - viewBL,
+                    miewportCenter,
+                    miewportXhairDir,
+                    miewportMinCorner,
+                    miewportSize,
                     sk_doBothLabelDirs );
 
         // Intersections for the negative label (R, A, or I):
         const auto negLabelHits = math::computeRayAABoxIntersections(
-                    mouseViewCenterPos, -mouseXhairDir,
-                    viewBL, viewTR - viewBL,
+                    miewportCenter,
+                    -miewportXhairDir,
+                    miewportMinCorner,
+                    miewportSize,
                     sk_doBothLabelDirs );
 
         if ( 1 != posLabelHits.size() || 1 != negLabelHits.size() )
@@ -824,22 +820,23 @@ computeAnatomicalLabelPosInfo(
             continue;
         }
 
-        label.mouseLabelPositions = std::array<glm::vec2, 2>{ posLabelHits[0], negLabelHits[0] };
-
+        label.miewportLabelPositions = std::array<glm::vec2, 2>{ posLabelHits[0], negLabelHits[0] };
 
         const auto crosshairHits = math::computeRayAABoxIntersections(
-                    label.mouseXhairCenterPos, mouseXhairDir,
-                    viewBL, viewTR - viewBL,
+                    label.miewportXhairCenterPos,
+                    miewportXhairDir,
+                    miewportMinCorner,
+                    miewportSize,
                     sk_doBothXhairDirs );
 
         if ( 2 != crosshairHits.size() )
         {
             // Only render crosshairs when there are two intersections with the view box:
-            label.mouseXhairPositions = std::nullopt;
+            label.miewportXhairPositions = std::nullopt;
         }
         else
         {
-            label.mouseXhairPositions = std::array<glm::vec2, 2>{ crosshairHits[0], crosshairHits[1] };
+            label.miewportXhairPositions = std::array<glm::vec2, 2>{ crosshairHits[0], crosshairHits[1] };
         }
     }
 
@@ -857,26 +854,25 @@ computeAnatomicalLabelPosInfo(
  */
 void renderAnatomicalLabels(
         NVGcontext* nvg,
-        const Viewport& windowVP,
-        const View& view,
+        const camera::FrameBounds& miewportViewBounds,
         const glm::vec4& color,
         const std::list<AnatomicalLabelPosInfo>& labelPosInfo )
 {
     static constexpr float sk_fontMult = 0.03f;
 
     // Anatomical direction labels
-    static const std::array< std::string, 6 > labels{ "L", "P", "S", "R", "A", "I" };
+    static const std::array< std::string, 6 > sk_labels{ "L", "P", "S", "R", "A", "I" };
 
-    auto winMinMax = camera::computeMiewportMinMaxCornersOfFrame(
-                view.windowClipViewport(), windowVP.getAsVec4() );
+    const glm::vec2 miewportMinCorner( miewportViewBounds.bounds.xoffset, miewportViewBounds.bounds.yoffset );
+    const glm::vec2 miewportSize( miewportViewBounds.bounds.width, miewportViewBounds.bounds.height );
+    const glm::vec2 miewportMaxCorner = miewportMinCorner + miewportSize;
 
-    const glm::vec2 viewBL = winMinMax.first;
-    const glm::vec2 viewTR = winMinMax.second;
+    // Clip against the view bounds, even though not strictly necessary with how lines are defined
+    nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
+            miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
 
-    const float viewWidth = viewTR.x - viewBL.x;
-    const float viewHeight = viewTR.y - viewBL.y;
-
-    const float fontSizePixels = sk_fontMult * std::min( viewWidth, viewHeight );
+    const float fontSizePixels = sk_fontMult *
+            std::min( miewportViewBounds.bounds.width, miewportViewBounds.bounds.height );
 
     // For inward shift of the labels:
     const glm::vec2 inwardFontShift{ 0.8f * fontSizePixels, 0.8f * fontSizePixels };
@@ -888,27 +884,26 @@ void renderAnatomicalLabels(
     nvgFontFace( nvg, ROBOTO_LIGHT.c_str() );
     nvgTextAlign( nvg, NVG_ALIGN_CENTER | NVG_ALIGN_BASELINE );
 
-    // Clip against the view bounds, even though not strictly necessary with how lines are defined
-    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
-
     // Render the translation vectors for the L (0), P (1), and S (2) labels:
     for ( const auto& label : labelPosInfo )
     {
-        const glm::vec2 posWinMousePos = glm::clamp( label.mouseLabelPositions[0],
-                viewBL + inwardFontShift, viewTR - inwardFontShift ) + vertFontShift;
+        const glm::vec2 miewportPositiveMousePos = glm::clamp(
+                    label.miewportLabelPositions[0],
+                    miewportMinCorner + inwardFontShift, miewportMaxCorner - inwardFontShift ) + vertFontShift;
 
-        const glm::vec2 negWinMousePos = glm::clamp( label.mouseLabelPositions[1],
-                viewBL + inwardFontShift, viewTR - inwardFontShift ) + vertFontShift;
+        const glm::vec2 miewportNegativeMousePos = glm::clamp(
+                    label.miewportLabelPositions[1],
+                    miewportMinCorner + inwardFontShift, miewportMaxCorner - inwardFontShift ) + vertFontShift;
 
         nvgFontBlur( nvg, 2.0f );
         nvgFillColor( nvg, s_black );
-        nvgText( nvg, posWinMousePos.x, posWinMousePos.y, labels[label.labelIndex].c_str(), nullptr );
-        nvgText( nvg, negWinMousePos.x, negWinMousePos.y, labels[label.labelIndex + 3].c_str(), nullptr );
+        nvgText( nvg, miewportPositiveMousePos.x, miewportPositiveMousePos.y, sk_labels[label.labelIndex].c_str(), nullptr );
+        nvgText( nvg, miewportNegativeMousePos.x, miewportNegativeMousePos.y, sk_labels[label.labelIndex + 3].c_str(), nullptr );
 
         nvgFontBlur( nvg, 0.0f );
         nvgFillColor( nvg, nvgRGBAf( color.r, color.g, color.b, color.a ) );
-        nvgText( nvg, posWinMousePos.x, posWinMousePos.y, labels[label.labelIndex].c_str(), nullptr );
-        nvgText( nvg, negWinMousePos.x, negWinMousePos.y, labels[label.labelIndex + 3].c_str(), nullptr );
+        nvgText( nvg, miewportPositiveMousePos.x, miewportPositiveMousePos.y, sk_labels[label.labelIndex].c_str(), nullptr );
+        nvgText( nvg, miewportNegativeMousePos.x, miewportNegativeMousePos.y, sk_labels[label.labelIndex + 3].c_str(), nullptr );
     }
 
     nvgResetScissor( nvg );
@@ -918,7 +913,7 @@ void renderAnatomicalLabels(
 // Draw a circle
 void drawCircle(
         NVGcontext* nvg,
-        const glm::vec2& mousePos,
+        const glm::vec2& miewportPos,
         float radius,
         const glm::vec4& fillColor,
         const glm::vec4& strokeColor,
@@ -929,7 +924,7 @@ void drawCircle(
     nvgFillColor( nvg, nvgRGBAf( fillColor.r, fillColor.g, fillColor.b, fillColor.a ) );
 
     nvgBeginPath( nvg );
-    nvgCircle( nvg, mousePos.x, mousePos.y, radius );
+    nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
 
     nvgStroke( nvg );
     nvgFill( nvg );
@@ -939,7 +934,7 @@ void drawCircle(
 // Draw text
 void drawText(
         NVGcontext* nvg,
-        const glm::vec2& mousePos,
+        const glm::vec2& miewportPos,
         const std::string& centeredString,
         const std::string& offsetString,
         const glm::vec4& textColor,
@@ -956,11 +951,11 @@ void drawText(
 
         nvgFontBlur( nvg, 3.0f );
         nvgFillColor( nvg, nvgRGBAf( 0.0f, 0.0f, 0.0f, textColor.a ) );
-        nvgText( nvg, mousePos.x, mousePos.y, centeredString.c_str(), nullptr );
+        nvgText( nvg, miewportPos.x, miewportPos.y, centeredString.c_str(), nullptr );
 
         nvgFontBlur( nvg, 0.0f );
         nvgFillColor( nvg, nvgRGBAf( textColor.r, textColor.g, textColor.b, textColor.a ) );
-        nvgText( nvg, mousePos.x, mousePos.y, centeredString.c_str(), nullptr );
+        nvgText( nvg, miewportPos.x, miewportPos.y, centeredString.c_str(), nullptr );
     }
 
     // Draw offset text
@@ -971,17 +966,18 @@ void drawText(
 
         nvgFontBlur( nvg, 3.0f );
         nvgFillColor( nvg, nvgRGBAf( 0.0f, 0.0f, 0.0f, textColor.a ) );
-        nvgText( nvg, offset + mousePos.x, offset + mousePos.y, offsetString.c_str(), nullptr );
+        nvgText( nvg, offset + miewportPos.x, offset + miewportPos.y, offsetString.c_str(), nullptr );
 
         nvgFontBlur( nvg, 0.0f );
         nvgFillColor( nvg, nvgRGBAf( textColor.r, textColor.g, textColor.b, textColor.a ) );
-        nvgText( nvg, offset + mousePos.x, offset + mousePos.y, offsetString.c_str(), nullptr );
+        nvgText( nvg, offset + miewportPos.x, offset + miewportPos.y, offsetString.c_str(), nullptr );
     }
 }
 
 
 void renderLandmarks(
         NVGcontext* nvg,
+        const camera::FrameBounds& miewportViewBounds,
         const glm::vec3& worldCrosshairs,
         AppData& appData,
         const View& view,
@@ -993,33 +989,25 @@ void renderLandmarks(
 
     const Viewport& windowVP = appData.windowData().viewport();
 
-    // Convert a 3D position from World space to the view's Mouse space
-    auto convertWorldToMousePos = [&view, &windowVP/*, &wholeWindowHeight*/] ( const glm::vec3& worldPos ) -> glm::vec2
+    // Convert a 3D position from World space to the view's Miewport space
+    auto convertWorldToMiewportPos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
     {
         const glm::vec4 winClipPos =
                 view.windowClip_T_viewClip() *
                 camera::clip_T_world( view.camera() ) *
                 glm::vec4{ worldPos, 1.0f };
 
-        const glm::vec2 pixelPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
-        const glm::vec2 mousePos = camera::miewport_T_viewport( windowVP.height(), pixelPos );
-        return mousePos;
+        const glm::vec2 viewportPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
+        const glm::vec2 miewportPos = camera::miewport_T_viewport( windowVP.height(), viewportPos );
+        return miewportPos;
     };
 
 
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
-    auto winMinMax = camera::computeMiewportMinMaxCornersOfFrame(
-                view.windowClipViewport(), windowVP.getAsVec4() );
-
-    const glm::vec2 viewBL = winMinMax.first;
-    const glm::vec2 viewTR = winMinMax.second;
-
-    const float viewWidth = viewTR.x - viewBL.x;
-    const float viewHeight = viewTR.y - viewBL.y;
-
     // Clip against the view bounds
-    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
+    nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
+            miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
 
     const float strokeWidth = appData.renderData().m_globalLandmarkParams.strokeWidth;
 
@@ -1077,9 +1065,8 @@ void renderLandmarks(
                     ? img->transformations().worldDef_T_pixel()
                     : img->transformations().worldDef_T_subject();
 
-            const float pixelsMaxLmSize = glm::clamp(
-                        lmGroup->getRadiusFactor() * std::min( viewWidth, viewHeight ),
-                        sk_minSize , sk_maxSize );
+            const float minDim = std::min( miewportViewBounds.bounds.width, miewportViewBounds.bounds.height );
+            const float pixelsMaxLmSize = glm::clamp( lmGroup->getRadiusFactor() * minDim, sk_minSize, sk_maxSize );
 
             for ( const auto& p : lmGroup->getPoints() )
             {
@@ -1104,10 +1091,12 @@ void renderLandmarks(
                     continue;
                 }
 
-                const glm::vec2 mousePos = convertWorldToMousePos( worldLmPos3 );
+                const glm::vec2 miewportPos = convertWorldToMiewportPos( worldLmPos3 );
 
-                const bool inView = ( viewBL.x < mousePos.x && viewBL.y < mousePos.y &&
-                                      mousePos.x < viewTR.x && mousePos.y < viewTR.y );
+                const bool inView = ( miewportViewBounds.bounds.xoffset < miewportPos.x &&
+                                      miewportViewBounds.bounds.yoffset < miewportPos.y &&
+                                      miewportPos.x < miewportViewBounds.bounds.xoffset + miewportViewBounds.bounds.width &&
+                                      miewportPos.y < miewportViewBounds.bounds.yoffset + miewportViewBounds.bounds.height );
 
                 if ( ! inView ) continue;
 
@@ -1132,8 +1121,7 @@ void renderLandmarks(
                 const float radius = pixelsMaxLmSize *
                         std::sqrt( std::abs( 1.0f - std::pow( distLmToPlane / maxDist, 2.0f ) ) );
 
-                drawCircle( nvg, mousePos, radius, fillColor, strokeColor, strokeWidth );
-
+                drawCircle( nvg, miewportPos, radius, fillColor, strokeColor, strokeWidth );
 
                 const bool renderIndices = lmGroup->getRenderLandmarkIndices();
                 const bool renderNames = lmGroup->getRenderLandmarkNames();
@@ -1151,7 +1139,7 @@ void renderLandmarks(
                     const glm::vec4 textColor{ ( lmGroupTextColor )
                                 ? *lmGroupTextColor : fillColor, lmGroupOpacity };
 
-                    drawText( nvg, mousePos, indexString, nameString, textColor, textOffset, textSize );
+                    drawText( nvg, miewportPos, indexString, nameString, textColor, textOffset, textSize );
                 }
             }
         }
@@ -1165,6 +1153,7 @@ void renderLandmarks(
 
 void renderAnnotations(
         NVGcontext* nvg,
+        const camera::FrameBounds& miewportViewBounds,
         const glm::vec3& worldCrosshairs,
         AppData& appData,
         const View& view,
@@ -1172,38 +1161,26 @@ void renderAnnotations(
 {
     const Viewport& windowVP = appData.windowData().viewport();
 
-    // Convert a 3D position from World space to the view's Mouse space
-    auto convertWorldToMousePos = [&view, &windowVP]
-            ( const glm::vec3& worldPos ) -> glm::vec2
+    auto convertWorldToMiewportPos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
     {
         const glm::vec4 winClipPos =
                 view.windowClip_T_viewClip() *
                 camera::clip_T_world( view.camera() ) *
                 glm::vec4{ worldPos, 1.0f };
 
-        const glm::vec2 pixelPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
-        const glm::vec2 mousePos = camera::miewport_T_viewport( windowVP.height(), pixelPos );
-        return mousePos;
+        const glm::vec2 viewportPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
+        const glm::vec2 miewportPos = camera::miewport_T_viewport( windowVP.height(), viewportPos );
+        return miewportPos;
     };
 
 
-    // Set line style
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
 
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
-    auto winMinMax = camera::computeMiewportMinMaxCornersOfFrame(
-                view.windowClipViewport(), windowVP.getAsVec4() );
-
-    const glm::vec2 viewBL = winMinMax.first;
-    const glm::vec2 viewTR = winMinMax.second;
-
-    const float viewWidth = viewTR.x - viewBL.x;
-    const float viewHeight = viewTR.y - viewBL.y;
-
-    // Clip against the view bounds
-    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
+    nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
+            miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
 
     const glm::vec3 worldViewNormal = camera::worldDirection( view.camera(), Directions::View::Back );
 
@@ -1287,17 +1264,17 @@ void renderAnnotations(
         {
             const glm::vec3 subjectPos = annot->unprojectFromAnnotationPlaneToSubjectPoint( subjectPlaneVertices[i] );
             const glm::vec4 worldPos = world_T_subject * glm::vec4{ subjectPos, 1.0f };
-            const glm::vec2 mousePos = convertWorldToMousePos( glm::vec3{ worldPos / worldPos.w } );
+            const glm::vec2 miewportPos = convertWorldToMiewportPos( glm::vec3{ worldPos / worldPos.w } );
 
             if ( 0 == i )
             {
                 // Move pen to the first point:
-                nvgMoveTo( nvg, mousePos.x, mousePos.y );
+                nvgMoveTo( nvg, miewportPos.x, miewportPos.y );
                 continue;
             }
             else
             {
-                nvgLineTo( nvg, mousePos.x, mousePos.y );
+                nvgLineTo( nvg, miewportPos.x, miewportPos.y );
             }
 
 //            spdlog::trace( "Point i = {}: {}", i, glm::to_string( mousePos ) );
@@ -1314,20 +1291,21 @@ void renderAnnotations(
 
 void renderImageViewIntersections(
         NVGcontext* nvg,
+        const camera::FrameBounds& miewportViewBounds,
         AppData& appData,
         const View& view,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
 {
     // Line segment stipple length in pixels
-    constexpr float sk_stippleLen = 16.0f;
+    static constexpr float sk_stippleLen = 16.0f;
 
     const Viewport& windowVP = appData.windowData().viewport();
 
-    auto mouse_T_world = [&view, &windowVP/*, wholeWindowHeight*/] ( const glm::vec4& worldPos ) -> glm::vec2
+    auto miewport_T_world = [&view, &windowVP] ( const glm::vec4& worldPos ) -> glm::vec2
     {
         const glm::vec4 winClipPos = view.windowClip_T_viewClip() * camera::clip_T_world( view.camera() ) * worldPos;
-        const glm::vec2 pixelPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos } );
-        return camera::miewport_T_viewport( windowVP.height(), pixelPos );
+        const glm::vec2 viewportPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos } );
+        return camera::miewport_T_viewport( windowVP.height(), viewportPos );
     };
 
     nvgLineCap( nvg, NVG_BUTT );
@@ -1335,17 +1313,8 @@ void renderImageViewIntersections(
 
     startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
 
-    auto winMinMax = camera::computeMiewportMinMaxCornersOfFrame(
-                view.windowClipViewport(), windowVP.getAsVec4() );
-
-    const glm::vec2 viewBL = winMinMax.first;
-    const glm::vec2 viewTR = winMinMax.second;
-
-    const float viewWidth = viewTR.x - viewBL.x;
-    const float viewHeight = viewTR.y - viewBL.y;
-
-    // Clip against the view bounds
-    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
+    nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
+            miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
 
     // Render border for each image
     for ( const auto& imgSegPair : I )
@@ -1381,7 +1350,7 @@ void renderImageViewIntersections(
 
         for ( size_t i = 0; i < worldIntersections->size(); ++i )
         {
-            const glm::vec2 currPos = mouse_T_world( worldIntersections->at( i ) );
+            const glm::vec2 currPos = miewport_T_world( worldIntersections->at( i ) );
 
             if ( 0 == i )
             {
@@ -1440,28 +1409,25 @@ void renderImageViewIntersections(
 
 void renderViewOutline(
         NVGcontext* nvg,
-        const Viewport& windowVP,
-        const View& view,
+        const camera::FrameBounds& miewportViewBounds,
         bool drawActiveOutline )
 {
     static constexpr float k_padOuter = 0.0f;
 //    static constexpr float k_padInner = 2.0f;
     static constexpr float k_padActive = 3.0f;
 
-    auto winMinMaxCoords = camera::computeMiewportMinMaxCornersOfFrame(
-                view.windowClipViewport(), windowVP.getAsVec4() );
-
-    auto drawRectangle = [&nvg, &winMinMaxCoords]
-            ( float pad, float width, const NVGcolor& color )
+    auto drawRectangle = [&nvg, &miewportViewBounds] ( float pad, float width, const NVGcolor& color )
     {
         nvgStrokeWidth( nvg, width );
         nvgStrokeColor( nvg, color );
 
         nvgBeginPath( nvg );
 
-        nvgRect( nvg, winMinMaxCoords.first.x + pad, winMinMaxCoords.first.y + pad,
-                 winMinMaxCoords.second.x - winMinMaxCoords.first.x - 2.0f * pad,
-                 winMinMaxCoords.second.y - winMinMaxCoords.first.y - 2.0f * pad );
+        nvgRect( nvg,
+                 miewportViewBounds.bounds.xoffset + pad,
+                 miewportViewBounds.bounds.yoffset + pad,
+                 miewportViewBounds.bounds.width - 2.0f * pad,
+                 miewportViewBounds.bounds.height - 2.0f * pad );
 
         nvgStroke( nvg );
     };
@@ -1489,20 +1455,20 @@ void renderViewOutline(
  */
 void renderCrosshairsOverlay(
         NVGcontext* nvg,
-        const Viewport& windowVP,
+        const camera::FrameBounds& miewportViewBounds,
         const View& view,
         const glm::vec4& color,
         const std::list<AnatomicalLabelPosInfo>& labelPosInfo )
 {
     // Line segment stipple length in pixels
-    constexpr float sk_stippleLen = 8.0f;
+    static constexpr float sk_stippleLen = 8.0f;
 
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
 
-    // Is the view offset from the crosshairs position?
     const auto& offset = view.offsetSetting();
 
+    // Is the view offset from the crosshairs position?
     const bool viewIsOffset =
             ( ViewOffsetMode::RelativeToRefImageScrolls == offset.m_offsetMode &&
               0 != offset.m_relativeOffsetSteps ) ||
@@ -1525,27 +1491,19 @@ void renderCrosshairsOverlay(
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, color.a ) );
     }
 
-    auto winMinMax = camera::computeMiewportMinMaxCornersOfFrame(
-                view.windowClipViewport(), windowVP.getAsVec4() );
-
-    const glm::vec2 viewBL = winMinMax.first;
-    const glm::vec2 viewTR = winMinMax.second;
-
-    const float viewWidth = viewTR.x - viewBL.x;
-    const float viewHeight = viewTR.y - viewBL.y;
-
     // Clip against the view bounds, even though not strictly necessary with how lines are defined
-    nvgScissor( nvg, viewBL.x, viewBL.y, viewWidth, viewHeight );
+    nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
+            miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
 
     for ( const auto& pos : labelPosInfo )
     {
-        if ( ! pos.mouseXhairPositions )
+        if ( ! pos.miewportXhairPositions )
         {
             // Only render crosshairs when there are two intersections with the view box:
             continue;
         }
 
-        const auto& hits = *( pos.mouseXhairPositions );
+        const auto& hits = *( pos.miewportXhairPositions );
 
         if ( camera::CameraType::Oblique != view.cameraType() )
         {
@@ -1560,13 +1518,13 @@ void renderCrosshairsOverlay(
             // Oblique views get stippled crosshairs:
             for ( int line = 0; line < 2; ++line )
             {
-                const uint32_t numLines = glm::distance( hits[line], pos.mouseXhairCenterPos ) / sk_stippleLen;
+                const uint32_t numLines = glm::distance( hits[line], pos.miewportXhairCenterPos ) / sk_stippleLen;
 
                 nvgBeginPath( nvg );
                 for ( uint32_t i = 0; i <= numLines; ++i )
                 {
                     const float t = static_cast<float>( i ) / static_cast<float>( numLines );
-                    const glm::vec2 p = pos.mouseXhairCenterPos + t * ( hits[line] - pos.mouseXhairCenterPos );
+                    const glm::vec2 p = pos.miewportXhairCenterPos + t * ( hits[line] - pos.miewportXhairCenterPos );
 
                     if ( i % 2 ) nvgLineTo( nvg, p.x, p.y ); // when i odd
                     else nvgMoveTo( nvg, p.x, p.y ); // when i even
@@ -2704,8 +2662,12 @@ void Rendering::renderImages()
 
         if ( ! view.updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
 
+        // Bounds of the view frame in Miewport space:
+        const auto miewportViewBounds = camera::computeMiewportFrameBounds(
+                    view.windowClipViewport(), m_appData.windowData().viewport().getAsVec4() );
+
         auto renderOneImage = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
-                &renderAnnotationsOnTop, &renderImageIntersections, &getImage]
+                &renderAnnotationsOnTop, &renderImageIntersections, &getImage, &miewportViewBounds]
                 ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
         {
             renderImageQuad( program,
@@ -2719,19 +2681,19 @@ void Rendering::renderImages()
 
             if ( ! renderLandmarksOnTop )
             {
-                renderLandmarks( m_nvg, worldCrosshairsOrigin, m_appData, view, I );
+                renderLandmarks( m_nvg, miewportViewBounds, worldCrosshairsOrigin, m_appData, view, I );
                 setupOpenGlState();
             }
 
             if ( ! renderAnnotationsOnTop )
             {
-                renderAnnotations( m_nvg, worldCrosshairsOrigin, m_appData, view, I );
+                renderAnnotations( m_nvg, miewportViewBounds, worldCrosshairsOrigin, m_appData, view, I );
                 setupOpenGlState();
             }
 
             if ( renderImageIntersections )
             {
-                renderImageViewIntersections( m_nvg, m_appData, view, I );
+                renderImageViewIntersections( m_nvg, miewportViewBounds, m_appData, view, I );
                 setupOpenGlState();
             }
         };
@@ -2740,9 +2702,10 @@ void Rendering::renderImages()
 
         if ( renderLandmarksOnTop )
         {
-            auto renderLandmarksForView = [this, view, &worldCrosshairsOrigin] ( const CurrentImages& I )
+            auto renderLandmarksForView = [this, view, &worldCrosshairsOrigin, &miewportViewBounds]
+                    ( const CurrentImages& I )
             {
-                renderLandmarks( m_nvg, worldCrosshairsOrigin, m_appData, view, I );
+                renderLandmarks( m_nvg, miewportViewBounds, worldCrosshairsOrigin, m_appData, view, I );
                 setupOpenGlState();
             };
 
@@ -2751,9 +2714,10 @@ void Rendering::renderImages()
 
         if ( renderAnnotationsOnTop )
         {
-            auto renderAnnotationsForView = [this, view, &worldCrosshairsOrigin] ( const CurrentImages& I )
+            auto renderAnnotationsForView = [this, view, &worldCrosshairsOrigin, &miewportViewBounds]
+                    ( const CurrentImages& I )
             {
-                renderAnnotations( m_nvg, worldCrosshairsOrigin, m_appData, view, I );
+                renderAnnotations( m_nvg, miewportViewBounds, worldCrosshairsOrigin, m_appData, view, I );
                 setupOpenGlState();
             };
 
@@ -2812,7 +2776,6 @@ void Rendering::renderVectorOverlays()
             world_T_refSubject = refImage->transformations().worldDef_T_subject();
         }
 
-        const glm::vec4 worldCrosshairs{ m_appData.state().worldCrosshairs().worldOrigin(), 1.0f };
         const auto activeViewUid = windowData.activeViewUid();
         const bool annotating = ( MouseMode::Annotate == m_appData.state().mouseMode() );
 
@@ -2821,19 +2784,24 @@ void Rendering::renderVectorOverlays()
             const View* view = windowData.getCurrentView( viewUid );
             if ( ! view ) continue;
 
+            // Bounds of the view frame in Miewport space:
+            const auto miewportViewBounds = camera::computeMiewportFrameBounds(
+                        view->windowClipViewport(), windowVP.getAsVec4() );
+
             if ( m_showOverlays &&
                  camera::ViewRenderMode::Disabled != view->renderMode() )
             {
                 const auto labelPosInfo = computeAnatomicalLabelPosInfo(
-                            windowVP, *view, world_T_refSubject, worldCrosshairs );
+                            miewportViewBounds,
+                            windowVP, *view, world_T_refSubject,
+                            m_appData.state().worldCrosshairs().worldOrigin() );
 
-                renderCrosshairsOverlay( m_nvg, windowVP, *view, m_appData.renderData().m_crosshairsColor, labelPosInfo );
-                renderAnatomicalLabels( m_nvg, windowVP, *view, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
+                renderCrosshairsOverlay( m_nvg, miewportViewBounds, *view, m_appData.renderData().m_crosshairsColor, labelPosInfo );
+                renderAnatomicalLabels( m_nvg, miewportViewBounds, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
             }
 
             const bool drawActiveOutline = ( annotating && activeViewUid && ( *activeViewUid == viewUid ) );
-
-            renderViewOutline( m_nvg, windowVP, *view, drawActiveOutline );
+            renderViewOutline( m_nvg, miewportViewBounds, drawActiveOutline );
         }
 
         renderWindowOutline( m_nvg, windowVP );

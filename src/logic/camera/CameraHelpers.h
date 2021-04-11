@@ -5,6 +5,7 @@
 #include "common/DirectionMaps.h"
 
 #include <glm/fwd.hpp>
+#include <glm/vec4.hpp>
 
 #include <array>
 #include <memory>
@@ -347,14 +348,28 @@ glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& winClipVP );
 glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera );
 
 
+struct VP
+{
+    float xoffset;
+    float yoffset;
+    float width;
+    float height;
+};
+
+union FrameBounds
+{
+    FrameBounds( glm::vec4 v ) : viewport( std::move( v ) ) {}
+    glm::vec4 viewport;
+    VP bounds;
+};
+
 /**
  * @brief Compute the min and max coordinates of a frame
  * @param winClipFrameViewport Viewport of the frame defined in window Clip space
  * @param windowViewport Viewport of the window
  * @return Min and max coordinates of the frame in window space
  */
-std::pair< glm::vec2, glm::vec2 >
-computeMiewportMinMaxCornersOfFrame(
+FrameBounds computeMiewportFrameBounds(
         const glm::vec4& winClipFrameViewport,
         const glm::vec4& windowViewport );
 

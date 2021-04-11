@@ -924,8 +924,7 @@ glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera )
 }
 
 
-std::pair< glm::vec2, glm::vec2 >
-computeMiewportMinMaxCornersOfFrame(
+FrameBounds computeMiewportFrameBounds(
         const glm::vec4& windowClipFrameViewport,
         const glm::vec4& windowViewport )
 {
@@ -944,8 +943,10 @@ computeMiewportMinMaxCornersOfFrame(
     const glm::vec2 miewportViewBL{ miewport_T_windowClip * winClipViewBL };
     const glm::vec2 miewportViewTR{ miewport_T_windowClip * winClipViewTR };
 
-    return { glm::vec2{ miewportViewBL.x, miewportViewTR.y },
-             glm::vec2{ miewportViewTR.x, miewportViewBL.y } };
+    return glm::vec4( miewportViewBL.x, // x offset
+                      miewportViewTR.y, // y offset
+                      miewportViewTR.x - miewportViewBL.x, // width
+                      miewportViewBL.y - miewportViewTR.y ); // height
 }
 
 
