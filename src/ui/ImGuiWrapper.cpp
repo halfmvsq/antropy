@@ -597,7 +597,7 @@ void ImGuiWrapper::render()
 
         renderViewSettingsComboWindow(
                     currentLayout.uid(),
-                    camera::computeWindowMinMaxCoordsOfFrameForImGui( currentLayout.windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
+                    camera::computeMindowMinMaxCornersOfFrame( currentLayout.windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
                     currentLayout.uiControls(),
                     true,
                     false,
@@ -622,7 +622,7 @@ void ImGuiWrapper::render()
 
         renderViewOrientationToolWindow(
                     currentLayout.uid(),
-                    camera::computeWindowMinMaxCoordsOfFrameForImGui( currentLayout.windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
+                    camera::computeMindowMinMaxCornersOfFrame( currentLayout.windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
                     currentLayout.uiControls(),
                     true,
                     currentLayout.cameraType(),
@@ -656,7 +656,7 @@ void ImGuiWrapper::render()
 
             renderViewSettingsComboWindow(
                         viewUid,
-                        camera::computeWindowMinMaxCoordsOfFrameForImGui( view->windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
+                        camera::computeMindowMinMaxCornersOfFrame( view->windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
                         view->uiControls(),
                         false,
                         true,
@@ -681,7 +681,7 @@ void ImGuiWrapper::render()
 
             renderViewOrientationToolWindow(
                     viewUid,
-                    camera::computeWindowMinMaxCoordsOfFrameForImGui( view->windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
+                    camera::computeMindowMinMaxCornersOfFrame( view->windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
                     view->uiControls(),
                     false,
                     view->cameraType(),

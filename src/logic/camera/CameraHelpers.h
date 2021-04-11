@@ -14,6 +14,7 @@
 class CoordinateFrame;
 class Viewport;
 
+
 /**
  * Free functions defined for the Camera.
  */
@@ -230,19 +231,17 @@ glm::vec3 worldTranslationPerpendicularToWorldAxis(
 glm::vec2 windowNdc2d_T_windowPixels( const Viewport& windowViewport, const glm::vec2& windowPixelPos );
 
 glm::vec2 viewDevice_T_ndc( const Viewport&, const glm::vec2& ndcPos );
-glm::vec2 view_T_ndc( const Viewport&, const glm::vec2& ndcPos );
-glm::vec2 view_T_ndc_IGNORE_LB( const Viewport&, const glm::vec2& ndcPos );
-glm::mat4 view_T_ndc( const Viewport& );
-glm::mat4 view_T_ndc_IGNORE_LB( const Viewport& );
+glm::vec2 window_T_windowClip( const Viewport&, const glm::vec2& ndcPos );
+glm::vec2 viewport_T_windowClip( const Viewport&, const glm::vec2& ndcPos );
+glm::mat4 window_T_windowClip( const Viewport& );
+glm::mat4 viewport_T_windowClip( const Viewport& );
 
 glm::vec2 window_T_mindow( float wholeWindowHeight, const glm::vec2& mousePos );
-glm::vec2 mouse_T_view( float wholeWindowHeight, const glm::vec2& viewPos );
-glm::mat4 mouse_T_view( float wholeWindowHeight );
+glm::mat4 window_T_mindow( float wholeWindowHeight );
+glm::mat4 mindow_T_window( float wholeWindowHeight );
 
-//glm::vec4 ndc_T_mouse( const Viewport&, const glm::vec2& mousePos );
-//glm::vec2 ndc2d_T_mouse( const Viewport&, const glm::vec2& mousePos );
-
-//glm::mat4 get_ndc_T_view( const Viewport& );
+glm::vec2 miewport_T_viewport( float viewportHeight, const glm::vec2& viewPos );
+glm::mat4 miewport_T_viewport( float viewportHeight );
 
 
 /**
@@ -355,13 +354,13 @@ glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera );
  * @return Min and max coordinates of the frame in window space
  */
 std::pair< glm::vec2, glm::vec2 >
-computeWindowMinMaxCoordsOfFrame(
+computeMiewportMinMaxCornersOfFrame(
         const glm::vec4& winClipFrameViewport,
         const glm::vec4& windowViewport );
 
 
 std::pair< glm::vec2, glm::vec2 >
-computeWindowMinMaxCoordsOfFrameForImGui(
+computeMindowMinMaxCornersOfFrame(
         const glm::vec4& winClipFrameViewport,
         const glm::vec4& windowViewport,
         float wholeWindowHeight );
