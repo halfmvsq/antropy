@@ -300,22 +300,22 @@ private:
      */
     struct ViewHitData
     {
-        ViewHitData( View& view, uuids::uuid viewUid )
-            : m_view( view ), m_viewUid( viewUid ) {}
+        ViewHitData( View& v, uuids::uuid uid )
+            : view( v ), viewUid( uid ) {}
 
-        View& m_view;
-        uuids::uuid m_viewUid;
+        View& view;
+        uuids::uuid viewUid;
 
-        glm::vec2 m_windowClipLastPos;
-        glm::vec2 m_windowClipCurrPos;
+        glm::vec2 windowClipLastPos;
+        glm::vec2 windowClipCurrPos;
 
-        glm::vec4 m_viewClipLastPos;
-        glm::vec4 m_viewClipCurrPos;
+        glm::vec4 viewClipLastPos;
+        glm::vec4 viewClipCurrPos;
 
-        glm::vec4 m_worldLastPos;
-        glm::vec4 m_worldCurrPos;
+        glm::vec4 worldLastPos;
+        glm::vec4 worldCurrPos;
 
-        glm::vec3 m_worldFrontAxis;
+        glm::vec3 worldFrontAxis;
     };
 
     std::optional<ViewHitData> getViewHit(
