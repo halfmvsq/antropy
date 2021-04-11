@@ -35,6 +35,9 @@
 #include <algorithm>
 #include <string>
 
+#undef min
+#undef max
+
 
 namespace
 {
@@ -1946,13 +1949,16 @@ void renderAnnotationsHeader(
     const ImVec4* colors = ImGui::GetStyle().Colors;
     ImGui::PushStyleColor( ImGuiCol_Header, colors[ImGuiCol_ButtonActive] );
 
-    const size_t numLines = std::max( std::min( annotUids.size(), 10ul ), 5ul );
+    static constexpr size_t sk_minNumLines = 5;
+    static constexpr size_t sk_maxNumLines = 10;
+
+    const size_t numLines = std::max( std::min( annotUids.size(), sk_maxNumLines ), sk_minNumLines );
 
     /// @todo Change this into a child window, like for Landmarks.
     /// then do ImGui::SetScrollHereY( 1.0f ); to put activeAnnot at bottom
 
     if ( ImGui::BeginListBox(
-             "##annotList", ImVec2( -FLT_MIN, numLines * ImGui::GetTextLineHeightWithSpacing() ) ) )
+             "##annotList", ImVec2( -FLT_MIN, static_cast<float>(numLines) * ImGui::GetTextLineHeightWithSpacing() ) ) )
     {
         size_t annotIndex = 0;
         for ( const auto& annotUid : annotUids )
