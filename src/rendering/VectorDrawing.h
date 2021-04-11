@@ -1,0 +1,4 @@
+#ifndef VECTOR_DRAWING_H
+#define VECTOR_DRAWING_H
+
+#endif // VECTOR_DRAWING_H

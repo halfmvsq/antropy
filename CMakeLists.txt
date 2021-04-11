@@ -353,6 +353,7 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/rendering/Rendering.cpp
     ${SRC_DIR}/rendering/RenderData.cpp
     ${SRC_DIR}/rendering/TextureSetup.cpp
+    ${SRC_DIR}/rendering/VectorDrawing.cpp
     ${SRC_DIR}/rendering/utility/containers/VertexAttributeInfo.cpp
     ${SRC_DIR}/rendering/utility/containers/VertexIndicesInfo.cpp
     ${SRC_DIR}/rendering/utility/containers/Uniforms.cpp
