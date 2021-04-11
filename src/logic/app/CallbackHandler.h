@@ -312,7 +312,9 @@ private:
         glm::vec4 m_viewClipLastPos;
         glm::vec4 m_viewClipCurrPos;
 
+        glm::vec4 m_worldLastPos;
         glm::vec4 m_worldCurrPos;
+
         glm::vec3 m_worldFrontAxis;
     };
 
