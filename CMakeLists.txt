@@ -350,6 +350,7 @@ set( ATROPY_SOURCES
     # We were testing IPC with ITK-SNAP. This functionality is not currently hooked up to Antropy.
     # ${SRC_DIR}/logic/ipc/IPCHandler.cxx
 
+    ${SRC_DIR}/rendering/ImageDrawing.cpp
     ${SRC_DIR}/rendering/Rendering.cpp
     ${SRC_DIR}/rendering/RenderData.cpp
     ${SRC_DIR}/rendering/TextureSetup.cpp
