@@ -348,19 +348,22 @@ glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& winClipVP );
 glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera );
 
 
-struct VP
-{
-    float xoffset;
-    float yoffset;
-    float width;
-    float height;
-};
-
+/**
+ * @brief Frame bounds
+ */
 union FrameBounds
 {
     FrameBounds( glm::vec4 v ) : viewport( std::move( v ) ) {}
+
     glm::vec4 viewport;
-    VP bounds;
+
+    struct
+    {
+        float xoffset;
+        float yoffset;
+        float width;
+        float height;
+    } bounds;
 };
 
 /**
@@ -374,8 +377,7 @@ FrameBounds computeMiewportFrameBounds(
         const glm::vec4& windowViewport );
 
 
-std::pair< glm::vec2, glm::vec2 >
-computeMindowMinMaxCornersOfFrame(
+FrameBounds computeMindowFrameBounds(
         const glm::vec4& winClipFrameViewport,
         const glm::vec4& windowViewport,
         float wholeWindowHeight );

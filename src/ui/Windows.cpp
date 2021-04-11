@@ -45,7 +45,7 @@ static const std::string sk_NA( "<N/A>" );
 void renderViewSettingsComboWindow(
         const uuids::uuid& viewOrLayoutUid,
 
-        const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
+        const camera::FrameBounds& mindowFrameBounds,
         const UiControls& uiControls,
         bool /*hasFrameAndBackground*/,
         bool showApplyToAllButton,
@@ -80,8 +80,8 @@ void renderViewSettingsComboWindow(
     // This needs to be saved somewhere
     bool windowOpen = false;
 
-    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, sk_itemSpacing );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, sk_windowPadding );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, sk_windowRounding );
     {
         const char* label;
@@ -112,8 +112,11 @@ void renderViewSettingsComboWindow(
         }
         }
 
-        const glm::vec2 topLeft = winMouseMinMaxCoords.first + sk_framePad;
-        ImGui::SetNextWindowPos( ImVec2( topLeft.x, topLeft.y ), ImGuiCond_Always );
+        const ImVec2 mindowTopLeftPos(
+                    mindowFrameBounds.bounds.xoffset + sk_framePad.x,
+                    mindowFrameBounds.bounds.yoffset + sk_framePad.y );
+
+        ImGui::SetNextWindowPos( mindowTopLeftPos, ImGuiCond_Always );
 
         static const ImGuiWindowFlags sk_defaultWindowFlags =
                 ImGuiWindowFlags_NoMove |
@@ -405,7 +408,7 @@ void renderViewSettingsComboWindow(
 
 void renderViewOrientationToolWindow(
         const uuids::uuid& viewOrLayoutUid,
-        const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
+        const camera::FrameBounds& mindowFrameBounds,
         const UiControls& /*uiControls*/,
         bool /*hasFrameAndBackground*/,
         const camera::CameraType& cameraType,
@@ -451,13 +454,14 @@ void renderViewOrientationToolWindow(
         windowFlags |= ImGuiWindowFlags_NoBackground;
 //    }
 
-    const glm::vec2 bottomLeft( winMouseMinMaxCoords.first.x + sk_framePad.x,
-                                winMouseMinMaxCoords.second.y - sk_framePad.y );
+    const ImVec2 mindowBottomLeftPos(
+                mindowFrameBounds.bounds.xoffset + sk_framePad.x,
+                mindowFrameBounds.bounds.yoffset + mindowFrameBounds.bounds.height - sk_framePad.y );
 
     const ImVec2 windowPosPivot( ( sk_corner & 1 ) ? 1.0f : 0.0f,
                                  ( sk_corner & 2 ) ? 1.0f : 0.0f );
 
-    ImGui::SetNextWindowPos( ImVec2( bottomLeft.x, bottomLeft.y ), ImGuiCond_Always, windowPosPivot );
+    ImGui::SetNextWindowPos( mindowBottomLeftPos, ImGuiCond_Always, windowPosPivot );
     ImGui::SetNextWindowBgAlpha( 0.3f );
 
     ImGui::PushID( uidString.c_str() ); /*** ID = uidString ***/

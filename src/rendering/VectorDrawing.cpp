@@ -42,6 +42,8 @@ static const NVGcolor s_red( nvgRGBA( 255, 0, 0, 255 ) );
 
 static const std::string ROBOTO_LIGHT( "robotoLight" );
 
+static constexpr float sk_outlineStrokeWidth = 2.0f;
+
 }
 
 
@@ -114,8 +116,9 @@ void drawWindowOutline(
     static constexpr float k_pad = 1.0f;
 
     // Outline around window
-    nvgStrokeWidth( nvg, 4.0f );
+    nvgStrokeWidth( nvg, sk_outlineStrokeWidth );
     nvgStrokeColor( nvg, s_grey50 );
+//    nvgStrokeColor( nvg, s_grey25 );
 
     nvgBeginPath( nvg );
     nvgRect( nvg, k_pad, k_pad, windowVP.width() - 2.0f * k_pad, windowVP.height() - 2.0f * k_pad );
@@ -141,7 +144,8 @@ void drawViewOutline(
 //    static constexpr float k_padInner = 2.0f;
     static constexpr float k_padActive = 3.0f;
 
-    auto drawRectangle = [&nvg, &miewportViewBounds] ( float pad, float width, const NVGcolor& color )
+    auto drawRectangle = [&nvg, &miewportViewBounds]
+            ( float pad, float width, const NVGcolor& color )
     {
         nvgStrokeWidth( nvg, width );
         nvgStrokeColor( nvg, color );
@@ -160,11 +164,11 @@ void drawViewOutline(
 
     if ( drawActiveOutline )
     {
-        drawRectangle( k_padActive, 1.0f, s_yellow );
+        drawRectangle( k_padActive, 2.0f, s_yellow );
     }
 
     // View outline:
-    drawRectangle( k_padOuter, 4.0f, s_grey50 );
+    drawRectangle( k_padOuter, sk_outlineStrokeWidth, s_grey50 );
 //    drawRectangle( k_padInner, 1.0f, s_grey60 );
 }
 

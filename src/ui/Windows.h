@@ -2,6 +2,7 @@
 #define UI_WINDOWS_H
 
 #include "common/PublicTypes.h"
+#include "logic/camera/CameraHelpers.h" // Framebounds
 #include "logic/camera/CameraTypes.h"
 #include "ui/UiControls.h"
 
@@ -42,7 +43,7 @@ class ParcellationLabelTable;
 void renderViewSettingsComboWindow(
         const uuids::uuid& viewOrLayoutUid,
 
-        const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
+        const camera::FrameBounds& mindowFrameBounds,
         const UiControls& uiControls,
         bool /*hasFrameAndBackground*/,
         bool showApplyToAllButton,
@@ -70,7 +71,7 @@ void renderViewSettingsComboWindow(
 
 void renderViewOrientationToolWindow(
         const uuids::uuid& viewOrLayoutUid,
-        const std::pair< glm::vec2, glm::vec2 >& winMouseMinMaxCoords,
+        const camera::FrameBounds& mindowFrameBounds,
         const UiControls& uiControls,
         bool hasFrameAndBackground,
         const camera::CameraType& cameraType,

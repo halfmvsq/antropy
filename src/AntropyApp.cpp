@@ -210,9 +210,19 @@ void AntropyApp::run()
 
 void AntropyApp::resize( int width, int height )
 {
+    const float menuHeight = 0.0f + 0.0f;
+    const float toolbarWidth = 0.0f;
+
     m_data.windowData().setWindowSize( width, height );
-    m_data.windowData().setViewport( 50.0f, 50.0f, width - 100.0f, height - 100.0f );
+
+    m_data.windowData().setViewport(
+                toolbarWidth,
+                0.0f,
+                width - 2.0f * toolbarWidth,
+                height - menuHeight );
+
 //    m_data.windowData().setViewport( 0.0f, 0.0f, width, height );
+
     m_rendering.setDeviceViewport( glm::ivec4{ m_data.windowData().viewport().getDeviceAsVec4() } );
 }
 

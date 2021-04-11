@@ -424,14 +424,6 @@ void ImGuiWrapper::render()
 
     auto setViewCameraRotation = [this] ( const uuids::uuid& viewUid, const glm::quat& camera_T_world_rotationDelta )
     {
-//        View* view = m_appData.windowData().getCurrentView( viewUid );
-//        if ( ! view ) return;
-
-//        camera::applyViewRotationAboutWorldPoint(
-//                    view->camera(),
-//                    camera_T_world_rotation,
-//                    m_appData.state().worldCrosshairs().worldOrigin() );
-
         m_callbackHandler.doCameraRotate3d( viewUid, camera_T_world_rotationDelta );
     };
 
@@ -452,34 +444,36 @@ void ImGuiWrapper::render()
             ImGui::ShowDemoWindow( &m_appData.guiData().m_showDemoWindow );
         }
 
-        //        if ( true )
-        //        {
-        //            if ( ImGui::BeginMainMenuBar() )
-        //            {
-        //                const auto s = ImGui::GetWindowSize();
-        //                const std::string sizeString = std::to_string(s.x) + ", " + std::to_string(s.y);
+        /*
+        if ( true )
+        {
+            if ( ImGui::BeginMainMenuBar() )
+            {
+                const auto s = ImGui::GetWindowSize();
+                const std::string sizeString = std::to_string(s.x) + ", " + std::to_string(s.y);
 
-        //                if ( ImGui::BeginMenu( "File" ) )
-        //                {
-        //                    if ( ImGui::MenuItem( sizeString.c_str() ) )
-        //                    {
+                if ( ImGui::BeginMenu( "File" ) )
+                {
+                    if ( ImGui::MenuItem( sizeString.c_str() ) )
+                    {
 
-        //                    }
-        //                    ImGui::EndMenu();
-        //                }
+                    }
+                    ImGui::EndMenu();
+                }
 
-        //                if ( ImGui::BeginMenu( "Edit" ) )
-        //                {
-        //                    if ( ImGui::MenuItem( "Item" ) )
-        //                    {
+                if ( ImGui::BeginMenu( "Edit" ) )
+                {
+                    if ( ImGui::MenuItem( "Item" ) )
+                    {
 
-        //                    }
-        //                    ImGui::EndMenu();
-        //                }
+                    }
+                    ImGui::EndMenu();
+                }
 
-        //                ImGui::EndMainMenuBar();
-        //            }
-        //        }
+                ImGui::EndMainMenuBar();
+            }
+        }
+        */
 
         if ( m_appData.guiData().m_showSettingsWindow )
         {
@@ -595,9 +589,14 @@ void ImGuiWrapper::render()
         static constexpr bool sk_recenterOnCurrentCrosshairsPosition = false;
         static constexpr bool sk_resetObliqueOrientation = false;
 
+        const auto mindowFrameBounds = camera::computeMindowFrameBounds(
+            currentLayout.windowClipViewport(),
+            m_appData.windowData().viewport().getAsVec4(),
+            wholeWindowHeight );
+
         renderViewSettingsComboWindow(
                     currentLayout.uid(),
-                    camera::computeMindowMinMaxCornersOfFrame( currentLayout.windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
+                    mindowFrameBounds,
                     currentLayout.uiControls(),
                     true,
                     false,
@@ -622,7 +621,7 @@ void ImGuiWrapper::render()
 
         renderViewOrientationToolWindow(
                     currentLayout.uid(),
-                    camera::computeMindowMinMaxCornersOfFrame( currentLayout.windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
+                    mindowFrameBounds,
                     currentLayout.uiControls(),
                     true,
                     currentLayout.cameraType(),
@@ -654,9 +653,14 @@ void ImGuiWrapper::render()
                 m_recenterView( viewUid );
             };
 
+            const auto mindowFrameBounds = camera::computeMindowFrameBounds(
+                view->windowClipViewport(),
+                m_appData.windowData().viewport().getAsVec4(),
+                wholeWindowHeight );
+
             renderViewSettingsComboWindow(
                         viewUid,
-                        camera::computeMindowMinMaxCornersOfFrame( view->windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
+                        mindowFrameBounds,
                         view->uiControls(),
                         false,
                         true,
@@ -681,7 +685,7 @@ void ImGuiWrapper::render()
 
             renderViewOrientationToolWindow(
                     viewUid,
-                    camera::computeMindowMinMaxCornersOfFrame( view->windowClipViewport(), m_appData.windowData().viewport().getAsVec4(), wholeWindowHeight ),
+                    mindowFrameBounds,
                     view->uiControls(),
                     false,
                     view->cameraType(),

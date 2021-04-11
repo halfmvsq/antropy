@@ -949,9 +949,7 @@ FrameBounds computeMiewportFrameBounds(
                       miewportViewBL.y - miewportViewTR.y ); // height
 }
 
-
-std::pair< glm::vec2, glm::vec2 >
-computeMindowMinMaxCornersOfFrame(
+FrameBounds computeMindowFrameBounds(
         const glm::vec4& windowClipFrameViewport,
         const glm::vec4& windowViewport,
         float wholeWindowHeight )
@@ -971,8 +969,10 @@ computeMindowMinMaxCornersOfFrame(
     const glm::vec2 mindowViewBL{ mindow_T_windowClip * winClipViewBL };
     const glm::vec2 mindowViewTR{ mindow_T_windowClip * winClipViewTR };
 
-    return { glm::vec2{ mindowViewBL.x, mindowViewTR.y },
-             glm::vec2{ mindowViewTR.x, mindowViewBL.y } };
+    return glm::vec4( mindowViewBL.x, // x offset
+                      mindowViewTR.y, // y offset
+                      mindowViewTR.x - mindowViewBL.x, // width
+                      mindowViewBL.y - mindowViewBL.y ); // height
 }
 
 } // namespace camera

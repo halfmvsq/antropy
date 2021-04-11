@@ -63,13 +63,13 @@ void drawImageQuad(
                 return;
             }
 
-            const glm::mat4 pixel_T_clip =
+            const glm::mat4 imagePixel_T_clip =
                     image->transformations().pixel_T_worldDef() *
                     camera::world_T_clip( view.camera() );
 
-            glm::vec4 pO = pixel_T_clip * glm::vec4{ 0.0f, 0.0f, -1.0f, 1.0 }; pO /= pO.w;
-            glm::vec4 pX = pixel_T_clip * glm::vec4{ 1.0f, 0.0f, -1.0f, 1.0 }; pX /= pX.w;
-            glm::vec4 pY = pixel_T_clip * glm::vec4{ 0.0f, 1.0f, -1.0f, 1.0 }; pY /= pY.w;
+            glm::vec4 pO = imagePixel_T_clip * glm::vec4{ 0.0f, 0.0f, -1.0f, 1.0 }; pO /= pO.w;
+            glm::vec4 pX = imagePixel_T_clip * glm::vec4{ 1.0f, 0.0f, -1.0f, 1.0 }; pX /= pX.w;
+            glm::vec4 pY = imagePixel_T_clip * glm::vec4{ 0.0f, 1.0f, -1.0f, 1.0 }; pY /= pY.w;
 
             const glm::vec3 pixelDirX = glm::normalize( pX - pO );
             const glm::vec3 pixelDirY = glm::normalize( pY - pO );
@@ -100,13 +100,13 @@ void drawImageQuad(
             return;
         }
 
-        const glm::mat4 pixel_T_clip =
+        const glm::mat4 imagePixel_T_clip =
                 img0->transformations().pixel_T_worldDef() *
                 camera::world_T_clip( view.camera() );
 
-        glm::vec4 pO = pixel_T_clip * sk_clipO; pO /= pO.w;
-        glm::vec4 pX = pixel_T_clip * sk_clipX; pX /= pX.w;
-        glm::vec4 pY = pixel_T_clip * sk_clipY; pY /= pY.w;
+        glm::vec4 pO = imagePixel_T_clip * sk_clipO; pO /= pO.w;
+        glm::vec4 pX = imagePixel_T_clip * sk_clipX; pX /= pX.w;
+        glm::vec4 pY = imagePixel_T_clip * sk_clipY; pY /= pY.w;
 
         const glm::vec3 pixelDirX = glm::normalize( pX - pO );
         const glm::vec3 pixelDirY = glm::normalize( pY - pO );
