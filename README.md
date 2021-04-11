@@ -22,6 +22,7 @@ More recent versions of ITK and Boost should also work with potentially minor mo
 The following libraries and depdencies are brought in as Git submodules to the Antropy repository:
 
 * argparse (https://github.com/p-ranav/argparse.git)
+* CMake Modules Collection (https://github.com/rpavlik/cmake-modules)
 * CMakeRC (https://github.com/vector-of-bool/cmrc.git)
 * "Dear ImGui" (https://github.com/ocornut/imgui.git)
 * ghc::filesystem (https://github.com/gulrak/filesystem.git)
@@ -33,7 +34,6 @@ The following libraries and depdencies are brought in as Git submodules to the A
 * NanoVG (https://github.com/memononen/nanovg.git)
 * spdlog (https://github.com/gabime/spdlog.git)
 * stduuid (https://github.com/mariusbancila/stduuid.git)
-* Ryan's CMake Modules Collection (https://github.com/rpavlik/cmake-modules)
 
 Please run `git submodule update --init --recursive` after cloning to get these submodules.
 
