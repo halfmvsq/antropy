@@ -34,7 +34,6 @@
 namespace
 {
 
-static const glm::vec2 sk_minClip{ -1, -1 };
 static const glm::vec2 sk_maxClip{ 1, 1 };
 
 static constexpr float k_viewAABBoxScaleFactor = 1.03f;
@@ -320,7 +319,7 @@ void CallbackHandler::doCrosshairsMove(
         const glm::vec2& windowLastPos,
         const glm::vec2& windowCurrPos )
 {
-    const auto hitData = getViewHit( windowLastPos, windowCurrPos );
+    const auto hitData = getViewHit( windowLastPos, windowCurrPos, true );
     if ( ! hitData ) return;
 
     m_appData.windowData().setActiveViewUid( hitData->viewUid );
@@ -332,7 +331,7 @@ void CallbackHandler::doCrosshairsScroll(
         const glm::vec2& windowCurrPos,
         const glm::vec2& scrollOffset )
 {
-    auto hitData = getViewHit( windowCurrPos, windowCurrPos );
+    auto hitData = getViewHit( windowCurrPos, windowCurrPos, true );
     if ( ! hitData ) return;
 
     // Option 1) scroll based on the reference image only:
@@ -391,7 +390,7 @@ void CallbackHandler::doSegment(
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, true );
     if ( ! hitData ) return;
 
     if ( 0 == std::count( std::begin( hitData->view.visibleImages() ),
@@ -519,7 +518,7 @@ void CallbackHandler::doAnnotate(
         const glm::vec2& windowPrevPos,
         const glm::vec2& windowCurrPos )
 {
-    auto hitData = getViewHit( windowPrevPos, windowCurrPos );
+    auto hitData = getViewHit( windowPrevPos, windowCurrPos, true );
     if ( ! hitData ) return;
 
     // We need a reference image to compute the offset distance
@@ -636,7 +635,7 @@ void CallbackHandler::doWindowLevel(
         const glm::vec2& windowLastPos,
         const glm::vec2& windowCurrPos )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, true );
     if ( ! hitData ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
@@ -661,10 +660,10 @@ void CallbackHandler::doWindowLevel(
     const double winMax = settings.windowRange().second;
 
     const double levelDelta = ( levelMax - levelMin ) *
-            ( hitData->windowClipCurrPos.y - hitData->windowClipLastPos.y ) / 2.0f;
+            static_cast<double>( hitData->windowClipCurrPos.y - hitData->windowClipLastPos.y ) / 2.0;
 
     const double winDelta = ( winMax - winMin ) *
-            ( hitData->windowClipCurrPos.x - hitData->windowClipLastPos.x ) / 2.0f;
+            static_cast<double>( hitData->windowClipCurrPos.x - hitData->windowClipLastPos.x ) / 2.0;
 
     const double oldLevel = settings.level();
     const double oldWindow = settings.window();
@@ -686,7 +685,7 @@ void CallbackHandler::doOpacity(
     static constexpr double sk_opMin = 0.0;
     static constexpr double sk_opMax = 1.0;
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, true );
     if ( ! hitData ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
@@ -704,7 +703,7 @@ void CallbackHandler::doOpacity(
     if ( ! activeImage ) return;
 
     const double opacityDelta = ( sk_opMax - sk_opMin ) *
-            ( hitData->windowClipCurrPos.y - hitData->windowClipLastPos.y ) / 2.0f;
+            static_cast<double>( hitData->windowClipCurrPos.y - hitData->windowClipLastPos.y ) / 2.0;
 
     const double newOpacity = std::min( std::max( activeImage->settings().opacity() +
                                                   opacityDelta, sk_opMin ), sk_opMax );
@@ -719,7 +718,7 @@ void CallbackHandler::doCameraTranslate2d(
         const glm::vec2& windowCurrPos,
         const glm::vec2& windowStartPos )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos, true );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
     if ( ! hitData ) return;
 
     if ( const auto transGroupUid = hitData->view.cameraTranslationSyncGroupUid() )
@@ -754,7 +753,7 @@ void CallbackHandler::doCameraRotate2d(
         const glm::vec2& windowCurrPos,
         const glm::vec2& windowStartPos )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos, true );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
     if ( ! hitData ) return;
 
     // Only allow rotation of oblique views (and later 3D views, too)
@@ -806,7 +805,7 @@ void CallbackHandler::doCameraRotate3d(
         const glm::vec2& windowStartPos,
         const std::optional<AxisConstraint>& constraint )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos, true );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
     if ( ! hitData ) return;
 
     // Only allow rotation of oblique views (and later 3D views, too)
@@ -921,7 +920,7 @@ void CallbackHandler::doCameraZoomDrag(
 {
     static const glm::vec2 sk_ndcCenter{ 0.0f, 0.0f };
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos, true );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
     if ( ! hitData ) return;
 
     const glm::vec4 winClipStartPos{
@@ -999,7 +998,7 @@ void CallbackHandler::doCameraZoomScroll(
     static constexpr float sk_zoomFactor = 0.01f;
     static const glm::vec2 sk_ndcCenter{ 0.0f, 0.0f };
 
-    auto hitData = getViewHit( windowCurrPos, windowCurrPos );
+    auto hitData = getViewHit( windowCurrPos, windowCurrPos, false );
     if ( ! hitData ) return;
 
     // The pointer is in the view bounds! Make this the active view
@@ -1070,7 +1069,7 @@ void CallbackHandler::scrollViewSlice(
         const glm::vec2& windowCurrPos,
         int numSlices )
 {
-    auto hitData = getViewHit( windowCurrPos, windowCurrPos );
+    auto hitData = getViewHit( windowCurrPos, windowCurrPos, true );
     if ( ! hitData ) return;
 
     // option 1) scroll based on the reference image
@@ -1097,7 +1096,7 @@ void CallbackHandler::doImageTranslate(
 {
     static constexpr float sk_scale = 10.0f;
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos, true );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
     if ( ! hitData ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
@@ -1163,7 +1162,7 @@ void CallbackHandler::doImageRotate(
         const glm::vec2& windowStartPos,
         bool inPlane )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos, true );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
     if ( ! hitData ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
@@ -1242,7 +1241,7 @@ void CallbackHandler::doImageScale(
     static const glm::vec3 sk_minScale( 0.1f );
     static const glm::vec3 sk_maxScale( 10.0f );
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos, true );
+    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
     if ( ! hitData ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
@@ -1591,12 +1590,12 @@ CallbackHandler::getViewHit(
         const glm::vec2& windowPixelLastPos,
         const glm::vec2& windowPixelCurrPos,
         bool requireViewToBeActive,
-        const std::optional<glm::vec2> windowPixelStartPos,
-        bool hitBasedOnStartPos )
+        const std::optional<glm::vec2> windowPixelStartPos )
 {
-    const glm::vec2 pos = ( hitBasedOnStartPos && windowPixelStartPos )
-            ? *windowPixelStartPos
-            : windowPixelCurrPos;
+    const bool hitBasedOnStartPos = windowPixelStartPos.has_value();
+
+    const glm::vec2 pos = ( hitBasedOnStartPos )
+            ? *windowPixelStartPos : windowPixelCurrPos;
 
     const auto viewUid = m_appData.windowData().currentViewUidAtCursor( pos );
     if ( ! viewUid ) return std::nullopt;

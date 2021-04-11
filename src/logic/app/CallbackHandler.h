@@ -321,9 +321,8 @@ private:
     std::optional<ViewHitData> getViewHit(
             const glm::vec2& windowPixelLastPos,
             const glm::vec2& windowPixelCurrPos,
-            bool requireViewToBeActive = true,
-            const std::optional<glm::vec2> windowPixelStartPos = std::nullopt,
-            bool hitBasedOnStartPos = false );
+            bool requireViewToBeActive,
+            const std::optional<glm::vec2> windowPixelStartPos = std::nullopt );
 
 };
 
