@@ -45,9 +45,6 @@ public:
     /// Render the scene
     void render();
 
-    /// Set the rendering viewport (left, bottom, width, height) in device pixel units
-    void setDeviceViewport( const glm::ivec4& deviceViewport );
-
     /// Update all texture interpolation parameters for the active image component
     void updateImageInterpolation( const uuids::uuid& imageUid );
 

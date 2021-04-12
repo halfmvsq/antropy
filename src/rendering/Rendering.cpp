@@ -499,6 +499,10 @@ void Rendering::render()
     // Set up OpenGL state, because it changes after NanoVG calls in the render of the prior frame
     setupOpenGlState();
 
+    // Set the OpenGL viewport in device units:
+    const glm::ivec4 deviceViewport = m_appData.windowData().viewport().getDeviceAsVec4();
+    glViewport( deviceViewport[0], deviceViewport[1], deviceViewport[2], deviceViewport[3] );
+
     glClearColor( m_appData.renderData().m_backgroundColor.r,
                   m_appData.renderData().m_backgroundColor.g,
                   m_appData.renderData().m_backgroundColor.b, 1.0f );
@@ -508,12 +512,6 @@ void Rendering::render()
     renderImages();
 //    renderOverlays();
     renderVectorOverlays();
-}
-
-void Rendering::setDeviceViewport( const glm::ivec4& deviceViewport  )
-{
-    // Set the OpenGL viewport in device units:
-    glViewport( deviceViewport[0], deviceViewport[1], deviceViewport[2], deviceViewport[3] );
 }
 
 void Rendering::updateImageUniforms( uuid_range_t imageUids )

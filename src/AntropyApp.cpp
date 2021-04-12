@@ -217,20 +217,15 @@ void AntropyApp::resize( int width, int height )
 
     m_data.windowData().setViewport(
                 toolbarWidth,
-                0.0f,
-                width - 2.0f * toolbarWidth,
-                height - menuHeight );
-
-//    m_data.windowData().setViewport( 0.0f, 0.0f, width, height );
-
-    m_rendering.setDeviceViewport( glm::ivec4{ m_data.windowData().viewport().getDeviceAsVec4() } );
+                0.0,
+                static_cast<float>(width) - 2.0f * toolbarWidth,
+                static_cast<float>(height) - menuHeight );
 }
 
 void AntropyApp::render()
 {
     m_glfw.renderOnce();
 }
-
 
 CallbackHandler& AntropyApp::callbackHandler() { return m_callbackHandler; }
 
