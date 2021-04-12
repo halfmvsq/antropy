@@ -40,18 +40,21 @@ namespace ImGui
  *
  * @note Minor modifications have been made to this function for Antropy
  */
-bool paletteButton( const char* label, size_t numCol, const float* buff, bool inverted, const ImVec2& size )
+bool paletteButton(
+        const char* label,
+        int numCol,
+        const float* buff,
+        bool inverted,
+        const ImVec2& size )
 {
     ImGuiWindow* window = GetCurrentWindow();
 
     if ( ! window ) return false;
     if ( window->SkipItems ) return false;
-
     if ( ! GImGui ) return false;
+
     const ImGuiStyle& style = GImGui->Style;
 
-    // Default to using texture ID as ID. User can still push string/integer prefixes.
-    // We could hash the size/uv to create a unique ID but that would prevent the user from animating UV.
     const ImGuiID id = window->GetID( label );
 
     const float lineH = ( window->DC.CurrLineSize.y <= 0 )
@@ -87,7 +90,7 @@ bool paletteButton( const char* label, size_t numCol, const float* buff, bool in
         for ( int i = 0; i < width; ++i )
         {
             const float ii = static_cast<float>( i );
-            const int idx = N + m * 4 * static_cast<int>( ii * step );
+            const int idx = N + m * 4 * i * static_cast<int>( step );
 
             drawList->AddLine( ImVec2( posMin.x + ii, posMin.y ),
                                ImVec2( posMin.x + ii, posMax.y ),
@@ -102,21 +105,22 @@ bool paletteButton( const char* label, size_t numCol, const float* buff, bool in
     {
         const float step = static_cast<float>( width ) / static_cast<float>( numCol );
 
-        for ( size_t i = 0; i < numCol; ++i )
+        for ( int i = 0; i < numCol; ++i )
         {
             const float ii = static_cast<float>( i );
             const int idx = N + m * 4 * i;
 
-            drawList->AddRectFilled( ImVec2( posMin.x + ii * step, posMin.y ),
-                                     ImVec2( posMin.x + (ii + 1.0f) * step, posMax.y ),
-                                     IM_COL32( 255.0f * buff[idx + 0],
-                                               255.0f * buff[idx + 1],
-                                               255.0f * buff[idx + 2],
-                                               255.0f * alpha * buff[idx + 3] ) );
+            drawList->AddRectFilled(
+                        ImVec2( posMin.x + ii * step, posMin.y ),
+                        ImVec2( posMin.x + ( ii + 1.0f ) * step, posMax.y ),
+                        IM_COL32( 255.0f * buff[idx + 0],
+                                  255.0f * buff[idx + 1],
+                                  255.0f * buff[idx + 2],
+                                  255.0f * alpha * buff[idx + 3] ) );
         }
     };
 
-    if ( static_cast<int>( numCol / 2 ) >= width )
+    if ( numCol / 2 >= width )
     {
         renderLines( ImGui::GetStyle().Alpha );
     }

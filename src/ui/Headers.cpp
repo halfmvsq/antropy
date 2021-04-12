@@ -815,7 +815,8 @@ void renderImageHeader(
             sprintf( label, "%s##cmap_%lu", cmap->name().c_str(), imageIndex );
 
             ImGui::paletteButton(
-                        label, cmap->numColors(), cmap->data_RGBA_F32(),
+                        label, static_cast<int>( cmap->numColors() ),
+                        cmap->data_RGBA_F32(),
                         imgSettings.isColorMapInverted(),
                         ImVec2( contentWidth, height ) );
 

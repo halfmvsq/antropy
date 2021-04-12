@@ -27,7 +27,7 @@ namespace ImGui
  */
 IMGUI_API bool paletteButton(
         const char* label,
-        size_t numCol,
+        int numCol,
         const float* buff,
         bool inverted,
         const ImVec2& size );

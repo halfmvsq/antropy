@@ -239,11 +239,8 @@ void renderPaletteWindow(
             }
 
             ImGui::NextColumn();
-            ImGui::paletteButton( cmap->name().c_str(),
-                                  cmap->numColors(),
-                                  cmap->data_RGBA_F32(),
-                                  false,
-                                  buttonSize );
+            ImGui::paletteButton( cmap->name().c_str(), static_cast<int>( cmap->numColors() ),
+                                  cmap->data_RGBA_F32(), false, buttonSize );
 
             if ( ImGui::IsItemHovered() )
             {

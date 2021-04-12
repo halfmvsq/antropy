@@ -118,10 +118,10 @@ void drawWindowOutline(
     // Outline around window
     nvgStrokeWidth( nvg, sk_outlineStrokeWidth );
     nvgStrokeColor( nvg, s_grey50 );
-//    nvgStrokeColor( nvg, s_grey25 );
+//    nvgStrokeColor( nvg, s_red );
 
     nvgBeginPath( nvg );
-    nvgRect( nvg, k_pad, k_pad, windowVP.width() - 2.0f * k_pad, windowVP.height() - 2.0f * k_pad );
+    nvgRoundedRect( nvg, k_pad, k_pad, windowVP.width() - 2.0f * k_pad, windowVP.height() - 2.0f * k_pad, 3.0f );
     nvgStroke( nvg );
 
     //        nvgStrokeWidth( nvg, 2.0f );

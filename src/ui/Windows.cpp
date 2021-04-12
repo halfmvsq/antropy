@@ -784,9 +784,8 @@ void renderSettingsWindow(
         sprintf( label, "%s##cmap_%s", cmap->name().c_str(), name );
 
         ImGui::paletteButton(
-                    label, cmap->numColors(), cmap->data_RGBA_F32(),
-                    metricParams.m_invertCmap,
-                    ImVec2( contentWidth, height ) );
+                    label, static_cast<int>( cmap->numColors() ), cmap->data_RGBA_F32(),
+                    metricParams.m_invertCmap, ImVec2( contentWidth, height ) );
 
         if ( ImGui::IsItemHovered() )
         {

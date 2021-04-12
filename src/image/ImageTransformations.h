@@ -28,17 +28,21 @@
  * positive coordinates (x, y, z) correspond to physical directions Left, Posterior, and Superior
  * (or, LPS) for human subjects.
  *
- * AFFINE REGISTERED SPACE (A): Space of the subject following affine registration as loaded from disk.
+ * AFFINE REGISTERED SPACE (A): Space of the image following affine registration as loaded from disk.
  *
- * DEFORMED WORLD SPACE (D): Space of the subject following manual registration in Antropy.
+ * DEFORMED WORLD SPACE (D): Space of the image following manual registration in Antropy.
  *
- * WORLD SPACE (W): Space in which the image is rendered. Prior to registration, it is identical to Subject space
+ * WORLD SPACE (W): Space of the image following deformable registration. This is the space in
+ * which the image is rendered. Prior to registration, it is identical to Subject space
  * (i.e. world_T_subject == identity). However, the user may choose to load and apply affine and non-linear
  * transformations between Subject and World space. This is useful when co-registering images to each other
  * or when otherwise transforming the subject.
  *
- * The full image transformation chain is [W <-- D <-- A <-- S <-- P <-- T].
- * The rendering transformation chain is [Window <-- View <-- Clip <-- Eye/Camera <-- World]
+ * The full image transformation chain is
+ * [World <-- Deformed World <-- Affine <-- Subject <-- Pixel <-- Texture]
+ *
+ * The rendering transformation chain is
+ * [Window Viewport <-- View <-- Clip <-- Eye/Camera <-- World]
  */
 class ImageTransformations
 {
@@ -144,9 +148,6 @@ private:
 
     /// When true, prevents the worldDef_T_affine ("manual") transformation from changing
     bool m_is_worldDef_T_affine_locked;
-
-    /// Flag that the transformation has changed since the image was last saved
-    bool m_dirty;
 
     /// Inverses of the pixel dimensions
     glm::vec3 m_invPixelDimensions;
