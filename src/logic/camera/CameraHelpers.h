@@ -335,6 +335,13 @@ glm::vec2 worldPixelSizeAtWorldPosition(
 
 float computeSmallestWorldDepthOffset( const camera::Camera& camera, const glm::vec3& worldPos );
 
+/// Convert a 3D position from World space to the view's Miewport space
+glm::vec2 miewport_T_world(
+        const Viewport& windowVP,
+        const camera::Camera& camera,
+        const glm::mat4& windowClip_T_viewClip,
+        const glm::vec3& worldPos );
+
 
 /**
  * @brief Compute the matrix transformation between view Clip space and Clip space of the

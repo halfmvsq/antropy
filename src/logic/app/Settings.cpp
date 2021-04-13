@@ -18,7 +18,9 @@ AppSettings::AppSettings()
       m_crosshairsMoveWithBrush( false ),
       m_brushSizeInVoxels( 1 ),
       m_brushSizeInMm( 1.0f ),
-      m_crosshairsMoveWithAnnotationPointCreation( true )
+
+      m_crosshairsMoveWithAnnotationPointCreation( true ),
+      m_lockAnatomicalCoordinateAxesWithReferenceImage( false )
 {
 }
 
@@ -84,3 +86,6 @@ void AppSettings::setBrushSizeInMm( float size ) { m_brushSizeInMm = size; }
 
 bool AppSettings::crosshairsMoveWithAnnotationPointCreation() const { return m_crosshairsMoveWithAnnotationPointCreation; }
 void AppSettings::setCrosshairsMoveWithAnnotationPointCreation( bool set ) { m_crosshairsMoveWithAnnotationPointCreation = set; }
+
+bool AppSettings::lockAnatomicalCoordinateAxesWithReferenceImage() const { return m_lockAnatomicalCoordinateAxesWithReferenceImage; }
+void AppSettings::setLockAnatomicalCoordinateAxesWithReferenceImage( bool lock ) { m_lockAnatomicalCoordinateAxesWithReferenceImage = lock; }

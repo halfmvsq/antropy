@@ -57,7 +57,8 @@ void startNvgFrame( NVGcontext* nvg, const Viewport& windowVP )
     nvgGlobalCompositeOperation( nvg, NVG_SOURCE_OVER );
 
     // Sets the composite operation with custom pixel arithmetic.
-    // The defaults are sfactor = NVG_ONE and dfactor = NVG_ONE_MINUS_SRC_ALPHA
+    // Note: The default compositing factors for NanoVG are
+    // sfactor = NVG_ONE and dfactor = NVG_ONE_MINUS_SRC_ALPHA
     nvgGlobalCompositeBlendFunc( nvg, NVG_SRC_ALPHA, NVG_ONE_MINUS_SRC_ALPHA );
 
     nvgBeginFrame( nvg, windowVP.width(), windowVP.height(), windowVP.devicePixelRatio().x );
@@ -177,24 +178,15 @@ void drawImageViewIntersections(
         const camera::FrameBounds& miewportViewBounds,
         AppData& appData,
         const View& view,
-        const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
+        const ImageSegPairs& I )
 {
     // Line segment stipple length in pixels
     static constexpr float sk_stippleLen = 16.0f;
 
-    const Viewport& windowVP = appData.windowData().viewport();
-
-    auto miewport_T_world = [&view, &windowVP] ( const glm::vec4& worldPos ) -> glm::vec2
-    {
-        const glm::vec4 winClipPos = view.windowClip_T_viewClip() * camera::clip_T_world( view.camera() ) * worldPos;
-        const glm::vec2 viewportPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos } );
-        return camera::miewport_T_viewport( windowVP.height(), viewportPos );
-    };
-
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
 
-    startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
+    startNvgFrame( nvg, appData.windowData().viewport() ); /*** START FRAME ***/
 
     nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
             miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
@@ -232,8 +224,12 @@ void drawImageViewIntersections(
         nvgBeginPath( nvg );
 
         for ( size_t i = 0; i < worldIntersections->size(); ++i )
-        {
-            const glm::vec2 currPos = miewport_T_world( worldIntersections->at( i ) );
+        {                   
+            const glm::vec2 currPos = camera::miewport_T_world(
+                        appData.windowData().viewport(),
+                        view.camera(),
+                        view.windowClip_T_viewClip(),
+                        worldIntersections->at( i ) );
 
             if ( 0 == i )
             {
@@ -562,29 +558,12 @@ void drawLandmarks(
         const glm::vec3& worldCrosshairs,
         AppData& appData,
         const View& view,
-        const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
-/// @todo use CurrentImages
+        const ImageSegPairs& I )
 {
     static constexpr float sk_minSize = 4.0f;
     static constexpr float sk_maxSize = 128.0f;
 
-    const Viewport& windowVP = appData.windowData().viewport();
-
-    // Convert a 3D position from World space to the view's Miewport space
-    auto convertWorldToMiewportPos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
-    {
-        const glm::vec4 winClipPos =
-                view.windowClip_T_viewClip() *
-                camera::clip_T_world( view.camera() ) *
-                glm::vec4{ worldPos, 1.0f };
-
-        const glm::vec2 viewportPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
-        const glm::vec2 miewportPos = camera::miewport_T_viewport( windowVP.height(), viewportPos );
-        return miewportPos;
-    };
-
-
-    startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
+    startNvgFrame( nvg, appData.windowData().viewport() ); /*** START FRAME ***/
 
     // Clip against the view bounds
     nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
@@ -672,7 +651,11 @@ void drawLandmarks(
                     continue;
                 }
 
-                const glm::vec2 miewportPos = convertWorldToMiewportPos( worldLmPos3 );
+                const glm::vec2 miewportPos = camera::miewport_T_world(
+                            appData.windowData().viewport(),
+                            view.camera(),
+                            view.windowClip_T_viewClip(),
+                            worldLmPos3 );
 
                 const bool inView = ( miewportViewBounds.bounds.xoffset < miewportPos.x &&
                                       miewportViewBounds.bounds.yoffset < miewportPos.y &&
@@ -737,27 +720,12 @@ void drawAnnotations(
         const glm::vec3& worldCrosshairs,
         AppData& appData,
         const View& view,
-        const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I )
+        const ImageSegPairs& I )
 {
-    const Viewport& windowVP = appData.windowData().viewport();
-
-    auto convertWorldToMiewportPos = [&view, &windowVP] ( const glm::vec3& worldPos ) -> glm::vec2
-    {
-        const glm::vec4 winClipPos =
-                view.windowClip_T_viewClip() *
-                camera::clip_T_world( view.camera() ) *
-                glm::vec4{ worldPos, 1.0f };
-
-        const glm::vec2 viewportPos = camera::viewport_T_windowClip( windowVP, glm::vec2{ winClipPos / winClipPos.w } );
-        const glm::vec2 miewportPos = camera::miewport_T_viewport( windowVP.height(), viewportPos );
-        return miewportPos;
-    };
-
-
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
 
-    startNvgFrame( nvg, windowVP ); /*** START FRAME ***/
+    startNvgFrame( nvg, appData.windowData().viewport() ); /*** START FRAME ***/
 
     nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
             miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
@@ -844,7 +812,12 @@ void drawAnnotations(
         {
             const glm::vec3 subjectPos = annot->unprojectFromAnnotationPlaneToSubjectPoint( subjectPlaneVertices[i] );
             const glm::vec4 worldPos = world_T_subject * glm::vec4{ subjectPos, 1.0f };
-            const glm::vec2 miewportPos = convertWorldToMiewportPos( glm::vec3{ worldPos / worldPos.w } );
+
+            const glm::vec2 miewportPos = camera::miewport_T_world(
+                        appData.windowData().viewport(),
+                        view.camera(),
+                        view.windowClip_T_viewClip(),
+                        glm::vec3{ worldPos / worldPos.w } );
 
             if ( 0 == i )
             {

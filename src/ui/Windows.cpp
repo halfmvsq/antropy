@@ -439,7 +439,8 @@ void renderViewOrientationToolWindow(
         return;
     }
 
-    const std::string uidString = std::string( "OrientationTool##" ) + uuids::to_string( viewOrLayoutUid );
+    const std::string uidString = std::string( "OrientationTool##" ) +
+            uuids::to_string( viewOrLayoutUid );
 
     bool windowOpen = false;
 
@@ -831,6 +832,15 @@ void renderSettingsWindow(
                 ImGui::Checkbox( "Snap crosshairs to voxels",
                                  &( appData.renderData().m_snapCrosshairsToReferenceVoxels ) );
                 ImGui::SameLine(); helpMarker( "Snap crosshairs to reference image voxel centers" );
+
+
+                // Anatomical coordinate directions (including crosshairs) rotation locking
+                bool lockDirectionsToReference = appData.settings().lockAnatomicalCoordinateAxesWithReferenceImage();
+                if ( ImGui::Checkbox( "Lock anatomical directions to reference image", &( lockDirectionsToReference ) ) )
+                {
+                    appData.settings().setLockAnatomicalCoordinateAxesWithReferenceImage( lockDirectionsToReference );
+                }
+                ImGui::SameLine(); helpMarker( "Lock anatomical directions and crosshairs to reference image orientation" );
 
 
                 // Image masking

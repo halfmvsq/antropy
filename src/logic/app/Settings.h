@@ -64,6 +64,9 @@ public:
     bool crosshairsMoveWithAnnotationPointCreation() const;
     void setCrosshairsMoveWithAnnotationPointCreation( bool set );
 
+    bool lockAnatomicalCoordinateAxesWithReferenceImage() const;
+    void setLockAnatomicalCoordinateAxesWithReferenceImage( bool lock );
+
 
 private:
 
@@ -86,6 +89,11 @@ private:
 
     /// Crosshairs move to the position of every new point added to an annotation
     bool m_crosshairsMoveWithAnnotationPointCreation;
+
+    /// When the reference image rotates, do the anatomical coordinate axes (LPS, RAI)
+    /// and crosshairs rotate, too? When this option is true, the rotation of the
+    /// coordinate axes are locked with the reference image.
+    bool m_lockAnatomicalCoordinateAxesWithReferenceImage;
 };
 
 #endif // APP_SETTINGS_H

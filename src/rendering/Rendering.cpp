@@ -1235,9 +1235,12 @@ void Rendering::renderVectorOverlays()
     {
         glm::mat4 world_T_refSubject( 1.0f );
 
-        if ( const Image* refImage = m_appData.refImage() )
+        if ( m_appData.settings().lockAnatomicalCoordinateAxesWithReferenceImage() )
         {
-            world_T_refSubject = refImage->transformations().worldDef_T_subject();
+            if ( const Image* refImage = m_appData.refImage() )
+            {
+                world_T_refSubject = refImage->transformations().worldDef_T_subject();
+            }
         }
 
         const auto activeViewUid = windowData.activeViewUid();

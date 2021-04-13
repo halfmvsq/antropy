@@ -872,7 +872,9 @@ glm::vec2 worldPixelSize( const Viewport& viewport, const camera::Camera& camera
 
 // This version of the function is valid for both orthogonal and perspective projections
 glm::vec2 worldPixelSizeAtWorldPosition(
-        const Viewport& viewport, const camera::Camera& camera, const glm::vec3& worldPos )
+        const Viewport& viewport,
+        const camera::Camera& camera,
+        const glm::vec3& worldPos )
 {
     static const glm::vec2 viewX( 1.0f, 0.0f );
     static const glm::vec2 viewY( 0.0f, 1.0f );
@@ -905,10 +907,31 @@ float computeSmallestWorldDepthOffset( const camera::Camera& camera, const glm::
 }
 
 
-glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& winClipVP )
+glm::vec2 miewport_T_world(
+        const Viewport& windowVP,
+        const camera::Camera& camera,
+        const glm::mat4& windowClip_T_viewClip,
+        const glm::vec3& worldPos )
 {
-    const glm::vec3 T{ winClipVP[0] + 0.5f * winClipVP[2], winClipVP[1] + 0.5f * winClipVP[3], 0.0f };
-    const glm::vec3 S{ 0.5f * winClipVP[2], 0.5f * winClipVP[3], 1.0f };
+    const glm::vec4 winClipPos =
+            windowClip_T_viewClip * clip_T_world( camera ) *
+            glm::vec4{ worldPos, 1.0f };
+
+    const glm::vec2 viewportPos = viewport_T_windowClip(
+                windowVP, glm::vec2{ winClipPos / winClipPos.w } );
+
+    return miewport_T_viewport( windowVP.height(), viewportPos );
+}
+
+
+glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& windowClipViewport )
+{
+    const glm::vec3 T{ windowClipViewport[0] + 0.5f * windowClipViewport[2],
+                       windowClipViewport[1] + 0.5f * windowClipViewport[3], 0.0f };
+
+    const glm::vec3 S{ 0.5f * windowClipViewport[2],
+                       0.5f * windowClipViewport[3], 1.0f };
+
     return glm::translate( T ) * glm::scale( S );
 }
 
@@ -972,7 +995,7 @@ FrameBounds computeMindowFrameBounds(
     return glm::vec4( mindowViewBL.x, // x offset
                       mindowViewTR.y, // y offset
                       mindowViewTR.x - mindowViewBL.x, // width
-                      mindowViewBL.y - mindowViewBL.y ); // height
+                      mindowViewBL.y - mindowViewTR.y ); // height
 }
 
 } // namespace camera
