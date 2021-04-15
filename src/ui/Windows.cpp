@@ -8,7 +8,9 @@
 
 #include "common/MathFuncs.h"
 #include "image/Image.h"
+
 #include "logic/app/Data.h"
+#include "logic/camera/MathUtility.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -414,12 +416,14 @@ void renderViewOrientationToolWindow(
         const camera::CameraType& cameraType,
         const std::function< glm::quat () >& getViewCameraRotation,
         const std::function< void ( const glm::quat& camera_T_world_rotationDelta ) >& setViewCameraRotation,
-        const std::function< glm::vec3 () >& getViewNormal )
+        const std::function< void ( const glm::vec3& worldDirection ) >& setViewCameraDirection,
+        const std::function< glm::vec3 () >& getViewNormal,
+        const std::function< std::vector< glm::vec3 > ( const uuids::uuid& viewUidToExclude ) >& getObliqueViewDirections )
 {
     static const glm::vec2 sk_framePad{ 4.0f, 4.0f };
     static const ImVec2 sk_windowPadding( 0.0f, 0.0f );
     static const float sk_windowRounding( 0.0f );
-    static const ImVec2 sk_itemSpacing( 4.0f, 4.0f );
+    static const ImVec2 sk_itemSpacing( 0.0f, 0.0f );
 
     static const ImGuiWindowFlags sk_defaultWindowFlags =
             ImGuiWindowFlags_NoMove |
@@ -479,9 +483,166 @@ void renderViewOrientationToolWindow(
 
         if ( ImGui::IsItemHovered() )
         {
-            const glm::vec3 n = -getViewNormal();
-            ImGui::SetTooltip( "View direction: (%0.3f, %0.3f, %0.3f)\n", n.x, n.y, n.z );
+            const glm::vec3 worldFwdDir = -getViewNormal();
+
+            if ( ! ImGui::IsMouseDown( ImGuiMouseButton_Left ) )
+            {
+                ImGui::SetTooltip( "View direction: (%0.3f, %0.3f, %0.3f)\n"
+                                   "Drag or double-click to set direction",
+                                   worldFwdDir.x, worldFwdDir.y, worldFwdDir.z );
+            }
+            else
+            {
+                ImGui::SetTooltip( "(%0.3f, %0.3f, %0.3f)",
+                                   worldFwdDir.x, worldFwdDir.y, worldFwdDir.z );
+            }
+
+            if ( ImGui::IsMouseDoubleClicked( ImGuiMouseButton_Left ) )
+            {
+                ImGui::OpenPopup( "setViewDirection" );
+            }
         }
+
+
+        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4.0f, 3.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 8.0f, 4.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+
+        if ( ImGui::BeginPopup( "setViewDirection" ) )
+        {
+            static const glm::vec3 sk_min( -1, -1, -1 );
+            static const glm::vec3 sk_max( 1, 1, 1 );
+
+            static const glm::vec3 X( 1.0f, 0.0f, 0.0f );
+            static const glm::vec3 Y( 0.0f, 1.0f, 0.0f );
+            static const glm::vec3 Z( 0.0f, 0.0f, 1.0f );
+
+            const glm::vec3 worldOldFwdDir = -getViewNormal();
+            glm::vec3 worldNewFwdDir = worldOldFwdDir;
+
+            ImGui::Text( "Set view direction (x, y, z):" );
+            ImGui::SameLine(); helpMarker( "Set forward view direction vector (in World space)" );
+            ImGui::Spacing();
+
+            bool applyRotation = false;
+
+            if ( ImGui::InputScalarN(
+                     "(x, y, z)", ImGuiDataType_Float, glm::value_ptr( worldNewFwdDir ),
+                     3, nullptr, nullptr, "%0.3f" ) )
+            {
+                worldNewFwdDir = glm::clamp( worldNewFwdDir, sk_min, sk_max );
+
+                static constexpr float sk_minLen = 1.0e-4;
+                if ( glm::length( worldNewFwdDir ) > sk_minLen )
+                {
+                    worldNewFwdDir = glm::normalize( worldNewFwdDir );
+                    applyRotation = true;
+                }
+            }
+
+            ImGui::Separator();
+
+
+            ImGui::Spacing();
+            ImGui::Text( "Orthogonal direction:" );
+            ImGui::Spacing();
+
+            if ( ImGui::Button( "+X (L)" ) )
+            {
+                worldNewFwdDir = X;
+                applyRotation = true;
+            }
+
+            ImGui::SameLine();
+            if ( ImGui::Button( "-X (R)" ) )
+            {
+                worldNewFwdDir = -X;
+                applyRotation = true;
+            }
+
+            ImGui::SameLine();
+            ImGui::Text( "Sagittal" );
+
+
+            if ( ImGui::Button( "+Y (P)" ) )
+            {
+                worldNewFwdDir = Y;
+                applyRotation = true;
+            }
+
+            ImGui::SameLine();
+            if ( ImGui::Button( "-Y (A)" ) )
+            {
+                worldNewFwdDir = -Y;
+                applyRotation = true;
+            }
+
+            ImGui::SameLine();
+            ImGui::Text( "Coronal" );
+
+
+            if ( ImGui::Button( "+Z (S)" ) )
+            {
+                worldNewFwdDir = Z;
+                applyRotation = true;
+            }
+
+            ImGui::SameLine();
+            if ( ImGui::Button( "-Z (I)" ) )
+            {
+                worldNewFwdDir = -Z;
+                applyRotation = true;
+            }
+
+            ImGui::SameLine();
+            ImGui::Text( "Axial" );
+
+
+            const std::vector< glm::vec3 > obliqueDirs = getObliqueViewDirections( viewOrLayoutUid );
+
+            if ( ! obliqueDirs.empty() )
+            {
+                ImGui::Separator();
+                ImGui::Spacing();
+                ImGui::Text( "Oblique direction:" );
+                ImGui::SameLine(); helpMarker( "Choose among view directions in other oblique views" );
+                ImGui::Spacing();
+
+                if ( ImGui::BeginListBox( "##obliqueDirsList" ) )
+                {
+                    size_t index = 0;
+
+                    for ( const glm::vec3& dir : obliqueDirs )
+                    {
+                        ImGui::PushID( static_cast<int>( index++ ) );
+
+                        char str[25];
+                        sprintf( str, "(%0.3f, %0.3f, %0.3f)", dir.x, dir.y, dir.z );
+
+                        if ( ImGui::Selectable( str, false ) )
+                        {
+                            worldNewFwdDir = dir;
+                            applyRotation = true;
+                        }
+
+                        ImGui::PopID(); // index
+                    }
+
+                    ImGui::EndListBox();
+                }
+            }
+
+
+            if ( applyRotation )
+            {
+                setViewCameraDirection( worldNewFwdDir );
+            }
+
+            ImGui::EndPopup();
+        }
+
+        // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing, ImGuiStyleVar_WindowPadding
+        ImGui::PopStyleVar( 3 );
 
         ImGui::End();
     }

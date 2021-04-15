@@ -451,7 +451,8 @@ std::vector< uuids::uuid > findAnnotationsForImage(
         const glm::vec4& querySubjectPlaneEquation,
         float planeDistanceThresh )
 {
-    static constexpr float sk_dotProductThresh = 1.0e-4f;
+    // Angle threshold = acos(sk_dotProductThresh) * 180/pi = 0.26 degrees
+    static constexpr float sk_dotProductThresh = 1.0e-5f;
 
     std::vector< uuids::uuid > annotUids;
 
@@ -476,7 +477,7 @@ std::vector< uuids::uuid > findAnnotationsForImage(
             d2 = -d2;
         }
 
-        const bool normalMatch = ( ( glm::dot( n1, n2 ) - 1.0f ) < sk_dotProductThresh );
+        const bool normalMatch = ( std::abs( glm::dot( n1, n2 ) - 1.0f ) < sk_dotProductThresh );
         const bool offsetMatch = ( std::abs( d1 - d2 ) < planeDistanceThresh );
 
         if ( normalMatch && offsetMatch )

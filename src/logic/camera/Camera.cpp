@@ -103,10 +103,32 @@ bool Camera::isLinkedToStartFrame() const
 }
 
 
-void Camera::set_camera_T_anatomy( glm::mat4 camera_T_frameB )
+void Camera::set_camera_T_anatomy( glm::mat4 M )
 {
-    /// @todo Check that this is rigid-body by checking determinant == 1 and bottom row to be 0, 0, 0, 1
-    m_camera_T_anatomy = std::move( camera_T_frameB );
+    static constexpr float EPS = 1.0e-4;
+
+    // Check that this is a rigid-body transformation that preserves the
+    // right-handed coordinate system (i.e. determinant must equal 1):
+    const float det = glm::determinant( glm::mat3{ M } );
+
+    if ( det <= 0.0f || std::abs( det - 1.0f ) > EPS )
+    {
+        spdlog::debug( "Cannot set camera_T_anatomy to {} because it is non-rigid; 3x3 determinant = {}",
+                       glm::to_string( M ), det );
+        return;
+    }
+
+    if ( glm::epsilonNotEqual( M[0][3], 0.0f, EPS ) ||
+         glm::epsilonNotEqual( M[1][3], 0.0f, EPS ) ||
+         glm::epsilonNotEqual( M[2][3], 0.0f, EPS ) ||
+         glm::epsilonNotEqual( M[3][3], 1.0f, EPS ) )
+    {
+        spdlog::debug( "Cannot set camera_T_anatomy to {} because it is not affine",
+                       glm::to_string( M ) );
+        return;
+    }
+
+    m_camera_T_anatomy = std::move( M );
 }
 
 const glm::mat4& Camera::camera_T_anatomy() const
@@ -116,7 +138,9 @@ const glm::mat4& Camera::camera_T_anatomy() const
 
 glm::mat4 Camera::anatomy_T_start() const
 {
-    return ( m_anatomy_T_start_provider ? m_anatomy_T_start_provider().frame_T_world() : sk_ident );
+    return ( m_anatomy_T_start_provider
+             ? m_anatomy_T_start_provider().frame_T_world()
+             : sk_ident );
 }
 
 void Camera::set_start_T_world( glm::mat4 frameA_T_world )

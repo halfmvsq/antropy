@@ -422,9 +422,18 @@ void ImGuiWrapper::render()
         return camera::computeCameraRotationRelativeToWorld( view->camera() );
     };
 
-    auto setViewCameraRotation = [this] ( const uuids::uuid& viewUid, const glm::quat& camera_T_world_rotationDelta )
+    auto setViewCameraRotation = [this] (
+            const uuids::uuid& viewUid,
+            const glm::quat& camera_T_world_rotationDelta )
     {
         m_callbackHandler.doCameraRotate3d( viewUid, camera_T_world_rotationDelta );
+    };
+
+    auto setViewCameraDirection = [this] (
+            const uuids::uuid& viewUid,
+            const glm::vec3& worldFwdDirection )
+    {
+        m_callbackHandler.handleSetViewForwardDirection( viewUid, worldFwdDirection );
     };
 
     auto getViewNormal = [this] ( const uuids::uuid& viewUid )
@@ -432,6 +441,49 @@ void ImGuiWrapper::render()
         View* view = m_appData.windowData().getCurrentView( viewUid );
         if ( ! view ) return sk_zeroVec;
         return camera::worldDirection( view->camera(), Directions::View::Back );
+    };
+
+    auto getObliqueViewDirections = [this] ( const uuids::uuid& viewUidToExclude )
+            -> std::vector< glm::vec3 >
+    {
+        static constexpr float EPS = glm::epsilon<float>();
+
+        static const glm::vec3 X( 1.0f, 0.0f, 0.0f );
+        static const glm::vec3 Y( 0.0f, 1.0f, 0.0f );
+        static const glm::vec3 Z( 0.0f, 0.0f, 1.0f );
+
+
+        std::vector< glm::vec3 > obliqueViewDirections;
+
+        for ( size_t i = 0; i < m_appData.windowData().numLayouts(); ++i )
+        {
+            const Layout* layout = m_appData.windowData().layout( i );
+            if ( ! layout ) continue;
+
+            for ( const auto& view : layout->views() )
+            {
+                if ( view.first == viewUidToExclude ) continue;
+                if ( ! view.second ) continue;
+
+                const glm::vec3 frontDir = camera::worldDirection(
+                            view.second->camera(), Directions::View::Front );
+
+                const float dX = std::abs( glm::dot( frontDir, X ) );
+                const float dY = std::abs( glm::dot( frontDir, Y ) );
+                const float dZ = std::abs( glm::dot( frontDir, Z ) );
+
+                if ( glm::epsilonEqual( dX, 1.0f, EPS ) ||
+                     glm::epsilonEqual( dY, 1.0f, EPS ) ||
+                     glm::epsilonEqual( dZ, 1.0f, EPS ) )
+                {
+                    continue;
+                }
+
+                obliqueViewDirections.emplace_back( frontDir );
+            }
+        }
+
+        return obliqueViewDirections;
     };
 
 
@@ -627,7 +679,9 @@ void ImGuiWrapper::render()
                     currentLayout.cameraType(),
                     [&getViewCameraRotation, &currentLayout] () { return getViewCameraRotation( currentLayout.uid() ); },
                     [&setViewCameraRotation, &currentLayout] ( const glm::quat& q ) { return setViewCameraRotation( currentLayout.uid(), q ); },
-                    [&getViewNormal, &currentLayout] () { return getViewNormal( currentLayout.uid() ); } );
+                    [&setViewCameraDirection, &currentLayout] ( const glm::vec3& dir ) { return setViewCameraDirection( currentLayout.uid(), dir ); },
+                    [&getViewNormal, &currentLayout] () { return getViewNormal( currentLayout.uid() ); },
+                    getObliqueViewDirections );
     }
     else if ( m_appData.guiData().m_renderUiOverlays && ! currentLayout.isLightbox() )
     {
@@ -691,7 +745,9 @@ void ImGuiWrapper::render()
                     view->cameraType(),
                     [&getViewCameraRotation, &viewUid] () { return getViewCameraRotation( viewUid ); },
                     [&setViewCameraRotation, &viewUid] ( const glm::quat& q ) { return setViewCameraRotation( viewUid, q ); },
-                    [&getViewNormal, &viewUid] () { return getViewNormal( viewUid ); } );
+                    [&setViewCameraDirection, &viewUid] ( const glm::vec3& dir ) { return setViewCameraDirection( viewUid, dir ); },
+                    [&getViewNormal, &viewUid] () { return getViewNormal( viewUid ); },
+                    getObliqueViewDirections );
         }
     }
 

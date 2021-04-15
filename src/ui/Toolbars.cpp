@@ -925,9 +925,9 @@ void renderSegToolbar(
         /// @todo Should save off default values (prior to toolbar's change) and push them here:
         ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 8.0f, 4.0f ) );
         ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4.0f, 3.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 2.0f );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.0f );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
-        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 2.0f );
         ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 4.0f );
 
         if ( ImGui::BeginPopup( "brushSizePopup" ) )

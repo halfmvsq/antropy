@@ -149,6 +149,14 @@ public:
             const glm::quat& camera_T_world_rotationDelta );
 
     /**
+     * @brief Set the forward direction of a view and synchronize with its linked views
+     * @param worldForwardDirection
+     */
+    void handleSetViewForwardDirection(
+            const uuids::uuid& viewUid,
+            const glm::vec3& worldForwardDirection );
+
+    /**
      * @brief 2D zoom of the camera
      * @param windowLastPos
      * @param windowCurrPos
@@ -309,8 +317,8 @@ private:
         glm::vec2 windowClipLastPos;
         glm::vec2 windowClipCurrPos;
 
-        glm::vec4 viewClipLastPos;
-        glm::vec4 viewClipCurrPos;
+        glm::vec2 viewClipLastPos;
+        glm::vec2 viewClipCurrPos;
 
         glm::vec4 worldLastPos;
         glm::vec4 worldCurrPos;

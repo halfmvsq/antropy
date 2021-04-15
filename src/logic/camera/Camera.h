@@ -28,7 +28,7 @@ namespace camera
  * camera_T_world = camera_T_anatomy * anatomy_T_start * start_T_world,
  * where:
  *
- *    i) start_T_world: User manipulations applied to the camera BEFORE the anatomical transformation.
+ *     i) start_T_world: User manipulations applied to the camera BEFORE the anatomical transformation.
  *
  *    ii) anatomy_T_start: Anatomical starting frame of reference that is linked to an external callback.
  *        This is where axial, coronal, sagittal, and crosshairs-Z/Y/X view orientations are set.
@@ -89,8 +89,7 @@ public:
 
 
     /// Set the matrix defining the camera's position relative to the anatomical frame of reference.
-    /// @note This should be a rigid-body matrix (i.e. orthonormal rotational component),
-    /// but this constraint is not enforced.
+    /// @note This must be a rigid-body matrix (i.e. orthonormal rotational component) with determinant 1.
     void set_camera_T_anatomy( glm::mat4 camera_T_anatomy );
 
     /// Get the transformation from the camera's anatomical frame of reference to its nominal orientation.

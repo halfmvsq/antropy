@@ -130,17 +130,10 @@ bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCross
              worldCameraOrigin, worldCameraFront,
              worldViewPlane, worldCameraToPlaneDistance ) )
     {
-        // Push camera back from its target on the view plane by a distance equal to
-        // 10% of the view frustum depth, so that it doesn't clip the image quad vertices:
-        static constexpr float sk_pushBackFraction = 0.10f;
-
-        const float eyeToTargetOffset = sk_pushBackFraction *
-                ( m_camera.farDistance() - m_camera.nearDistance() );
-
         camera::setWorldTarget(
                     m_camera,
                     worldCameraOrigin + worldCameraToPlaneDistance * worldCameraFront,
-                    eyeToTargetOffset );
+                    std::nullopt );
 
         warnCount = 0; // Reset warning counter
     }
@@ -250,6 +243,8 @@ void View::setCameraType( const camera::CameraType& newCameraType )
         // The new anatomy_T_start frame is set to the (old) Orthogonal view type's anatomy_T_start frame.
         const auto& startFrameType = smk_cameraTypeToDefaultStartFrameTypeMap.at( m_cameraType );
         anatomy_T_start = CoordinateFrame( sk_origin, smk_cameraStartFrameTypeToDefaultAnatomicalRotationMap.at( startFrameType ) );
+
+        /// @todo Set anatomy_T_start equal to anatomy_T_start for the rotationSyncGroup of this view instead!!
     }
     else
     {

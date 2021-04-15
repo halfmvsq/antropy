@@ -319,20 +319,20 @@ void CallbackHandler::doCrosshairsMove(
         const glm::vec2& windowLastPos,
         const glm::vec2& windowCurrPos )
 {
-    const auto hitData = getViewHit( windowLastPos, windowCurrPos, true );
-    if ( ! hitData ) return;
+    const auto hit = getViewHit( windowLastPos, windowCurrPos, true );
+    if ( ! hit ) return;
 
-    m_appData.windowData().setActiveViewUid( hitData->viewUid );
+    m_appData.windowData().setActiveViewUid( hit->viewUid );
 
-    m_appData.state().setWorldCrosshairsPos( glm::vec3{ hitData->worldCurrPos } );
+    m_appData.state().setWorldCrosshairsPos( glm::vec3{ hit->worldCurrPos } );
 }
 
 void CallbackHandler::doCrosshairsScroll(
         const glm::vec2& windowCurrPos,
         const glm::vec2& scrollOffset )
 {
-    auto hitData = getViewHit( windowCurrPos, windowCurrPos, true );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowCurrPos, windowCurrPos, true );
+    if ( ! hit ) return;
 
     // Option 1) scroll based on the reference image only:
 //    const Image* image = refImage();
@@ -341,11 +341,11 @@ void CallbackHandler::doCrosshairsScroll(
 
     // Option 2) scroll based on all visible images in the view. Let's go with this one for now.
     const float scrollDistance = data::sliceScrollDistance(
-                m_appData, hitData->worldFrontAxis,
-                ImageSelection::VisibleImagesInView, &( hitData->view ) );
+                m_appData, hit->worldFrontAxis,
+                ImageSelection::VisibleImagesInView, &( hit->view ) );
 
     glm::vec4 worldPos{ m_appData.state().worldCrosshairs().worldOrigin() +
-                scrollOffset.y * scrollDistance * hitData->worldFrontAxis, 1.0f };
+                scrollOffset.y * scrollDistance * hit->worldFrontAxis, 1.0f };
 
     if ( m_appData.renderData().m_snapCrosshairsToReferenceVoxels )
     {
@@ -390,11 +390,11 @@ void CallbackHandler::doSegment(
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, true );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, true );
+    if ( ! hit ) return;
 
-    if ( 0 == std::count( std::begin( hitData->view.visibleImages() ),
-                          std::end( hitData->view.visibleImages() ),
+    if ( 0 == std::count( std::begin( hit->view.visibleImages() ),
+                          std::end( hit->view.visibleImages() ),
                           *activeImageUid ) )
     {
         // The active image is not visible
@@ -421,7 +421,7 @@ void CallbackHandler::doSegment(
     }
 
     // The position is in the view bounds; make this the active view:
-    m_appData.windowData().setActiveViewUid( hitData->viewUid );
+    m_appData.windowData().setActiveViewUid( hit->viewUid );
 
     // Note: when moving crosshairs, the worldPos would be offset at this stage.
     // i.e.: worldPos -= glm::vec4{ offsetDist * worldCameraFront, 0.0f };
@@ -450,7 +450,7 @@ void CallbackHandler::doSegment(
         const glm::ivec3 dims{ seg->header().pixelDimensions() };
 
         const glm::mat4& pixel_T_worldDef = seg->transformations().pixel_T_worldDef();
-        const glm::vec4 pixelPos = pixel_T_worldDef * hitData->worldCurrPos;
+        const glm::vec4 pixelPos = pixel_T_worldDef * hit->worldCurrPos;
         const glm::vec3 pixelPos3 = pixelPos / pixelPos.w;
         const glm::ivec3 roundedPixelPos = glm::ivec3{ glm::round( pixelPos3 ) };
 
@@ -463,7 +463,7 @@ void CallbackHandler::doSegment(
 
         // View plane normal vector transformed into Voxel space:
         const glm::vec3 voxelViewPlaneNormal = glm::normalize(
-                    glm::inverseTranspose( glm::mat3( pixel_T_worldDef ) ) * (-hitData->worldFrontAxis) );
+                    glm::inverseTranspose( glm::mat3( pixel_T_worldDef ) ) * (-hit->worldFrontAxis) );
 
         // View plane equation:
         const glm::vec4 voxelViewPlane = math::makePlane( voxelViewPlaneNormal, pixelPos3 );
@@ -518,8 +518,8 @@ void CallbackHandler::doAnnotate(
         const glm::vec2& windowPrevPos,
         const glm::vec2& windowCurrPos )
 {
-    auto hitData = getViewHit( windowPrevPos, windowCurrPos, true );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowPrevPos, windowCurrPos, true );
+    if ( ! hit ) return;
 
     // We need a reference image to compute the offset distance
     const Image* refImg = m_appData.refImage();
@@ -536,11 +536,11 @@ void CallbackHandler::doAnnotate(
     /// @todo Create AnnotatingState: { Nothing, PickingPoint, MovingPoint, SelectingPoint }
     if ( m_appData.state().annotating() && activeViewUid )
     {
-        if ( activeViewUid != hitData->viewUid ) return;
+        if ( activeViewUid != hit->viewUid ) return;
     }
 
     // The pointer is in the view bounds! Make this the active view:
-    m_appData.windowData().setActiveViewUid( hitData->viewUid );
+    m_appData.windowData().setActiveViewUid( hit->viewUid );
 
     // Apply this view's offset from the crosshairs position in order to calculate the view plane position.
     // The offset is calculated based on the slice scroll distance of the reference image.
@@ -550,17 +550,17 @@ void CallbackHandler::doAnnotate(
     const glm::mat4& subject_T_world = activeImage->transformations().subject_T_worldDef();
     const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
 
-    const glm::vec4 worldPlaneNormal{ -hitData->worldFrontAxis, 0.0f };
+    const glm::vec4 worldPlaneNormal{ -hit->worldFrontAxis, 0.0f };
     const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
 
-    glm::vec4 subjectPlanePoint = subject_T_world * hitData->worldCurrPos;
+    glm::vec4 subjectPlanePoint = subject_T_world * hit->worldCurrPos;
     subjectPlanePoint /= subjectPlanePoint.w;
 
     const glm::vec4 subjectPlaneEquation = math::makePlane(
                 subjectPlaneNormal, glm::vec3{ subjectPlanePoint } );
 
     // Use the image slice scroll distance as the threshold for plane distances:
-    const float planeDistanceThresh = data::sliceScrollDistance( hitData->worldFrontAxis, *activeImage );
+    const float planeDistanceThresh = data::sliceScrollDistance( hit->worldFrontAxis, *activeImage );
 
     /// @todo Create AnnotationGroup, which consists of all annotations for an image that fall
     /// on one of the slices.
@@ -622,7 +622,7 @@ void CallbackHandler::doAnnotate(
     if ( ! projectedPoint )
     {
         spdlog::error( "Unable to add point {} to boundary {}",
-                       glm::to_string( hitData->worldCurrPos ), k_outerBoundary );
+                       glm::to_string( hit->worldCurrPos ), k_outerBoundary );
     }
 //    else
 //    {
@@ -635,8 +635,8 @@ void CallbackHandler::doWindowLevel(
         const glm::vec2& windowLastPos,
         const glm::vec2& windowCurrPos )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, true );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, true );
+    if ( ! hit ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
@@ -644,8 +644,8 @@ void CallbackHandler::doWindowLevel(
     Image* activeImage = m_appData.image( *activeImageUid );
     if ( ! activeImage ) return;
 
-    if ( 0 == std::count( std::begin( hitData->view.visibleImages() ),
-                          std::end( hitData->view.visibleImages() ),
+    if ( 0 == std::count( std::begin( hit->view.visibleImages() ),
+                          std::end( hit->view.visibleImages() ),
                           *activeImageUid ) )
     {
         // The active image is not visible
@@ -660,10 +660,10 @@ void CallbackHandler::doWindowLevel(
     const double winMax = settings.windowRange().second;
 
     const double levelDelta = ( levelMax - levelMin ) *
-            static_cast<double>( hitData->windowClipCurrPos.y - hitData->windowClipLastPos.y ) / 2.0;
+            static_cast<double>( hit->windowClipCurrPos.y - hit->windowClipLastPos.y ) / 2.0;
 
     const double winDelta = ( winMax - winMin ) *
-            static_cast<double>( hitData->windowClipCurrPos.x - hitData->windowClipLastPos.x ) / 2.0;
+            static_cast<double>( hit->windowClipCurrPos.x - hit->windowClipLastPos.x ) / 2.0;
 
     const double oldLevel = settings.level();
     const double oldWindow = settings.window();
@@ -685,14 +685,14 @@ void CallbackHandler::doOpacity(
     static constexpr double sk_opMin = 0.0;
     static constexpr double sk_opMax = 1.0;
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, true );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, true );
+    if ( ! hit ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
 
-    if ( 0 == std::count( std::begin( hitData->view.visibleImages() ),
-                          std::end( hitData->view.visibleImages() ),
+    if ( 0 == std::count( std::begin( hit->view.visibleImages() ),
+                          std::end( hit->view.visibleImages() ),
                           *activeImageUid ) )
     {
         // The active image is not visible
@@ -703,7 +703,7 @@ void CallbackHandler::doOpacity(
     if ( ! activeImage ) return;
 
     const double opacityDelta = ( sk_opMax - sk_opMin ) *
-            static_cast<double>( hitData->windowClipCurrPos.y - hitData->windowClipLastPos.y ) / 2.0;
+            static_cast<double>( hit->windowClipCurrPos.y - hit->windowClipLastPos.y ) / 2.0;
 
     const double newOpacity = std::min( std::max( activeImage->settings().opacity() +
                                                   opacityDelta, sk_opMin ), sk_opMax );
@@ -718,33 +718,35 @@ void CallbackHandler::doCameraTranslate2d(
         const glm::vec2& windowCurrPos,
         const glm::vec2& windowStartPos )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
+    if ( ! hit ) return;
 
-    if ( const auto transGroupUid = hitData->view.cameraTranslationSyncGroupUid() )
+    const glm::vec3 worldOrigin = m_appData.state().worldCrosshairs().worldOrigin();
+
+    panRelativeToWorldPosition(
+                hit->view.camera(),
+                hit->viewClipLastPos,
+                hit->viewClipCurrPos,
+                worldOrigin );
+
+    if ( const auto transGroupUid = hit->view.cameraTranslationSyncGroupUid() )
     {
         for ( const auto& uid : m_appData.windowData().cameraTranslationGroupViewUids( *transGroupUid ) )
         {
+            if ( uid == hit->viewUid ) continue;
+
             View* syncedView = m_appData.windowData().getCurrentView( uid );
             if ( ! syncedView ) continue;
 
             // Only synchronize translations if the view camera types are the same:
-            if ( syncedView->cameraType() != hitData->view.cameraType() ) continue;
+            if ( syncedView->cameraType() != hit->view.cameraType() ) continue;
 
             panRelativeToWorldPosition(
                         syncedView->camera(),
-                        glm::vec2{ hitData->viewClipLastPos },
-                        glm::vec2{ hitData->viewClipCurrPos },
-                        m_appData.state().worldCrosshairs().worldOrigin() );
+                        hit->viewClipLastPos,
+                        hit->viewClipCurrPos,
+                        worldOrigin );
         }
-    }
-    else
-    {
-        panRelativeToWorldPosition(
-                    hitData->view.camera(),
-                    glm::vec2{ hitData->viewClipLastPos },
-                    glm::vec2{ hitData->viewClipCurrPos },
-                    m_appData.state().worldCrosshairs().worldOrigin() );
     }
 }
 
@@ -753,49 +755,48 @@ void CallbackHandler::doCameraRotate2d(
         const glm::vec2& windowCurrPos,
         const glm::vec2& windowStartPos )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
+    if ( ! hit ) return;
 
     // Only allow rotation of oblique views (and later 3D views, too)
-    if ( camera::CameraType::Oblique != hitData->view.cameraType() ) return;
+    if ( camera::CameraType::Oblique != hit->view.cameraType() ) return;
 
     /// @todo Different behavior for rotation 3D view types!
 
-    glm::vec4 clipRotationCenterPos = camera::clip_T_world( hitData->view.camera() ) *
+    glm::vec4 clipRotationCenterPos = camera::clip_T_world( hit->view.camera() ) *
             glm::vec4{ m_appData.state().worldCrosshairs().worldOrigin(), 1.0f };
 
     clipRotationCenterPos /= clipRotationCenterPos.w;
 
-    if ( const auto rotGroupUid = hitData->view.cameraRotationSyncGroupUid() )
+    camera::rotateInPlane(
+                hit->view.camera(),
+                hit->viewClipLastPos,
+                hit->viewClipCurrPos,
+                glm::vec2{ clipRotationCenterPos } );
+
+    if ( const auto rotGroupUid = hit->view.cameraRotationSyncGroupUid() )
     {
         for ( const auto& uid : m_appData.windowData().cameraRotationGroupViewUids( *rotGroupUid ) )
         {
+            if ( uid == hit->viewUid ) continue;
+
             View* syncedView = m_appData.windowData().getCurrentView( uid );
             if ( ! syncedView ) continue;
 
             // Only synchronize rotations if the view camera types are the same:
-            if ( syncedView->cameraType() != hitData->view.cameraType() ) continue;
+            if ( syncedView->cameraType() != hit->view.cameraType() ) continue;
 
-            // Rotations only synchronize if the view normals are the same:
-            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
-            const glm::vec3 n2 = camera::worldDirection( hitData->view.camera(), Directions::View::Back );
-
-            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-4f ) continue;
+            // Note: should technically only synchronize if the view normals are the same:
+//            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
+//            const glm::vec3 n2 = camera::worldDirection( hit->view.camera(), Directions::View::Back );
+//            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-4f ) continue;
 
             camera::rotateInPlane(
                         syncedView->camera(),
-                        glm::vec2{ hitData->viewClipLastPos },
-                        glm::vec2{ hitData->viewClipCurrPos },
+                        hit->viewClipLastPos,
+                        hit->viewClipCurrPos,
                         glm::vec2{ clipRotationCenterPos } );
         }
-    }
-    else
-    {
-        camera::rotateInPlane(
-                    hitData->view.camera(),
-                    glm::vec2{ hitData->viewClipLastPos },
-                    glm::vec2{ hitData->viewClipCurrPos },
-                    glm::vec2{ clipRotationCenterPos } );
     }
 }
 
@@ -805,11 +806,11 @@ void CallbackHandler::doCameraRotate3d(
         const glm::vec2& windowStartPos,
         const std::optional<AxisConstraint>& constraint )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
+    if ( ! hit ) return;
 
     // Only allow rotation of oblique views (and later 3D views, too)
-    if ( camera::CameraType::Oblique != hitData->view.cameraType() ) return;
+    if ( camera::CameraType::Oblique != hit->view.cameraType() ) return;
 
     if ( constraint )
     {
@@ -817,14 +818,14 @@ void CallbackHandler::doCameraRotate3d(
         {
         case AxisConstraint::X :
         {
-            hitData->viewClipLastPos.x = 0.0f;
-            hitData->viewClipCurrPos.x = 0.0f;
+            hit->viewClipLastPos.x = 0.0f;
+            hit->viewClipCurrPos.x = 0.0f;
             break;
         }
         case AxisConstraint::Y :
         {
-            hitData->viewClipLastPos.y = 0.0f;
-            hitData->viewClipCurrPos.y = 0.0f;
+            hit->viewClipLastPos.y = 0.0f;
+            hit->viewClipCurrPos.y = 0.0f;
             break;
         }
         default: break;
@@ -833,37 +834,37 @@ void CallbackHandler::doCameraRotate3d(
 
     /// @todo Different behavior for rotation 3D view types!
 
-    if ( const auto rotGroupUid = hitData->view.cameraRotationSyncGroupUid() )
+    const glm::vec3 worldOrigin = m_appData.state().worldCrosshairs().worldOrigin();
+
+    camera::rotateAboutWorldPoint(
+                hit->view.camera(),
+                hit->viewClipLastPos,
+                hit->viewClipCurrPos,
+                worldOrigin );
+
+    if ( const auto rotGroupUid = hit->view.cameraRotationSyncGroupUid() )
     {
         for ( const auto& uid : m_appData.windowData().cameraRotationGroupViewUids( *rotGroupUid ) )
         {
+            if ( uid == hit->viewUid ) continue;
+
             View* syncedView = m_appData.windowData().getCurrentView( uid );
             if( ! syncedView ) continue;
 
             // Only synchronize rotations if the view camera types are the same:
-            if ( syncedView->cameraType() != hitData->view.cameraType() ) continue;
+            if ( syncedView->cameraType() != hit->view.cameraType() ) continue;
 
-            // Rotations only synchronize if the view normals are close:
-            /// @todo Check angle instead of dot product using acos
-            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
-            const glm::vec3 n2 = camera::worldDirection( hitData->view.camera(), Directions::View::Back );
-
-            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-2f ) continue;
+            // Note: should technically only synchronize if the view normals are the same:
+//            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
+//            const glm::vec3 n2 = camera::worldDirection( hit->view.camera(), Directions::View::Back );
+//            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-1f ) continue;
 
             camera::rotateAboutWorldPoint(
                         syncedView->camera(),
-                        glm::vec2{ hitData->viewClipLastPos },
-                        glm::vec2{ hitData->viewClipCurrPos },
-                        m_appData.state().worldCrosshairs().worldOrigin() );
+                        hit->viewClipLastPos,
+                        hit->viewClipCurrPos,
+                        worldOrigin );
         }
-    }
-    else
-    {
-        camera::rotateAboutWorldPoint(
-                    hitData->view.camera(),
-                    glm::vec2{ hitData->viewClipLastPos },
-                    glm::vec2{ hitData->viewClipCurrPos },
-                    m_appData.state().worldCrosshairs().worldOrigin() );
     }
 }
 
@@ -880,34 +881,110 @@ void CallbackHandler::doCameraRotate3d(
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
     if ( camera::CameraType::Oblique != view->cameraType() ) return;
 
+    const glm::vec3 worldOrigin = m_appData.state().worldCrosshairs().worldOrigin();
+
+    camera::applyViewRotationAboutWorldPoint(
+                view->camera(),
+                camera_T_world_rotationDelta,
+                worldOrigin );
+
     if ( const auto rotGroupUid = view->cameraRotationSyncGroupUid() )
     {
         for ( const auto& uid : windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
         {
+            if ( uid == viewUid ) continue;
+
             View* syncedView = windowData.getCurrentView( uid );
             if( ! syncedView ) continue;
 
             // Only synchronize rotations if the view camera types are the same:
             if ( syncedView->cameraType() != view->cameraType() ) continue;
 
-            // Rotations only synchronize if the view normals are the same:
-            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
-            const glm::vec3 n2 = camera::worldDirection( view->camera(), Directions::View::Back );
-
-            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-2f ) continue;
+            // Note: should technically only synchronize if the view normals are the same:
+//            const glm::vec3 n1 = camera::worldDirection( syncedView->camera(), Directions::View::Back );
+//            const glm::vec3 n2 = camera::worldDirection( view->camera(), Directions::View::Back );
+//            if ( std::abs( glm::dot( n1, n2 ) - 1.0f ) > 1.0e-1f ) continue;
 
             camera::applyViewRotationAboutWorldPoint(
                         syncedView->camera(),
                         camera_T_world_rotationDelta,
-                        m_appData.state().worldCrosshairs().worldOrigin() );
+                        worldOrigin );
         }
     }
-    else
+}
+
+void CallbackHandler::handleSetViewForwardDirection(
+        const uuids::uuid& viewUid,
+        const glm::vec3& worldForwardDirection )
+{
+    static const CoordinateFrame IDENT;
+    static constexpr float sk_bigEps = 1.0e-3;
+
+    static const glm::vec3 sk_worldDesiredUp_superior{ 0, 0, 1 };
+    static const glm::vec3 sk_worldDesiredUp_anterior{ 0, -1, 0 };
+
+    auto setViewForwardDir = [this, &worldForwardDirection] ( camera::Camera& camera )
     {
-        camera::applyViewRotationAboutWorldPoint(
-                    view->camera(),
-                    camera_T_world_rotationDelta,
-                    m_appData.state().worldCrosshairs().worldOrigin() );
+        if ( glm::length( worldForwardDirection ) < sk_bigEps ) return;
+
+        const glm::vec3 worldBack = glm::normalize( -worldForwardDirection );
+
+        const float d = std::abs( std::abs( glm::dot( worldBack, sk_worldDesiredUp_superior ) ) - 1.0f );
+
+        const glm::vec3 worldRight = glm::normalize(
+                    ( d < sk_bigEps )
+                    ? glm::cross( sk_worldDesiredUp_anterior, worldBack )
+                    : glm::cross( sk_worldDesiredUp_superior, worldBack ) );
+
+        const glm::vec3 worldUp = glm::normalize( glm::cross( worldBack, worldRight ) );
+
+//        spdlog::trace( "worldRight = {}, worldUp = {}, worldBack = {}",
+//                       glm::to_string(worldRight),
+//                       glm::to_string(worldUp),
+//                       glm::to_string(worldBack) );
+
+        const glm::mat4 anatomy_T_camera{
+            glm::vec4{ worldRight, 0 },
+            glm::vec4{ worldUp, 0 },
+            glm::vec4{ worldBack, 0 },
+            glm::vec4{ 0, 0, 0, 1 }
+        };
+
+//        camera::resetViewTransformation( camera );
+
+        camera.set_anatomy_T_start_provider( [] () { return IDENT; } );
+        camera.set_camera_T_anatomy( glm::inverse( anatomy_T_camera ) );
+
+        camera::setWorldTarget( camera, m_appData.state().worldCrosshairs().worldOrigin(), std::nullopt );
+    };
+
+
+    auto& windowData = m_appData.windowData();
+
+    View* view = windowData.getView( viewUid );
+    if ( ! view ) return;
+
+    // Only allow rotation of oblique views (and later 3D views, too)
+    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
+    if ( camera::CameraType::Oblique != view->cameraType() ) return;
+
+    setViewForwardDir( view->camera() );
+
+    /// @todo Pull synchronization code out into own function:
+    if ( const auto rotGroupUid = view->cameraRotationSyncGroupUid() )
+    {
+        for ( const auto& uid : windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
+        {
+            if ( uid == viewUid ) continue;
+
+            View* syncedView = windowData.getCurrentView( uid );
+            if( ! syncedView ) continue;
+
+            // Only synchronize rotations if the view camera types are the same:
+            if ( syncedView->cameraType() != view->cameraType() ) continue;
+
+            setViewForwardDir( syncedView->camera() );
+        }
     }
 }
 
@@ -920,15 +997,15 @@ void CallbackHandler::doCameraZoomDrag(
 {
     static const glm::vec2 sk_ndcCenter{ 0.0f, 0.0f };
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
+    if ( ! hit ) return;
 
     const glm::vec4 winClipStartPos{
         camera::windowNdc2d_T_windowPixels( m_appData.windowData().viewport(), windowStartPos ),
-                hitData->view.clipPlaneDepth(), 1.0f };
+                hit->view.clipPlaneDepth(), 1.0f };
 
-    const glm::vec4 viewClipStartPos = hitData->view.viewClip_T_windowClip() * winClipStartPos;
-    const glm::vec4 worldStartPos = camera::world_T_clip( hitData->view.camera() ) * viewClipStartPos;
+    const glm::vec4 viewClipStartPos = hit->view.viewClip_T_windowClip() * winClipStartPos;
+    const glm::vec4 worldStartPos = camera::world_T_clip( hit->view.camera() ) * viewClipStartPos;
 
     auto getCenterViewClipPos = [this, &zoomBehavior, &worldStartPos] ( const View* view ) -> glm::vec2
     {
@@ -958,7 +1035,7 @@ void CallbackHandler::doCameraZoomDrag(
         return viewClipCenterPos;
     };
 
-    const float factor = 2.0f * ( hitData->windowClipCurrPos.y - hitData->windowClipLastPos.y ) / 2.0f + 1.0f;
+    const float factor = 2.0f * ( hit->windowClipCurrPos.y - hit->windowClipLastPos.y ) / 2.0f + 1.0f;
 
     if ( syncZoomForAllViews )
     {
@@ -972,7 +1049,7 @@ void CallbackHandler::doCameraZoomDrag(
     }
     else
     {
-        if ( const auto zoomGroupUid = hitData->view.cameraZoomSyncGroupUid() )
+        if ( const auto zoomGroupUid = hit->view.cameraZoomSyncGroupUid() )
         {
             for ( const auto& viewUid : m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
             {
@@ -984,7 +1061,7 @@ void CallbackHandler::doCameraZoomDrag(
         }
         else
         {
-            camera::zoomNdc( hitData->view.camera(), factor, getCenterViewClipPos( &(hitData->view) ) );
+            camera::zoomNdc( hit->view.camera(), factor, getCenterViewClipPos( &(hit->view) ) );
         }
     }
 }
@@ -998,13 +1075,13 @@ void CallbackHandler::doCameraZoomScroll(
     static constexpr float sk_zoomFactor = 0.01f;
     static const glm::vec2 sk_ndcCenter{ 0.0f, 0.0f };
 
-    auto hitData = getViewHit( windowCurrPos, windowCurrPos, false );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowCurrPos, windowCurrPos, false );
+    if ( ! hit ) return;
 
     // The pointer is in the view bounds! Make this the active view
-    m_appData.windowData().setActiveViewUid( hitData->viewUid );
+    m_appData.windowData().setActiveViewUid( hit->viewUid );
 
-    auto getCenterViewClipPos = [this, &zoomBehavior, &hitData]
+    auto getCenterViewClipPos = [this, &zoomBehavior, &hit]
             ( const View* view ) -> glm::vec2
     {
         glm::vec2 viewClipCenterPos;
@@ -1020,7 +1097,7 @@ void CallbackHandler::doCameraZoomScroll(
         case ZoomBehavior::ToStartPosition:
         {
             const glm::vec4 _viewClipCurrPos =
-                    camera::clip_T_world( view->camera() ) * hitData->worldCurrPos;
+                    camera::clip_T_world( view->camera() ) * hit->worldCurrPos;
             viewClipCenterPos = glm::vec2{ _viewClipCurrPos / _viewClipCurrPos.w };
             break;
         }
@@ -1048,7 +1125,7 @@ void CallbackHandler::doCameraZoomScroll(
     }
     else
     {
-        if ( const auto zoomGroupUid = hitData->view.cameraZoomSyncGroupUid() )
+        if ( const auto zoomGroupUid = hit->view.cameraZoomSyncGroupUid() )
         {
             for ( const auto& viewUid : m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
             {
@@ -1060,7 +1137,7 @@ void CallbackHandler::doCameraZoomScroll(
         }
         else
         {
-            camera::zoomNdc( hitData->view.camera(), factor, getCenterViewClipPos( &(hitData->view) ) );
+            camera::zoomNdc( hit->view.camera(), factor, getCenterViewClipPos( &(hit->view) ) );
         }
     }
 }
@@ -1069,8 +1146,8 @@ void CallbackHandler::scrollViewSlice(
         const glm::vec2& windowCurrPos,
         int numSlices )
 {
-    auto hitData = getViewHit( windowCurrPos, windowCurrPos, true );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowCurrPos, windowCurrPos, true );
+    if ( ! hit ) return;
 
     // option 1) scroll based on the reference image
 //    const Image* image = refImage();
@@ -1079,13 +1156,13 @@ void CallbackHandler::scrollViewSlice(
 
     // option 2) scroll based on all visible images in the view
     const float scrollDistance = data::sliceScrollDistance(
-                m_appData, hitData->worldFrontAxis,
+                m_appData, hit->worldFrontAxis,
                 ImageSelection::VisibleImagesInView,
-                &(hitData->view) );
+                &(hit->view) );
 
     m_appData.state().setWorldCrosshairsPos(
                 m_appData.state().worldCrosshairs().worldOrigin() +
-                static_cast<float>( numSlices ) * scrollDistance * hitData->worldFrontAxis );
+                static_cast<float>( numSlices ) * scrollDistance * hit->worldFrontAxis );
 }
 
 void CallbackHandler::doImageTranslate(
@@ -1096,14 +1173,14 @@ void CallbackHandler::doImageTranslate(
 {
     static constexpr float sk_scale = 10.0f;
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
+    if ( ! hit ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
 
-    if ( 0 == std::count( std::begin( hitData->view.visibleImages() ),
-                          std::end( hitData->view.visibleImages() ),
+    if ( 0 == std::count( std::begin( hit->view.visibleImages() ),
+                          std::end( hit->view.visibleImages() ),
                           *activeImageUid ) )
     {
         // The active image is not visible
@@ -1121,9 +1198,9 @@ void CallbackHandler::doImageTranslate(
         static const float ndcZ = -1.0f; //camera::ndcZofWorldPoint( view->camera(), imgTx.getWorldSubjectOrigin() );
 
         T = camera::translationInCameraPlane(
-                    hitData->view.camera(),
-                    glm::vec2{ hitData->viewClipLastPos },
-                    glm::vec2{ hitData->viewClipCurrPos },
+                    hit->view.camera(),
+                    hit->viewClipLastPos,
+                    hit->viewClipCurrPos,
                     ndcZ );
     }
     else
@@ -1131,12 +1208,12 @@ void CallbackHandler::doImageTranslate(
         // Translate the image in and out of the view plane. Translate by an amount proportional to the
         // slice distance of the active image (the one being translated)
         const float scrollDistance = data::sliceScrollDistance(
-                    hitData->worldFrontAxis, *activeImage );
+                    hit->worldFrontAxis, *activeImage );
 
         T = translationAboutCameraFrontBack(
-                    hitData->view.camera(),
-                    glm::vec2{ hitData->viewClipLastPos },
-                    glm::vec2{ hitData->viewClipCurrPos },
+                    hit->view.camera(),
+                    hit->viewClipLastPos,
+                    hit->viewClipCurrPos,
                     sk_scale * scrollDistance );
     }
 
@@ -1162,14 +1239,14 @@ void CallbackHandler::doImageRotate(
         const glm::vec2& windowStartPos,
         bool inPlane )
 {
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
+    if ( ! hit ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
 
-    if ( 0 == std::count( std::begin( hitData->view.visibleImages() ),
-                          std::end( hitData->view.visibleImages() ),
+    if ( 0 == std::count( std::begin( hit->view.visibleImages() ),
+                          std::end( hit->view.visibleImages() ),
                           *activeImageUid ) )
     {
         // The active image is not visible
@@ -1194,12 +1271,12 @@ void CallbackHandler::doImageRotate(
 
     if ( inPlane )
     {
-        const glm::vec2 ndcRotationCenter = ndc_T_world( hitData->view.camera(), worldRotationCenter );
+        const glm::vec2 ndcRotationCenter = ndc_T_world( hit->view.camera(), worldRotationCenter );
 
         const glm::quat R = camera::rotation2dInCameraPlane(
-                    hitData->view.camera(),
-                    glm::vec2{ hitData->viewClipLastPos },
-                    glm::vec2{ hitData->viewClipCurrPos },
+                    hit->view.camera(),
+                    hit->viewClipLastPos,
+                    hit->viewClipCurrPos,
                     ndcRotationCenter );
 
         math::rotateFrameAboutWorldPos( imageFrame, R, worldRotationCenter );
@@ -1207,9 +1284,9 @@ void CallbackHandler::doImageRotate(
     else
     {
         const glm::quat R = rotation3dAboutCameraPlane(
-                    hitData->view.camera(),
-                    glm::vec2{ hitData->viewClipLastPos },
-                    glm::vec2{ hitData->viewClipCurrPos } );
+                    hit->view.camera(),
+                    hit->viewClipLastPos,
+                    hit->viewClipCurrPos );
 
         math::rotateFrameAboutWorldPos( imageFrame, R, worldRotationCenter );
     }
@@ -1241,14 +1318,14 @@ void CallbackHandler::doImageScale(
     static const glm::vec3 sk_minScale( 0.1f );
     static const glm::vec3 sk_maxScale( 10.0f );
 
-    auto hitData = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
-    if ( ! hitData ) return;
+    auto hit = getViewHit( windowLastPos, windowCurrPos, false, windowStartPos );
+    if ( ! hit ) return;
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
 
-    if ( 0 == std::count( std::begin( hitData->view.visibleImages() ),
-                          std::end( hitData->view.visibleImages() ),
+    if ( 0 == std::count( std::begin( hit->view.visibleImages() ),
+                          std::end( hit->view.visibleImages() ),
                           *activeImageUid ) )
     {
         // The active image is not visible
@@ -1267,8 +1344,8 @@ void CallbackHandler::doImageScale(
 //    const glm::vec3 worldScaleCenter = ( p ? *p : m_appData.worldCrosshairs().worldOrigin() );
 //    glm::vec4 subjectScaleCenter = tx.subject_T_world() * glm::vec4{ worldScaleCenter, 1.0f };
 
-    glm::vec4 lastSubjectPos = imgTx.subject_T_worldDef() * hitData->worldLastPos;
-    glm::vec4 currSubjectPos = imgTx.subject_T_worldDef() * hitData->worldCurrPos;
+    glm::vec4 lastSubjectPos = imgTx.subject_T_worldDef() * hit->worldLastPos;
+    glm::vec4 currSubjectPos = imgTx.subject_T_worldDef() * hit->worldCurrPos;
     glm::vec4 subjectScaleCenter = imgTx.subject_T_texture() * glm::vec4{ 0.5, 0.5f, 0.5f, 1.0f };
 
     lastSubjectPos /= lastSubjectPos.w;
@@ -1629,11 +1706,14 @@ CallbackHandler::getViewHit(
     hitData.windowClipLastPos = windowClipLastPos;
     hitData.windowClipCurrPos = windowClipCurrPos;
 
-    hitData.viewClipLastPos = view->viewClip_T_windowClip() * windowClipLastPos;
-    hitData.viewClipCurrPos = view->viewClip_T_windowClip() * windowClipCurrPos;
+    glm::vec4 viewClipLastPos = view->viewClip_T_windowClip() * windowClipLastPos;
+    glm::vec4 viewClipCurrPos = view->viewClip_T_windowClip() * windowClipCurrPos;
 
-    hitData.viewClipLastPos /= hitData.viewClipLastPos.w;
-    hitData.viewClipCurrPos /= hitData.viewClipCurrPos.w;
+    viewClipLastPos /= viewClipLastPos.w;
+    viewClipCurrPos /= viewClipCurrPos.w;
+
+    hitData.viewClipLastPos = glm::vec2{ viewClipLastPos };
+    hitData.viewClipCurrPos = glm::vec2{ viewClipCurrPos };
 
     hitData.worldFrontAxis = camera::worldDirection( view->camera(), Directions::View::Front );
 
@@ -1648,8 +1728,9 @@ CallbackHandler::getViewHit(
                 m_appData, view->offsetSetting(), hitData.worldFrontAxis );
 
     const glm::mat4 world_T_clip = camera::world_T_clip( view->camera() );
-    hitData.worldLastPos = world_T_clip * hitData.viewClipLastPos;
-    hitData.worldCurrPos = world_T_clip * hitData.viewClipCurrPos;
+
+    hitData.worldLastPos = world_T_clip * viewClipLastPos;
+    hitData.worldCurrPos = world_T_clip * viewClipCurrPos;
 
     hitData.worldLastPos = hitData.worldLastPos / hitData.worldLastPos.w;
     hitData.worldCurrPos = hitData.worldCurrPos / hitData.worldCurrPos.w;

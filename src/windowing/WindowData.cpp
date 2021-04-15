@@ -816,7 +816,7 @@ std::vector<uuids::uuid> WindowData::findCurrentViewsWithNormal(
         const glm::vec3 worldBackDir = camera::worldDirection( view->camera(), Directions::View::Back );
         const float d = std::abs( glm::dot( worldBackDir, glm::normalize( worldNormal ) ) );
 
-        if ( glm::epsilonEqual( d, 1.0f, EPS ) || glm::epsilonEqual( d, -1.0f, EPS ) )
+        if ( glm::epsilonEqual( d, 1.0f, EPS ) )
         {
             viewUids.push_back( viewUid );
         }

@@ -277,10 +277,18 @@ void setCameraOrigin( Camera& camera, const glm::vec3& worldPos )
     applyViewTransformation( camera, glm::translate( -cameraOrigin ) );
 }
 
-void setWorldTarget( Camera& camera, const glm::vec3& worldPos, float targetDistance )
+void setWorldTarget( Camera& camera, const glm::vec3& worldPos, const std::optional<float>& targetDistance )
 {
+    // By default, push camera back from its target on the view plane by a distance equal to
+    // 10% of the view frustum depth, so that it doesn't clip the image quad vertices:
+    static constexpr float sk_pushBackFraction = 0.10f;
+
+    const float eyeToTargetOffset = targetDistance
+            ? *targetDistance
+            : sk_pushBackFraction * ( camera.farDistance() - camera.nearDistance() );
+
     const glm::vec3 front = worldDirection( camera, Directions::View::Front );
-    setCameraOrigin( camera, worldPos - targetDistance * front );
+    setCameraOrigin( camera, worldPos - eyeToTargetOffset * front );
 }
 
 

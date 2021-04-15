@@ -138,7 +138,7 @@ void setCameraOrigin( Camera&, const glm::vec3& worldPos );
  * @param worldPos World-space position
  * @param targetDistance Offset distance of camera backwards from position
  */
-void setWorldTarget( Camera&, const glm::vec3& worldPos, float targetDistance );
+void setWorldTarget( Camera&, const glm::vec3& worldPos, const std::optional<float>& targetDistance );
 
 void rotateAboutOrigin( Camera&, const glm::vec3& cameraVec, float angle );
 void rotateAboutOrigin( Camera&, const Directions::View& dir, float angle );
@@ -360,7 +360,8 @@ glm::quat computeCameraRotationRelativeToWorld( const camera::Camera& camera );
  */
 union FrameBounds
 {
-    FrameBounds( glm::vec4 v ) : viewport( std::move( v ) ) {}
+    FrameBounds( glm::vec4 v ) :
+        viewport( std::move( v ) ) {}
 
     glm::vec4 viewport;
 
