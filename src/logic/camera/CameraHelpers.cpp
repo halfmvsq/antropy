@@ -1006,4 +1006,52 @@ FrameBounds computeMindowFrameBounds(
                       mindowViewBL.y - mindowViewTR.y ); // height
 }
 
+bool looksAlongOrthogonalAxis( const camera::Camera& camera )
+{
+    static const glm::vec3 X( 1.0f, 0.0f, 0.0f );
+    static const glm::vec3 Y( 0.0f, 1.0f, 0.0f );
+    static const glm::vec3 Z( 0.0f, 0.0f, 1.0f );
+
+    const glm::vec3 frontDir = worldDirection( camera, Directions::View::Front );
+
+    const float dotX = std::abs( glm::dot( frontDir, X ) );
+    const float dotY = std::abs( glm::dot( frontDir, Y ) );
+    const float dotZ = std::abs( glm::dot( frontDir, Z ) );
+
+    if ( glm::epsilonEqual( dotX, 1.0f, sk_eps ) ||
+         glm::epsilonEqual( dotY, 1.0f, sk_eps ) ||
+         glm::epsilonEqual( dotZ, 1.0f, sk_eps ) )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool areVectorsParallel(
+        const glm::vec3& a,
+        const glm::vec3& b,
+        float angleThreshold_degrees )
+{
+    const float dotProdThreshold = 1.0f - std::cos( glm::radians( angleThreshold_degrees ) );
+
+    if ( std::abs( std::abs( glm::dot( a, b ) ) - 1.0f ) > dotProdThreshold )
+    {
+        return false;
+    }
+
+    return true;
+}
+
+bool areViewDirectionsParallel(
+        const camera::Camera& camera1,
+        const camera::Camera& camera2,
+        const Directions::View& dir,
+        float angleThreshold_degrees )
+{
+    return areVectorsParallel( worldDirection( camera1, dir ),
+                               worldDirection( camera2, dir ),
+                               angleThreshold_degrees );
+}
+
 } // namespace camera

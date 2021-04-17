@@ -332,7 +332,7 @@ void renderViewSettingsComboWindow(
             if ( uiControls.m_hasCameraTypeComboBox )
             {
                 ImGui::SameLine();
-                ImGui::PushItemWidth( 120.0f + 2.0f * ImGui::GetStyle().FramePadding.x );
+                ImGui::PushItemWidth( 100.0f + 2.0f * ImGui::GetStyle().FramePadding.x );
                 if ( ImGui::BeginCombo( "##cameraTypeCombo", camera::typeString( cameraType ).c_str() ) )
                 {
                     for ( const auto& ct : camera::AllCameraTypes )
@@ -483,7 +483,7 @@ void renderViewOrientationToolWindow(
 
         if ( ImGui::IsItemHovered() )
         {
-            const glm::vec3 worldFwdDir = -getViewNormal();
+            const glm::dvec3 worldFwdDir{ -getViewNormal() };
 
             if ( ! ImGui::IsMouseDown( ImGuiMouseButton_Left ) )
             {
@@ -532,7 +532,7 @@ void renderViewOrientationToolWindow(
             {
                 worldNewFwdDir = glm::clamp( worldNewFwdDir, sk_min, sk_max );
 
-                static constexpr float sk_minLen = 1.0e-4;
+                static constexpr float sk_minLen = 1.0e-4f;
                 if ( glm::length( worldNewFwdDir ) > sk_minLen )
                 {
                     worldNewFwdDir = glm::normalize( worldNewFwdDir );
@@ -617,7 +617,10 @@ void renderViewOrientationToolWindow(
                         ImGui::PushID( static_cast<int>( index++ ) );
 
                         char str[25];
-                        sprintf( str, "(%0.3f, %0.3f, %0.3f)", dir.x, dir.y, dir.z );
+                        sprintf( str, "(%0.3f, %0.3f, %0.3f)",
+                                 static_cast<double>( dir.x ),
+                                 static_cast<double>( dir.y ),
+                                 static_cast<double>( dir.z ) );
 
                         if ( ImGui::Selectable( str, false ) )
                         {

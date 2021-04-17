@@ -229,7 +229,9 @@ glm::vec3 worldTranslationPerpendicularToWorldAxis(
  * @param windowPixelPos
  * @return
  */
-glm::vec2 windowNdc2d_T_windowPixels( const Viewport& windowViewport, const glm::vec2& windowPixelPos );
+glm::vec2 windowNdc2d_T_windowPixels(
+        const Viewport& windowViewport,
+        const glm::vec2& windowPixelPos );
 
 glm::vec2 viewDevice_T_ndc( const Viewport&, const glm::vec2& ndcPos );
 glm::vec2 window_T_windowClip( const Viewport&, const glm::vec2& ndcPos );
@@ -389,6 +391,26 @@ FrameBounds computeMindowFrameBounds(
         const glm::vec4& winClipFrameViewport,
         const glm::vec4& windowViewport,
         float wholeWindowHeight );
+
+bool looksAlongOrthogonalAxis( const camera::Camera& camera );
+
+/**
+ * @brief areVectorsParallel
+ * @param a
+ * @param b
+ * @param angleThreshold_degrees In [0, 90]
+ * @return
+ */
+bool areVectorsParallel(
+        const glm::vec3& a,
+        const glm::vec3& b,
+        float angleThreshold_degrees );
+
+bool areViewDirectionsParallel(
+        const camera::Camera& camera1,
+        const camera::Camera& camera2,
+        const Directions::View& dir,
+        float angleThreshold_degrees );
 
 } // namespace camera
 

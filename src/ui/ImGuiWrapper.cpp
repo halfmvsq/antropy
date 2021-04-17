@@ -446,13 +446,6 @@ void ImGuiWrapper::render()
     auto getObliqueViewDirections = [this] ( const uuids::uuid& viewUidToExclude )
             -> std::vector< glm::vec3 >
     {
-        static constexpr float EPS = glm::epsilon<float>();
-
-        static const glm::vec3 X( 1.0f, 0.0f, 0.0f );
-        static const glm::vec3 Y( 0.0f, 1.0f, 0.0f );
-        static const glm::vec3 Z( 0.0f, 0.0f, 1.0f );
-
-
         std::vector< glm::vec3 > obliqueViewDirections;
 
         for ( size_t i = 0; i < m_appData.windowData().numLayouts(); ++i )
@@ -465,21 +458,12 @@ void ImGuiWrapper::render()
                 if ( view.first == viewUidToExclude ) continue;
                 if ( ! view.second ) continue;
 
-                const glm::vec3 frontDir = camera::worldDirection(
-                            view.second->camera(), Directions::View::Front );
-
-                const float dX = std::abs( glm::dot( frontDir, X ) );
-                const float dY = std::abs( glm::dot( frontDir, Y ) );
-                const float dZ = std::abs( glm::dot( frontDir, Z ) );
-
-                if ( glm::epsilonEqual( dX, 1.0f, EPS ) ||
-                     glm::epsilonEqual( dY, 1.0f, EPS ) ||
-                     glm::epsilonEqual( dZ, 1.0f, EPS ) )
+                if ( ! camera::looksAlongOrthogonalAxis( view.second->camera() ) )
                 {
-                    continue;
+                    obliqueViewDirections.emplace_back(
+                                camera::worldDirection( view.second->camera(),
+                                                        Directions::View::Front ) );
                 }
-
-                obliqueViewDirections.emplace_back( frontDir );
             }
         }
 
