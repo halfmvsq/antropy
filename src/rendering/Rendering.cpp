@@ -39,6 +39,7 @@
 #define NANOVG_GL3_IMPLEMENTATION
 #include <nanovg_gl.h>
 
+#include <algorithm>
 #include <chrono>
 #include <list>
 #include <memory>
@@ -339,6 +340,49 @@ void Rendering::updateSegTexture(
                   GLTexture::getBufferPixelRedFormat( compType ),
                   GLTexture::getBufferPixelDataType( compType ),
                   data );
+}
+
+void Rendering::updateSegTexture(
+        const uuids::uuid& segUid,
+        const ComponentType& compType,
+        const glm::uvec3& startOffsetVoxel,
+        const glm::uvec3& sizeInVoxels,
+        const int64_t* data )
+{
+    if ( ! data )
+    {
+        spdlog::error( "Null segmentation texture data pointer" );
+        return;
+    }
+
+    if ( ! isValidSegmentationComponentType( compType ) )
+    {
+        spdlog::error( "Unable to update segmentation texture using buffer with invalid "
+                       "component type {}", componentTypeString( compType ) );
+        return;
+    }
+
+    const size_t N = sizeInVoxels.x * sizeInVoxels.y * sizeInVoxels.z;
+
+    switch ( compType )
+    {
+    case ComponentType::UInt8:
+    {
+        const std::vector<uint8_t> castData( data, data + N );
+        return updateSegTexture( segUid, compType, startOffsetVoxel, sizeInVoxels, castData.data() );
+    }
+    case ComponentType::UInt16:
+    {
+        const std::vector<uint16_t> castData( data, data + N );
+        return updateSegTexture( segUid, compType, startOffsetVoxel, sizeInVoxels, castData.data() );
+    }
+    case ComponentType::UInt32:
+    {
+        const std::vector<uint32_t> castData( data, data + N );
+        return updateSegTexture( segUid, compType, startOffsetVoxel, sizeInVoxels, castData.data() );
+    }
+    default: return;
+    }
 }
 
 Rendering::CurrentImages Rendering::getImageAndSegUidsForMetricShaders(

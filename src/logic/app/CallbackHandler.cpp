@@ -4,7 +4,7 @@
 #include "common/MathFuncs.h"
 #include "common/Types.h"
 
-#include "image/SegUtil.tpp"
+#include "image/SegUtil.h"
 
 #include "logic/app/Data.h"
 #include "logic/annotation/Polygon.tpp"
@@ -44,7 +44,6 @@ static constexpr float sk_parallelThreshold_degrees = 0.1f;
 static constexpr float sk_imageFrontBackTranslationScaleFactor = 10.0f;
 
 }
-
 
 
 CallbackHandler::CallbackHandler(
@@ -294,7 +293,6 @@ void CallbackHandler::recenterViews(
     }
 }
 
-
 void CallbackHandler::recenterView(
         const ImageSelection& imageSelection,
         const uuids::uuid& viewUid )
@@ -349,7 +347,8 @@ void CallbackHandler::doCrosshairsScroll(
     {
         if ( const Image* refImg = m_appData.refImage() )
         {
-            worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter( *refImg, worldPos ), 1.0f };
+            worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter(
+                        *refImg, worldPos ), 1.0f };
         }
     }
 
@@ -365,26 +364,13 @@ void CallbackHandler::doSegment(
 
     auto updateSegTexture = [this]
             ( const uuids::uuid& segUid, const Image* seg,
-              const glm::uvec3& offset, const glm::uvec3& size, const void* data )
+              const glm::uvec3& dataOffset, const glm::uvec3& dataSize,
+              const int64_t* data )
     {
         if ( ! seg ) return;
         m_rendering.updateSegTexture(
-                    segUid, seg->header().memoryComponentType(),
-                    offset, size, data );
+                    segUid, seg->header().memoryComponentType(), dataOffset, dataSize, data );
     };
-
-    auto getSegValue = [] ( const Image* seg, int i, int j, int k ) -> std::optional<int64_t>
-    {
-        if ( ! seg ) return std::nullopt;
-        return seg->valueAsInt64( 0, i, j, k );
-    };
-
-    auto setSegValue = [] ( Image* seg, int i, int j, int k, int64_t value )
-    {
-        if ( ! seg ) return false;
-        return seg->setValue( 0, i, j, k, value );
-    };
-
 
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
@@ -396,12 +382,14 @@ void CallbackHandler::doSegment(
                           std::end( hit->view.visibleImages() ),
                           *activeImageUid ) )
     {
-        // The active image is not visible
-        return;
+        return; // The active image is not visible
     }
 
     const auto activeSegUid = m_appData.imageToActiveSegUid( *activeImageUid );
     if ( ! activeSegUid ) return;
+
+    // The position is in the view bounds; make this the active view:
+    m_appData.windowData().setActiveViewUid( hit->viewUid );
 
     // Do nothing if the active segmentation is null
     Image* activeSeg = m_appData.seg( *activeSegUid );
@@ -418,9 +406,6 @@ void CallbackHandler::doSegment(
             segUids.insert( *segUid );
         }
     }
-
-    // The position is in the view bounds; make this the active view:
-    m_appData.windowData().setActiveViewUid( hit->viewUid );
 
     // Note: when moving crosshairs, the worldPos would be offset at this stage.
     // i.e.: worldPos -= glm::vec4{ offsetDist * worldCameraFront, 0.0f };
@@ -451,65 +436,34 @@ void CallbackHandler::doSegment(
         const glm::mat4& pixel_T_worldDef = seg->transformations().pixel_T_worldDef();
         const glm::vec4 pixelPos = pixel_T_worldDef * hit->worldCurrPos;
         const glm::vec3 pixelPos3 = pixelPos / pixelPos.w;
-        const glm::ivec3 roundedPixelPos = glm::ivec3{ glm::round( pixelPos3 ) };
+        const glm::ivec3 roundedPixelPos{ glm::round( pixelPos3 ) };
 
         if ( glm::any( glm::lessThan( roundedPixelPos, sk_voxelZero ) ) ||
              glm::any( glm::greaterThanEqual( roundedPixelPos, dims ) ) )
         {
-            // This pixel is outside the image
-            continue;
+            continue; // This pixel is outside the image
         }
 
         // View plane normal vector transformed into Voxel space:
         const glm::vec3 voxelViewPlaneNormal = glm::normalize(
-                    glm::inverseTranspose( glm::mat3( pixel_T_worldDef ) ) * (-hit->worldFrontAxis) );
+                    glm::inverseTranspose( glm::mat3( pixel_T_worldDef ) ) *
+                    (-hit->worldFrontAxis) );
 
         // View plane equation:
         const glm::vec4 voxelViewPlane = math::makePlane( voxelViewPlaneNormal, pixelPos3 );
 
-        switch ( seg->header().memoryComponentType() )
-        {
-        case ComponentType::UInt8:
-        {
-            paint3d< uint8_t >( segUid, seg, dims, spacing,
-                                static_cast<uint8_t>( labelToPaint ),
-                                static_cast<uint8_t>( labelToReplace ),
-                                settings.replaceBackgroundWithForeground(),
-                                settings.useRoundBrush(),
-                                settings.use3dBrush(),
-                                settings.useIsotropicBrush(),
-                                brushSize, roundedPixelPos, voxelViewPlane,
-                                getSegValue, setSegValue, updateSegTexture );
-            break;
-        }
-        case ComponentType::UInt16:
-        {
-            paint3d< uint16_t >( segUid, seg, dims, spacing,
-                                 static_cast<uint16_t>( labelToPaint ),
-                                 static_cast<uint16_t>( labelToReplace ),
-                                 settings.replaceBackgroundWithForeground(),
-                                 settings.useRoundBrush(),
-                                 settings.use3dBrush(),
-                                 settings.useIsotropicBrush(),
-                                 brushSize, roundedPixelPos, voxelViewPlane,
-                                 getSegValue, setSegValue, updateSegTexture );
-            break;
-        }
-        case ComponentType::UInt32:
-        {
-            paint3d< uint32_t >( segUid, seg, dims, spacing,
-                                 static_cast<uint32_t>( labelToPaint ),
-                                 static_cast<uint32_t>( labelToReplace ),
-                                 settings.replaceBackgroundWithForeground(),
-                                 settings.useRoundBrush(),
-                                 settings.use3dBrush(),
-                                 settings.useIsotropicBrush(),
-                                 brushSize, roundedPixelPos, voxelViewPlane,
-                                 getSegValue, setSegValue, updateSegTexture );
-            break;
-        }
-        default: continue;
-        }
+        paintSegmentation(
+                    segUid, seg, dims, spacing,
+                    labelToPaint,
+                    labelToReplace,
+                    settings.replaceBackgroundWithForeground(),
+                    settings.useRoundBrush(),
+                    settings.use3dBrush(),
+                    settings.useIsotropicBrush(),
+                    brushSize,
+                    roundedPixelPos,
+                    voxelViewPlane,
+                    updateSegTexture );
     }
 }
 

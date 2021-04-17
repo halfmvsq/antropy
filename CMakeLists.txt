@@ -325,6 +325,7 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/image/ImageSettings.cpp
     ${SRC_DIR}/image/ImageTransformations.cpp
     ${SRC_DIR}/image/ImageUtility.cpp
+    ${SRC_DIR}/image/SegUtil.cpp
 
     ${SRC_DIR}/logic/app/CallbackHandler.cpp
     ${SRC_DIR}/logic/app/Data.cpp

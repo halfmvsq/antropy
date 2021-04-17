@@ -39,6 +39,9 @@ enum class ComponentType
 
 bool isComponentFloatingPoint( const ComponentType& );
 bool isComponentUnsignedInt( const ComponentType& );
+bool isValidSegmentationComponentType( const ComponentType& );
+
+std::string componentTypeString( const ComponentType& );
 
 
 /**

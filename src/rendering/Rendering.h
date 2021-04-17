@@ -73,6 +73,13 @@ public:
             const glm::uvec3& sizeInVoxels,
             const void* data );
 
+    void updateSegTexture(
+            const uuids::uuid& segUid,
+            const ComponentType& compType,
+            const glm::uvec3& startOffsetVoxel,
+            const glm::uvec3& sizeInVoxels,
+            const int64_t* data );
+
     bool createLabelColorTableTexture( const uuids::uuid& labelTableUid );
 
     bool createSegTexture( const uuids::uuid& segUid );

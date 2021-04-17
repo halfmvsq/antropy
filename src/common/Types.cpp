@@ -74,6 +74,53 @@ bool isComponentUnsignedInt( const ComponentType& compType )
     return false;
 }
 
+bool isValidSegmentationComponentType( const ComponentType& compType )
+{
+    switch ( compType )
+    {
+    case ComponentType::UInt8:
+    case ComponentType::UInt16:
+    case ComponentType::UInt32:
+    {
+        return true;
+    }
+
+    default:
+    {
+        return false;
+    }
+    }
+}
+
+std::string componentTypeString( const ComponentType& compType )
+{
+    static const std::unordered_map< ComponentType, std::string > s_compTypeToStringMap
+    {
+        { ComponentType::Int8, "Signed 8-bit char (int8)" },
+        { ComponentType::UInt8, "Unsigned 8-bit char (uint8)" },
+
+        { ComponentType::Int16, "Signed 16-bit short int (int16)" },
+        { ComponentType::UInt16, "Unsigned 16-bit short int (uint16)" },
+
+        { ComponentType::Int32, "Signed 32-bit int (int32)" },
+        { ComponentType::UInt32, "Unsigned 32-bit int (uint32)" },
+
+        { ComponentType::Long, "Signed long int" },
+        { ComponentType::ULong, "Unsigned long int" },
+
+        { ComponentType::LongLong, "Signed long long int" },
+        { ComponentType::ULongLong, "Unsigned long long int" },
+
+        { ComponentType::Float32, "Single 32-bit float (float)" },
+        { ComponentType::Float64, "Double 64-bit float (double)" },
+
+        { ComponentType::LongDouble, "Long double" },
+
+        { ComponentType::Undefined, "Undefined" }
+    };
+
+    return s_compTypeToStringMap.at( compType );
+}
 
 std::string typeString( const MouseMode& mouseMode )
 {
