@@ -18,7 +18,7 @@ class ParcellationLabelTable;
 
 
 void renderActiveImageSelectionCombo(
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex,

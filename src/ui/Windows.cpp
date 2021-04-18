@@ -52,7 +52,7 @@ void renderViewSettingsComboWindow(
         bool /*hasFrameAndBackground*/,
         bool showApplyToAllButton,
 
-        const std::function< size_t(void) >& getNumImages,
+        size_t numImages,
 
         const std::function< bool( size_t index ) >& isImageRendered,
         const std::function< void( size_t index, bool visible ) >& setImageRendered,
@@ -163,7 +163,7 @@ void renderViewSettingsComboWindow(
                     {
                         ImGui::Text( "Visible images:" );
 
-                        for ( size_t i = 0; i < getNumImages(); ++i )
+                        for ( size_t i = 0; i < numImages; ++i )
                         {
                             ImGui::PushID( static_cast<int>( i ) ); /*** ID = i ***/
 
@@ -219,7 +219,7 @@ void renderViewSettingsComboWindow(
                     {
                         ImGui::Text( "Compared images:" );
 
-                        for ( size_t i = 0; i < getNumImages(); ++i )
+                        for ( size_t i = 0; i < numImages; ++i )
                         {
                             ImGui::PushID( static_cast<int>( i ) ); /*** ID = i ***/
 
@@ -263,7 +263,7 @@ void renderViewSettingsComboWindow(
 
                 if ( ImGui::BeginCombo( "##shaderTypeCombo", ICON_FK_TELEVISION ) )
                 {
-                    if ( getNumImages() > 1 )
+                    if ( numImages > 1 )
                     {
                         // If there are two or more images, all shader types can be used:
                         for ( const auto& st : camera::AllViewRenderModes )
@@ -281,7 +281,7 @@ void renderViewSettingsComboWindow(
                             }
                         }
                     }
-                    else if ( 1 == getNumImages() )
+                    else if ( 1 == numImages )
                     {
                         // If there is only one image, then only non-metric shader types can be used:
                         for ( const auto& st : camera::AllNonMetricRenderModes )
@@ -365,7 +365,7 @@ void renderViewSettingsComboWindow(
 
                 if ( camera::ViewRenderMode::Image == shaderType )
                 {
-                    for ( size_t i = 0; i < getNumImages(); ++i )
+                    for ( size_t i = 0; i < numImages; ++i )
                     {
                         if ( isImageRendered( i ) && getImageVisibilitySetting( i ) )
                         {
@@ -382,7 +382,7 @@ void renderViewSettingsComboWindow(
                 }
                 else
                 {
-                    for ( size_t i = 0; i < getNumImages(); ++i )
+                    for ( size_t i = 0; i < numImages; ++i )
                     {
                         if ( isImageUsedForMetric( i ) && getImageVisibilitySetting( i ) )
                         {
@@ -659,7 +659,7 @@ void renderViewOrientationToolWindow(
 
 void renderImagePropertiesWindow(
         AppData& appData,
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex,
@@ -680,7 +680,7 @@ void renderImagePropertiesWindow(
                        ImGuiWindowFlags_AlwaysAutoResize ) )
     {
         renderActiveImageSelectionCombo(
-                    getNumImages,
+                    numImages,
                     getImageDisplayAndFileName,
                     getActiveImageIndex,
                     setActiveImageIndex );
@@ -801,6 +801,7 @@ void renderLandmarkPropertiesWindow(
 
 void renderAnnotationWindow(
         AppData& appData,
+        const std::function< void ( const uuids::uuid& viewUid, const glm::vec3& worldFwdDirection ) >& setViewCameraDirection,
         const AllViewsRecenterType& recenterAllViews )
 {
     if ( ImGui::Begin( "Annotations",
@@ -819,6 +820,7 @@ void renderAnnotationWindow(
                         imageUid,
                         imageIndex++,
                         isActiveImage,
+                        setViewCameraDirection,
                         recenterAllViews );
         }
 
@@ -971,7 +973,7 @@ void renderSettingsWindow(
             {
                 // Show image-view intersection border
                 ImGui::Checkbox( "Show image borders",
-                                 &( appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections ) );
+                                 &( appData.renderData().m_globalSliceIntersectionParams.renderInactiveImageViewIntersections ) );
                 ImGui::SameLine();
                 helpMarker( "Show borders of image intersections with views" );
 
@@ -1390,7 +1392,7 @@ void renderSettingsWindow(
 
 void renderInspectionWindow(
         AppData& appData,
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< glm::vec3 () >& getWorldDeformedPos,
         const std::function< std::optional<glm::vec3> ( size_t imageIndex ) >& getSubjectPos,
@@ -1429,7 +1431,7 @@ void renderInspectionWindow(
     }
 
 
-    auto contextMenu = [&getNumImages, &appData, &getImageDisplayAndFileName] ()
+    auto contextMenu = [&numImages, &appData, &getImageDisplayAndFileName] ()
     {
         if ( ImGui::BeginMenu( "Show" ) )
         {
@@ -1442,7 +1444,7 @@ void renderInspectionWindow(
             //                    ImGui::SetTooltip( "Show World-space crosshairs coordinates" );
             //                }
 
-            for ( size_t imageIndex = 0; imageIndex < getNumImages(); ++imageIndex )
+            for ( size_t imageIndex = 0; imageIndex < numImages; ++imageIndex )
             {
                 const auto imageUid = appData.imageUid( imageIndex );
                 if ( ! imageUid ) continue;
@@ -1552,7 +1554,7 @@ void renderInspectionWindow(
         bool firstImageShown = true;
         bool showedAtLeastOneImage = false; // is info for at least one image shown?
 
-        for ( size_t imageIndex = 0; imageIndex < getNumImages(); ++imageIndex )
+        for ( size_t imageIndex = 0; imageIndex < numImages; ++imageIndex )
         {
             const auto imageUid = appData.imageUid( imageIndex );
             const Image* image = ( imageUid ? appData.image( *imageUid ) : nullptr );

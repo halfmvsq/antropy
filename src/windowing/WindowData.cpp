@@ -804,7 +804,8 @@ void WindowData::applyViewShaderToAllCurrentViews(
 std::vector<uuids::uuid> WindowData::findCurrentViewsWithNormal(
         const glm::vec3& worldNormal ) const
 {
-    static constexpr float EPS = glm::epsilon<float>();
+    // Angle threshold (in degrees) for checking whether two vectors are parallel
+    static constexpr float sk_parallelThreshold_degrees = 0.1f;
 
     std::vector<uuids::uuid> viewUids;
 
@@ -813,16 +814,46 @@ std::vector<uuids::uuid> WindowData::findCurrentViewsWithNormal(
         const View* view = getCurrentView( viewUid );
         if ( ! view ) continue;
 
-        const glm::vec3 worldBackDir = camera::worldDirection( view->camera(), Directions::View::Back );
-        const float d = std::abs( glm::dot( worldBackDir, glm::normalize( worldNormal ) ) );
+        const glm::vec3 viewBackDir = camera::worldDirection( view->camera(), Directions::View::Back );
 
-        if ( glm::epsilonEqual( d, 1.0f, EPS ) )
+        if ( camera::areVectorsParallel( worldNormal, viewBackDir, sk_parallelThreshold_degrees ) )
         {
             viewUids.push_back( viewUid );
         }
     }
 
     return viewUids;
+}
+
+uuids::uuid WindowData::findLargestCurrentView() const
+{
+    uuids::uuid largestViewUid = currentViewUids().front();
+
+    const View* largestView = getCurrentView( largestViewUid );
+
+    if ( ! largestView )
+    {
+        spdlog::error( "The current layout has no views" );
+        throw_debug( "The current layout has no views" )
+    }
+
+    float largestArea = largestView->windowClipViewport()[2] * largestView->windowClipViewport()[3];
+
+    for ( auto& viewUid : currentViewUids() )
+    {
+        const View* view = getCurrentView( viewUid );
+        if ( ! view ) continue;
+
+        const float area = view->windowClipViewport()[2] * view->windowClipViewport()[3];
+
+        if ( area > largestArea )
+        {
+            largestArea = area;
+            largestViewUid = viewUid;
+        }
+    }
+
+    return largestViewUid;
 }
 
 void WindowData::recomputeCameraAspectRatios()

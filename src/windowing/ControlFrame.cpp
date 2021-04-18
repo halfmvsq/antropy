@@ -35,8 +35,13 @@ bool ControlFrame::isImageRendered( const AppData& appData, size_t index )
     auto imageUid = appData.imageUid( index );
     if ( ! imageUid ) return false; // invalid image index
 
+    return isImageRendered( *imageUid );
+}
+
+bool ControlFrame::isImageRendered( const uuids::uuid& imageUid )
+{
     auto it = std::find( std::begin( m_renderedImageUids ),
-                         std::end( m_renderedImageUids ), *imageUid );
+                         std::end( m_renderedImageUids ), imageUid );
 
     return ( std::end( m_renderedImageUids ) != it );
 }
@@ -47,18 +52,27 @@ void ControlFrame::setImageRendered(
     auto imageUid = appData.imageUid( index );
     if ( ! imageUid ) return; // invalid image index
 
+    setImageRendered( appData, *imageUid, visible );
+}
+
+void ControlFrame::setImageRendered(
+        const AppData& appData, const uuids::uuid& imageUid, bool visible )
+{
     if ( ! visible )
     {
-        m_renderedImageUids.remove( *imageUid );
+        m_renderedImageUids.remove( imageUid );
         return;
     }
 
     if ( std::end( m_renderedImageUids ) !=
          std::find( std::begin( m_renderedImageUids ),
-                    std::end( m_renderedImageUids ), *imageUid ) )
+                    std::end( m_renderedImageUids ), imageUid ) )
     {
         return; // image already exists, so do nothing
     }
+
+    const auto imageIndex = appData.imageIndex( imageUid );
+    if ( ! imageIndex ) return; // invalid image index
 
     bool inserted = false;
 
@@ -67,10 +81,10 @@ void ControlFrame::setImageRendered(
     {
         if ( const auto i = appData.imageIndex( *it ) )
         {
-            if ( index < *i )
+            if ( *imageIndex < *i )
             {
                 // Insert the desired image in the right place
-                m_renderedImageUids.insert( it, *imageUid );
+                m_renderedImageUids.insert( it, imageUid );
                 inserted = true;
                 break;
             }
@@ -79,7 +93,7 @@ void ControlFrame::setImageRendered(
 
     if ( ! inserted )
     {
-        m_renderedImageUids.push_back( *imageUid );
+        m_renderedImageUids.push_back( imageUid );
     }
 }
 
@@ -117,8 +131,13 @@ bool ControlFrame::isImageUsedForMetric( const AppData& appData, size_t index )
     auto imageUid = appData.imageUid( index );
     if ( ! imageUid ) return false; // invalid image index
 
+    return isImageUsedForMetric( *imageUid );
+}
+
+bool ControlFrame::isImageUsedForMetric( const uuids::uuid& imageUid )
+{
     auto it = std::find( std::begin( m_metricImageUids ),
-                         std::end( m_metricImageUids ), *imageUid );
+                         std::end( m_metricImageUids ), imageUid );
 
     return ( std::end( m_metricImageUids ) != it );
 }

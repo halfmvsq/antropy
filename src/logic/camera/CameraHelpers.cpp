@@ -760,6 +760,48 @@ void orientCameraToWorldTargetNormalDirection(
     applyViewTransformation( camera, math::fromToRotation( cameraFromVector, cameraToVector ) );
 }
 
+void setWorldForwardDirection( camera::Camera& camera, const glm::vec3& worldForwardDirection )
+{
+    static const CoordinateFrame IDENT;
+
+    static constexpr float sk_lengthThresh = 1e-3f;
+    static constexpr float sk_angleThresh_degrees = 45.0f;
+
+    static const glm::vec3 sk_worldDesiredUp_superior = Directions::get( Directions::Anatomy::Superior );
+    static const glm::vec3 sk_worldDesiredUp_anterior = Directions::get( Directions::Anatomy::Anterior );
+
+    if ( glm::length( worldForwardDirection ) < sk_lengthThresh )
+    {
+        return;
+    }
+
+    const glm::vec3 worldBack = glm::normalize( -worldForwardDirection );
+
+    // Select the desired up vector based on the worldBack direction:
+    // If worldBack is parallel to the superior direction,
+    // then worldRight = anterior X worldBack;
+    // otherwise, worldRight = superior X worldBack.
+
+    const glm::vec3 worldDesiredUp =
+            ( camera::areVectorsParallel(
+                  worldBack, sk_worldDesiredUp_superior, sk_angleThresh_degrees ) )
+            ? sk_worldDesiredUp_anterior
+            : sk_worldDesiredUp_superior;
+
+    const glm::vec3 worldRight = glm::normalize( glm::cross( worldDesiredUp, worldBack ) );
+    const glm::vec3 worldUp = glm::normalize( glm::cross( worldBack, worldRight ) );
+
+    const glm::mat4 anatomy_T_camera{
+        glm::vec4{ worldRight, 0 },
+        glm::vec4{ worldUp, 0 },
+        glm::vec4{ worldBack, 0 },
+        glm::vec4{ 0, 0, 0, 1 }
+    };
+
+    camera.set_anatomy_T_start_provider( [] () { return IDENT; } );
+    camera.set_camera_T_anatomy( glm::inverse( anatomy_T_camera ) );
+}
+
 
 std::pair<float, float> computePullbackAndFarDistances(
         const Camera& camera, const glm::vec3& worldBoxSize )

@@ -191,8 +191,8 @@ struct RenderData
     {
         float strokeWidth = 1.0f;
 
-        /// Render the intersections of images with the view planes?
-        bool renderImageViewIntersections = true;
+        /// Render the intersections of inactive images with the view planes?
+        bool renderInactiveImageViewIntersections = true;
     };
 
     LandmarkParams m_globalLandmarkParams;

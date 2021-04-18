@@ -63,7 +63,7 @@ void renderToolbar(
         const std::function< void (bool) >& setOverlayVisibility,
         const std::function< void (int step) >& cycleViews,
 
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex )
@@ -205,7 +205,7 @@ void renderToolbar(
             {
                 const size_t activeIndex = getActiveImageIndex();
 
-                for ( size_t i = 0; i < getNumImages(); ++i )
+                for ( size_t i = 0; i < numImages; ++i )
                 {
                     ImGui::PushID( static_cast<int>( i ) );
                     {
@@ -543,7 +543,7 @@ void renderToolbar(
 
 void renderSegToolbar(
         AppData& appData,
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex,
@@ -1130,7 +1130,7 @@ void renderSegToolbar(
             const size_t activeIndex = getActiveImageIndex();
 
             /*
-                for ( size_t i = 0; i < getNumImages(); ++i )
+                for ( size_t i = 0; i < numImages; ++i )
                 {
                     ImGui::PushID( static_cast<int>( i ) );
                     {
@@ -1167,7 +1167,7 @@ void renderSegToolbar(
             ImGui::Text( "Select the active image to segment:" );
 
             renderActiveImageSelectionCombo(
-                        getNumImages,
+                        numImages,
                         getImageDisplayAndFileName,
                         getActiveImageIndex,
                         setActiveImageIndex,
@@ -1179,7 +1179,7 @@ void renderSegToolbar(
 
             if ( ImGui::TreeNode( "Synchronize drawing on additional images:" ) )
             {
-                for ( size_t i = 0; i < getNumImages(); ++i )
+                for ( size_t i = 0; i < numImages; ++i )
                 {
                     // Active image is not shown
                     if ( i == activeIndex ) continue;

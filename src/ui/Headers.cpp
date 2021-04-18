@@ -1794,8 +1794,13 @@ void renderAnnotationsHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
+        const std::function< void ( const uuids::uuid& viewUid, const glm::vec3& worldFwdDirection ) >& setViewDirection,
         const AllViewsRecenterType& recenterAllViews )
 {
+    static constexpr bool sk_doNotRecenterCrosshairs = false;
+    static constexpr bool sk_recenterOnCurrentCrosshairsPosition = true;
+    static constexpr bool sk_doNotResetObliqueOrientation = false;
+
     static const ImGuiColorEditFlags sk_annotColorEditFlags =
             ImGuiColorEditFlags_PickerHueBar |
             ImGuiColorEditFlags_DisplayRGB |
@@ -1807,64 +1812,65 @@ void renderAnnotationsHeader(
     static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
 
-    const char* coordFormat = appData.guiData().m_coordsPrecisionFormat.c_str();
-
     Image* image = appData.image( imageUid );
     if ( ! image ) return;
 
-    auto setWorldCrosshairsPos = [&appData] ( const glm::vec3& worldCrosshairsPos )
-    {
-        appData.state().setWorldCrosshairsPos( worldCrosshairsPos );
-    };
-
-    auto moveCrosshairsToAnnotationCenter =
-            [&appData, &image, &setWorldCrosshairsPos, &recenterAllViews] ( const Annotation* annot )
+    // Move crosshairs to the annotation centroid:
+    auto moveCrosshairsToAnnotationCenter = [&appData, &image] ( const Annotation* annot )
     {
         if ( ! annot ) return;
 
-        const glm::mat4& world_T_subject = image->transformations().worldDef_T_subject();
-        const glm::mat3 world_T_subject_invTranspose = glm::inverseTranspose( glm::mat3{ world_T_subject } );
+        const glm::vec4 subjectCentroid{ annot->unprojectFromAnnotationPlaneToSubjectPoint(
+                        annot->polygon().getCentroid() ), 1.0f };
 
-        // Move crosshairs to the polygon centroid position:
-        const glm::vec2& planePolyCentroid = annot->polygon().getCentroid();
-        const glm::vec4 subjectPos{ annot->unprojectFromAnnotationPlaneToSubjectPoint( planePolyCentroid ), 1.0f };
-        const glm::vec4 worldPos = world_T_subject * subjectPos;
-        const glm::vec3 worldNormal = glm::normalize( world_T_subject_invTranspose *
-                                                      glm::vec3{ annot->getSubjectPlaneEquation() } );
+        const glm::vec4 worldCentroid = image->transformations().worldDef_T_subject() * subjectCentroid;
 
-        setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
+        appData.state().setWorldCrosshairsPos( glm::vec3{ worldCentroid / worldCentroid.w } );
+    };
 
-        const auto viewsWithNormal = appData.windowData().findCurrentViewsWithNormal( worldNormal );
+    // Find a view with normal vector maching the annotation plane.
+    // Todo: make this view active.
+    // If none found, make the largest view oblique and align it to the annotation.
+    auto alignViewToAnnotationPlane = [&appData, &imageUid, &image, &setViewDirection]
+            ( const Annotation* annot )
+    {
+        if ( ! annot ) return;
+
+        const glm::mat3 world_T_subject_invTranspose =
+                glm::inverseTranspose( glm::mat3{ image->transformations().worldDef_T_subject() } );
+
+        const glm::vec3 worldAnnotNormal = glm::normalize(
+                    world_T_subject_invTranspose * glm::vec3{ annot->getSubjectPlaneEquation() } );
 
         // Does the current layout have a view with this orientaion?
+        const auto viewsWithNormal = appData.windowData().findCurrentViewsWithNormal( worldAnnotNormal );
+
         if ( viewsWithNormal.empty() )
         {
-            spdlog::trace( "did not find view with normal {}", glm::to_string(worldNormal) );
+            const uuids::uuid largestCurrentViewUid = appData.windowData().findLargestCurrentView();
 
-            /// @todo Ask user to select view
-            const auto currentViewUid = appData.windowData().currentViewUids().front();
-            if ( View* view = appData.windowData().getCurrentView( currentViewUid ) )
+            if ( View* view = appData.windowData().getCurrentView( largestCurrentViewUid ) )
             {
-                /// @todo Set to A, C, or S if normal is A, C or S;
+                // Rather than check if the plane of the annotation (which, recall is defined in
+                // Subject space) is aligned with either an axial, coronal, or sagittal view,
+                // we simple set the view to oblique.
                 view->setCameraType( camera::CameraType::Oblique );
+                setViewDirection( largestCurrentViewUid, worldAnnotNormal );
 
-                /// @todo Does not work properly yet
-                camera::orientCameraToWorldTargetNormalDirection( view->camera(), worldNormal );
+                // Render the image in this view if not currently rendered:
+                if ( ! view->isImageRendered( imageUid ) )
+                {
+                    view->setImageRendered( appData, imageUid, true );
+                }
 
-                /// @todo Determine which view type is closet. (ASC): then...
-                /// @todo Also orient such that S is most superior (for coronal/sagittal-like views),
-                /// A is most suprior (for axial-like views).
-                spdlog::trace( "changed view {} normal to {}", currentViewUid,
-                               glm::to_string( camera::worldDirection( view->camera(), Directions::View::Back ) ) );
+                spdlog::trace( "Changed view {} normal direction to {}",
+                               largestCurrentViewUid, glm::to_string( worldAnnotNormal ) );
+            }
+            else
+            {
+                spdlog::error( "Unable to orient a view to the annotation plane" );
             }
         }
-        else
-        {
-            spdlog::trace( "found view {} with normal {}", viewsWithNormal[0], glm::to_string(worldNormal) );
-        }
-
-        /// @todo Need a version of this that does not re-orient views!!!!
-        recenterAllViews( false, true, false );
     };
 
 
@@ -1885,7 +1891,7 @@ void renderAnnotationsHeader(
             image->settings().displayName() +
             "###" + std::to_string( imageIndex );
 
-    const auto imgSettings = image->settings();
+    const auto& imgSettings = image->settings();
 
     const auto headerColors = computeHeaderBgAndTextColors( imgSettings.borderColor() );
     ImGui::PushStyleColor( ImGuiCol_Header, headerColors.first );
@@ -1919,8 +1925,7 @@ void renderAnnotationsHeader(
     }
 
 
-    std::optional<uuids::uuid> activeAnnotUid =
-            appData.imageToActiveAnnotationUid( imageUid );
+    auto activeAnnotUid = appData.imageToActiveAnnotationUid( imageUid );
 
     // The default active annotation is at index 0
     if ( ! activeAnnotUid )
@@ -1958,8 +1963,9 @@ void renderAnnotationsHeader(
     /// @todo Change this into a child window, like for Landmarks.
     /// then do ImGui::SetScrollHereY( 1.0f ); to put activeAnnot at bottom
 
-    if ( ImGui::BeginListBox(
-             "##annotList", ImVec2( -FLT_MIN, static_cast<float>(numLines) * ImGui::GetTextLineHeightWithSpacing() ) ) )
+    const ImVec2 listBoxSize( -FLT_MIN, static_cast<float>(numLines) * ImGui::GetTextLineHeightWithSpacing() );
+
+    if ( ImGui::BeginListBox( "##annotList", listBoxSize ) )
     {
         size_t annotIndex = 0;
         for ( const auto& annotUid : annotUids )
@@ -1975,11 +1981,16 @@ void renderAnnotationsHeader(
 
                 if ( ImGui::Selectable( annot->getDisplayName().c_str(), isSelected ) )
                 {
+                    // Make the annotation active and move crosshairs to it:
                     appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
                     activeAnnot = appData.annotation( annotUid );
 
-                    // Go to annotation when clicked:
                     moveCrosshairsToAnnotationCenter( activeAnnot );
+                    alignViewToAnnotationPlane( activeAnnot );
+
+                    recenterAllViews( sk_doNotRecenterCrosshairs,
+                                      sk_recenterOnCurrentCrosshairsPosition,
+                                      sk_doNotResetObliqueOrientation );
                 }
 
                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
@@ -2061,6 +2072,8 @@ void renderAnnotationsHeader(
 
     // Plane normal vector and offset:
     ImGui::Text( "Annotation plane:" );
+
+    const char* coordFormat = appData.guiData().m_coordsPrecisionFormat.c_str();
 
     glm::vec4 annotPlaneEq = activeAnnot->getSubjectPlaneEquation();
     ImGui::InputFloat3( "Normal", glm::value_ptr( annotPlaneEq ), coordFormat );

@@ -74,7 +74,8 @@ void drawImageViewIntersections(
         const camera::FrameBounds& miewportViewBounds,
         AppData& appData,
         const View& view,
-        const ImageSegPairs& I );
+        const ImageSegPairs& I,
+        bool renderInactiveImageIntersections );
 
 std::list<AnatomicalLabelPosInfo>
 computeAnatomicalLabelsForView(

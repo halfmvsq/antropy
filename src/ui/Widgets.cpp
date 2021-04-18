@@ -27,7 +27,7 @@
 
 
 void renderActiveImageSelectionCombo(
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex,
@@ -35,7 +35,7 @@ void renderActiveImageSelectionCombo(
 {
     const size_t activeIndex = getActiveImageIndex();
 
-    if ( activeIndex >= getNumImages() )
+    if ( activeIndex >= numImages )
     {
         spdlog::error( "Invalid active image index" );
         return;
@@ -47,7 +47,7 @@ void renderActiveImageSelectionCombo(
 
     if ( ImGui::BeginCombo( nameString.c_str(), getImageDisplayAndFileName( activeIndex ).first ) )
     {
-        for ( size_t i = 0; i < getNumImages(); ++i )
+        for ( size_t i = 0; i < numImages; ++i )
         {
             const auto displayAndFileName = getImageDisplayAndFileName( i );
             const bool isSelected = ( i == activeIndex );

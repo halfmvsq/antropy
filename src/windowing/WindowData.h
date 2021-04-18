@@ -138,6 +138,9 @@ public:
     /// the given normal direction
     std::vector<uuids::uuid> findCurrentViewsWithNormal( const glm::vec3& worldNormal ) const;
 
+    /// Find the largest view (in terms of area) in the current layout.
+    uuids::uuid findLargestCurrentView() const;
+
 
 private:
 

@@ -130,7 +130,7 @@ bool CallbackHandler::executeGridCutSegmentation(
 
     spdlog::debug( "Executing GridCuts on image {} with seeds {}", imageUid, seedSegUid );
 
-    const glm::ivec3 pixelDims = static_cast<glm::ivec3>( image->header().pixelDimensions() );
+    const glm::ivec3 pixelDims{ image->header().pixelDimensions() };
 
     spdlog::debug( "Start creating grid" );
     auto grid = std::make_unique<Grid>( pixelDims.x, pixelDims.y, pixelDims.z );
@@ -219,7 +219,9 @@ bool CallbackHandler::executeGridCutSegmentation(
         {
             for ( int x = 0; x < pixelDims.x; ++x )
             {
-                const int64_t seg = static_cast<int64_t>( grid->get_segment( grid->node_id( x, y, z) ) ? 1 : 0 );
+                const int64_t seg = static_cast<int64_t>(
+                            grid->get_segment( grid->node_id( x, y, z) ) ? 1 : 0 );
+
                 resultSeg->setValue( 0, x, y, z, seg );
             }
         }
@@ -681,7 +683,8 @@ void CallbackHandler::doCameraTranslate2d(
 
     if ( const auto transGroupUid = hit->view.cameraTranslationSyncGroupUid() )
     {
-        for ( const auto& syncedViewUid : m_appData.windowData().cameraTranslationGroupViewUids( *transGroupUid ) )
+        for ( const auto& syncedViewUid :
+              m_appData.windowData().cameraTranslationGroupViewUids( *transGroupUid ) )
         {
             if ( syncedViewUid == hit->viewUid ) continue;
 
@@ -732,7 +735,8 @@ void CallbackHandler::doCameraRotate2d(
 
     if ( const auto rotGroupUid = hit->view.cameraRotationSyncGroupUid() )
     {
-        for ( const auto& syncedViewUid : m_appData.windowData().cameraRotationGroupViewUids( *rotGroupUid ) )
+        for ( const auto& syncedViewUid :
+              m_appData.windowData().cameraRotationGroupViewUids( *rotGroupUid ) )
         {
             if ( syncedViewUid == hit->viewUid ) continue;
 
@@ -803,7 +807,8 @@ void CallbackHandler::doCameraRotate3d(
 
     if ( const auto rotGroupUid = hit->view.cameraRotationSyncGroupUid() )
     {
-        for ( const auto& syncedViewUid : m_appData.windowData().cameraRotationGroupViewUids( *rotGroupUid ) )
+        for ( const auto& syncedViewUid :
+              m_appData.windowData().cameraRotationGroupViewUids( *rotGroupUid ) )
         {
             if ( syncedViewUid == hit->viewUid ) continue;
 
@@ -851,7 +856,8 @@ void CallbackHandler::doCameraRotate3d(
 
     if ( const auto rotGroupUid = view->cameraRotationSyncGroupUid() )
     {
-        for ( const auto& syncedViewUid : windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
+        for ( const auto& syncedViewUid :
+              windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
         {
             if ( syncedViewUid == viewUid ) continue;
 
@@ -879,65 +885,21 @@ void CallbackHandler::handleSetViewForwardDirection(
         const uuids::uuid& viewUid,
         const glm::vec3& worldForwardDirection )
 {
-    static const CoordinateFrame IDENT;
-
-    static constexpr float sk_lengthThresh = 1e-3f;
-    static constexpr float sk_angleThresh_degrees = 2.5f;
-
-    static const glm::vec3 sk_worldDesiredUp_superior{ 0, 0, 1 };
-    static const glm::vec3 sk_worldDesiredUp_anterior{ 0, -1, 0 };
-
-    auto setViewForwardDir = [this, &worldForwardDirection] ( camera::Camera& camera )
-    {
-        if ( glm::length( worldForwardDirection ) < sk_lengthThresh )
-        {
-            return;
-        }
-
-        const glm::vec3 worldBack = glm::normalize( -worldForwardDirection );
-
-        // Select the desired up vector based on the worldBack direction:
-        // If worldBack is parallel to the superior direction,
-        // then worldRight = anterior X worldBack;
-        // otherwise, worldRight = superior X worldBack.
-
-        const glm::vec3 worldDesiredUp =
-                ( camera::areVectorsParallel(
-                      worldBack, sk_worldDesiredUp_superior, sk_angleThresh_degrees ) )
-                    ? sk_worldDesiredUp_anterior
-                    : sk_worldDesiredUp_superior;
-
-        const glm::vec3 worldRight = glm::normalize( glm::cross( worldDesiredUp, worldBack ) );
-        const glm::vec3 worldUp = glm::normalize( glm::cross( worldBack, worldRight ) );
-
-        const glm::mat4 anatomy_T_camera{
-            glm::vec4{ worldRight, 0 },
-            glm::vec4{ worldUp, 0 },
-            glm::vec4{ worldBack, 0 },
-            glm::vec4{ 0, 0, 0, 1 }
-        };
-
-        camera.set_anatomy_T_start_provider( [] () { return IDENT; } );
-        camera.set_camera_T_anatomy( glm::inverse( anatomy_T_camera ) );
-
-        camera::setWorldTarget( camera, m_appData.state().worldCrosshairs().worldOrigin(), std::nullopt );
-    };
-
-
     auto& windowData = m_appData.windowData();
 
     View* view = windowData.getView( viewUid );
-
     if ( ! view ) return;
 
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
     if ( camera::CameraType::Oblique != view->cameraType() ) return;
 
-    setViewForwardDir( view->camera() );
+    camera::setWorldForwardDirection( view->camera(), worldForwardDirection );
+    camera::setWorldTarget( view->camera(), m_appData.state().worldCrosshairs().worldOrigin(), std::nullopt );
 
     if ( const auto rotGroupUid = view->cameraRotationSyncGroupUid() )
     {
-        for ( const auto& syncedViewUid : windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
+        for ( const auto& syncedViewUid :
+              windowData.cameraRotationGroupViewUids( *rotGroupUid ) )
         {
             if ( syncedViewUid == viewUid ) continue;
 
@@ -946,7 +908,8 @@ void CallbackHandler::handleSetViewForwardDirection(
             if ( ! syncedView ) continue;
             if ( syncedView->cameraType() != view->cameraType() ) continue;
 
-            setViewForwardDir( syncedView->camera() );
+            camera::setWorldForwardDirection( syncedView->camera(), worldForwardDirection );
+            camera::setWorldTarget( syncedView->camera(), m_appData.state().worldCrosshairs().worldOrigin(), std::nullopt );
         }
     }
 }
@@ -1020,7 +983,8 @@ void CallbackHandler::doCameraZoomDrag(
     else if ( const auto zoomGroupUid = hit->view.cameraZoomSyncGroupUid() )
     {
         // Apply zoom to all views other synchronized with the view:
-        for ( const auto& syncedViewUid : m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
+        for ( const auto& syncedViewUid :
+              m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
         {
             if ( syncedViewUid == hit->viewUid ) continue;
 
@@ -1100,7 +1064,8 @@ void CallbackHandler::doCameraZoomScroll(
     else if ( const auto zoomGroupUid = hit->view.cameraZoomSyncGroupUid() )
     {        
         // Apply zoom all other views synchronized with this view:
-        for ( const auto& syncedViewUid : m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
+        for ( const auto& syncedViewUid :
+              m_appData.windowData().cameraZoomGroupViewUids( *zoomGroupUid ) )
         {
             if ( syncedViewUid == hit->viewUid ) continue;
 

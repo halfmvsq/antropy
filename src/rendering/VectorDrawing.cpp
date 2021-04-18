@@ -178,7 +178,8 @@ void drawImageViewIntersections(
         const camera::FrameBounds& miewportViewBounds,
         AppData& appData,
         const View& view,
-        const ImageSegPairs& I )
+        const ImageSegPairs& I,
+        bool renderInactiveImageIntersections )
 {
     // Line segment stipple length in pixels
     static constexpr float sk_stippleLen = 16.0f;
@@ -199,6 +200,11 @@ void drawImageViewIntersections(
         const Image* img = appData.image( imgUid );
         if ( ! img ) continue;
 
+        const auto activeImageUid = appData.activeImageUid();
+        const bool isActive = ( activeImageUid && ( *activeImageUid == imgUid ) );
+
+        if ( ! isActive && ! renderInactiveImageIntersections ) continue;
+
         auto worldIntersections = view.computeImageSliceIntersection(
                     img, appData.state().worldCrosshairs() );
 
@@ -213,9 +219,6 @@ void drawImageViewIntersections(
         const float opacity = static_cast<float>( img->settings().visibility() * img->settings().opacity() );
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
-
-        const auto activeImageUid = appData.activeImageUid();
-        const bool isActive = ( activeImageUid && ( *activeImageUid == imgUid ) );
 
         nvgStrokeWidth( nvg, isActive ? 2.0f : 1.0f );
 

@@ -1160,9 +1160,14 @@ void Rendering::renderImages()
 
     const glm::vec3 worldCrosshairsOrigin = m_appData.state().worldCrosshairs().worldOrigin();
 
-    const bool renderLandmarksOnTop = m_appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
-    const bool renderAnnotationsOnTop = m_appData.renderData().m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
-    const bool renderImageIntersections = m_appData.renderData().m_globalSliceIntersectionParams.renderImageViewIntersections;
+    const bool renderLandmarksOnTop =
+            m_appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
+
+    const bool renderAnnotationsOnTop =
+            m_appData.renderData().m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
+
+    const bool renderInactiveImageIntersections =
+            m_appData.renderData().m_globalSliceIntersectionParams.renderInactiveImageViewIntersections;
 
     for ( const auto& viewPair : m_appData.windowData().currentLayout().views() )
     {
@@ -1177,7 +1182,7 @@ void Rendering::renderImages()
                     view.windowClipViewport(), m_appData.windowData().viewport().getAsVec4() );
 
         auto renderOneImage = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
-                &renderAnnotationsOnTop, &renderImageIntersections, &getImage, &miewportViewBounds]
+                &renderAnnotationsOnTop, &renderInactiveImageIntersections, &getImage, &miewportViewBounds]
                 ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
         {
             drawImageQuad( program,
@@ -1201,11 +1206,9 @@ void Rendering::renderImages()
                 setupOpenGlState();
             }
 
-            if ( renderImageIntersections )
-            {
-                drawImageViewIntersections( m_nvg, miewportViewBounds, m_appData, view, I );
-                setupOpenGlState();
-            }
+            drawImageViewIntersections( m_nvg, miewportViewBounds, m_appData, view, I,
+                                        renderInactiveImageIntersections );
+            setupOpenGlState();
         };
 
         doRenderingAllImagePlanes( view, renderOneImage );

@@ -239,10 +239,7 @@ void ImGuiWrapper::render()
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
 
-    auto getNumImages = [this] ()
-    {
-        return m_appData.numImages();
-    };
+    /// @todo Move these functions elsewhere
 
     auto getImageDisplayAndFileNames = [this] ( size_t imageIndex )
             -> std::pair<const char*, const char*>
@@ -434,6 +431,11 @@ void ImGuiWrapper::render()
             const glm::vec3& worldFwdDirection )
     {
         m_callbackHandler.handleSetViewForwardDirection( viewUid, worldFwdDirection );
+
+        // This experimenting with this simpler function:
+//        View* view = m_appData.windowData().getView( viewUid );
+//        if ( ! view ) return;
+//        camera::orientCameraToWorldTargetNormalDirection( view->camera(), worldFwdDirection );
     };
 
     auto getViewNormal = [this] ( const uuids::uuid& viewUid )
@@ -539,7 +541,7 @@ void ImGuiWrapper::render()
         {
             renderImagePropertiesWindow(
                         m_appData,
-                        getNumImages,
+                        m_appData.numImages(),
                         getImageDisplayAndFileNames,
                         getActiveImageIndex,
                         setActiveImageIndex,
@@ -577,6 +579,7 @@ void ImGuiWrapper::render()
         {
             renderAnnotationWindow(
                         m_appData,
+                        setViewCameraDirection,
                         m_recenterAllViews );
         }
 
@@ -594,14 +597,14 @@ void ImGuiWrapper::render()
                     m_setOverlayVisibility,
                     cycleViewLayout,
 
-                    getNumImages,
+                    m_appData.numImages(),
                     getImageDisplayAndFileNames,
                     getActiveImageIndex,
                     setActiveImageIndex );
 
         renderSegToolbar(
                     m_appData,
-                    getNumImages,
+                    m_appData.numImages(),
                     getImageDisplayAndFileNames,
                     getActiveImageIndex,
                     setActiveImageIndex,
@@ -615,7 +618,7 @@ void ImGuiWrapper::render()
 
     Layout& currentLayout = m_appData.windowData().currentLayout();
 
-    const float wholeWindowHeight = m_appData.windowData().getWindowSize().y;
+    const float wholeWindowHeight = static_cast<float>( m_appData.windowData().getWindowSize().y );
 
     if ( m_appData.guiData().m_renderUiOverlays && currentLayout.isLightbox() )
     {
@@ -637,7 +640,7 @@ void ImGuiWrapper::render()
                     true,
                     false,
 
-                    getNumImages,
+                    m_appData.numImages(),
                     [this, &currentLayout] ( size_t index ) { return currentLayout.isImageRendered( m_appData, index ); },
                     [this, &currentLayout] ( size_t index, bool visible ) { currentLayout.setImageRendered( m_appData, index, visible ); },
 
@@ -703,7 +706,7 @@ void ImGuiWrapper::render()
                         false,
                         true,
 
-                        getNumImages,
+                        m_appData.numImages(),
                         [this, view] ( size_t index ) { return view->isImageRendered( m_appData, index ); },
                         [this, view] ( size_t index, bool visible ) { view->setImageRendered( m_appData, index, visible ); },
 

@@ -42,12 +42,17 @@ public:
     virtual void setRenderMode( const camera::ViewRenderMode& shaderType );
 
     bool isImageRendered( const AppData& appData, size_t index );
+    bool isImageRendered( const uuids::uuid& imageUid );
+
     virtual void setImageRendered( const AppData& appData, size_t index, bool visible );
+    virtual void setImageRendered( const AppData& appData, const uuids::uuid& imageUid, bool visible );
 
     const std::list<uuids::uuid>& renderedImages() const;
     virtual void setRenderedImages( const std::list<uuids::uuid>& imageUids, bool filterByDefaults );
 
     bool isImageUsedForMetric( const AppData& appData, size_t index );
+    bool isImageUsedForMetric( const uuids::uuid& imageUid );
+
     virtual void setImageUsedForMetric( const AppData& appData, size_t index, bool visible );
 
     const std::list<uuids::uuid>& metricImages() const;

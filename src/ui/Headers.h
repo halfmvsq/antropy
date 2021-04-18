@@ -4,6 +4,9 @@
 #include "common/PublicTypes.h"
 
 #include <uuid.h>
+
+#include <glm/fwd.hpp>
+
 #include <functional>
 
 
@@ -121,6 +124,7 @@ void renderAnnotationsHeader(
         const uuids::uuid& imageUid,
         size_t imageIndex,
         bool isActiveImage,
+        const std::function< void ( const uuids::uuid& viewUid, const glm::vec3& worldFwdDirection ) >& setViewCameraDirection,
         const AllViewsRecenterType& recenterAllViews );
 
 

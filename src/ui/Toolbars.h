@@ -19,7 +19,7 @@ void renderToolbar(
         const std::function< void (bool) >& setOverlayVisibility,
         const std::function< void (int step) >& cycleViews,
 
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex );
@@ -27,7 +27,7 @@ void renderToolbar(
 
 void renderSegToolbar(
         AppData& appData,
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex,

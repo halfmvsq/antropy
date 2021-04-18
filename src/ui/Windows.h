@@ -48,7 +48,7 @@ void renderViewSettingsComboWindow(
         bool /*hasFrameAndBackground*/,
         bool showApplyToAllButton,
 
-        const std::function< size_t(void) >& getNumImages,
+        size_t numImages,
 
         const std::function< bool( size_t index ) >& isImageRendered,
         const std::function< void( size_t index, bool visible ) >& setImageRendered,
@@ -101,7 +101,7 @@ void renderViewOrientationToolWindow(
  */
 void renderImagePropertiesWindow(
         AppData& appData,
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< size_t (void) >& getActiveImageIndex,
         const std::function< void (size_t) >& setActiveImageIndex,
@@ -153,6 +153,7 @@ void renderLandmarkPropertiesWindow(
  */
 void renderAnnotationWindow(
         AppData& appData,
+        const std::function< void ( const uuids::uuid& viewUid, const glm::vec3& worldFwdDirection ) >& setViewCameraDirection,
         const AllViewsRecenterType& recenterAllViews );
 
 
@@ -186,7 +187,7 @@ void renderSettingsWindow(
  */
 void renderInspectionWindow(
         AppData& appData,
-        const std::function< size_t (void) >& getNumImages,
+        size_t numImages,
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< glm::vec3 () >& getWorldDeformedPos,
         const std::function< std::optional<glm::vec3> ( size_t imageIndex ) >& getSubjectPos,
