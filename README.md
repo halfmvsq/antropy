@@ -34,6 +34,7 @@ The following libraries and depdencies are brought in as Git submodules to the A
 * NanoVG (https://github.com/memononen/nanovg.git)
 * spdlog (https://github.com/gabime/spdlog.git)
 * stduuid (https://github.com/mariusbancila/stduuid.git)
+* TinyFSM (https://github.com/digint/tinyfsm.git)
 
 Please run `git submodule update --init --recursive` after cloning to get these submodules.
 

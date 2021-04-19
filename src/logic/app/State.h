@@ -12,6 +12,9 @@
 #include <optional>
 
 
+/**
+ * @brief Collection of application state that changes through its execution.
+ */
 class AppState
 {
 public:
@@ -23,7 +26,13 @@ public:
     const CoordinateFrame& worldCrosshairs() const;
 
     void setWorldRotationCenter( const std::optional< glm::vec3 >& worldRotationCenter );
-    const std::optional< glm::vec3 >& worldRotationCenter() const;
+
+    /**
+     * @brief Get the rotation center in World space. If no rotation has been explicitly set,
+     * then it defaults to the crosshairs origin position.
+     * @return Rotation center (World space)
+     */
+    glm::vec3 worldRotationCenter() const;
 
     void setMouseMode( MouseMode mode );
     MouseMode mouseMode() const;

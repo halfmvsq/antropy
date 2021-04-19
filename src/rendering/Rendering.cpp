@@ -1160,14 +1160,12 @@ void Rendering::renderImages()
 
     const glm::vec3 worldCrosshairsOrigin = m_appData.state().worldCrosshairs().worldOrigin();
 
-    const bool renderLandmarksOnTop =
-            m_appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
+    auto& renderData = m_appData.renderData();
 
-    const bool renderAnnotationsOnTop =
-            m_appData.renderData().m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
-
+    const bool renderLandmarksOnTop = renderData.m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
+    const bool renderAnnotationsOnTop = renderData.m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
     const bool renderInactiveImageIntersections =
-            m_appData.renderData().m_globalSliceIntersectionParams.renderInactiveImageViewIntersections;
+            renderData.m_globalSliceIntersectionParams.renderInactiveImageViewIntersections;
 
     for ( const auto& viewPair : m_appData.windowData().currentLayout().views() )
     {
@@ -1181,18 +1179,18 @@ void Rendering::renderImages()
         const auto miewportViewBounds = camera::computeMiewportFrameBounds(
                     view.windowClipViewport(), m_appData.windowData().viewport().getAsVec4() );
 
-        auto renderOneImage = [this, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
+        auto renderOneImage = [this, &renderData, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
                 &renderAnnotationsOnTop, &renderInactiveImageIntersections, &getImage, &miewportViewBounds]
                 ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
         {
             drawImageQuad( program,
-                             view.renderMode(),
-                             m_appData.renderData().m_quad,
-                             view,
-                             worldCrosshairsOrigin,
-                             m_appData.renderData().m_flashlightRadius,
-                             m_appData.renderData().m_flashlightOverlays,
-                             I, getImage, showEdges );
+                           view.renderMode(),
+                           renderData.m_quad,
+                           view,
+                           worldCrosshairsOrigin,
+                           renderData.m_flashlightRadius,
+                           renderData.m_flashlightOverlays,
+                           I, getImage, showEdges );
 
             if ( ! renderLandmarksOnTop )
             {

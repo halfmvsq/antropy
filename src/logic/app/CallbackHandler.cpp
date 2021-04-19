@@ -1190,12 +1190,7 @@ void CallbackHandler::doImageRotate(
 
     /// @todo Forbid transformation if the view does NOT show the active image [1]
 
-    // Center of rotation is the crosshairs origin by default:
-    const auto p = m_appData.state().worldRotationCenter();
-
-    const glm::vec3 worldRotationCenter =
-            ( p ? *p : m_appData.state().worldCrosshairs().worldOrigin() );
-
+    const glm::vec3 worldRotationCenter = m_appData.state().worldRotationCenter();
     auto& imgTx = activeImage->transformations();
 
     CoordinateFrame imageFrame( imgTx.get_worldDef_T_affine_translation(),

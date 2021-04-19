@@ -217,6 +217,13 @@ set( GRIDCUT_INCLUDE_DIR ${EXT_DIR}/gridcut/include )
 
 
 #--------------------------------------------------------------------------------
+# TinyFSM (included as Git submodule):
+# A simple C++ finite state machine library
+#--------------------------------------------------------------------------------
+set( TINYFSM_INCLUDE_DIR ${EXT_DIR}/tinyfsm/include )
+
+
+#--------------------------------------------------------------------------------
 # stduuid (included as Git submodule):
 # A C++17 cross-platform single-header library implementation for universally
 # unique identifiers
@@ -347,6 +354,7 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/logic/camera/Projection.cpp
     ${SRC_DIR}/logic/interaction/events/ButtonState.cpp
     ${SRC_DIR}/logic/serialization/ProjectSerialization.cpp
+    ${SRC_DIR}/logic/states/AnnotationStateMachine.cpp
 
     # We were testing IPC with ITK-SNAP. This functionality is not currently hooked up to Antropy.
     # ${SRC_DIR}/logic/ipc/IPCHandler.cxx
@@ -529,6 +537,7 @@ target_include_directories( ${EXEC_NAME} PRIVATE
     ${IMGUI_BINDINGS_DIR}
     ${ITK_INCLUDE_DIRS}
     ${JSON_INCLUDE_DIR}
+    ${TINYFSM_INCLUDE_DIR}
     ${UUID_INCLUDE_DIR}
 #    ${VTK_INCLUDE_DIRS}
 )

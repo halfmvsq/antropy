@@ -16,19 +16,17 @@ AppState::AppState()
 
 void AppState::setWorldRotationCenter( const std::optional< glm::vec3 >& worldRotationCenter )
 {
-    if ( worldRotationCenter )
-    {
-        m_worldRotationCenter = *worldRotationCenter;
-    }
-    else
-    {
-        m_worldRotationCenter = std::nullopt;
-    }
+    m_worldRotationCenter = *worldRotationCenter;
 }
 
-const std::optional< glm::vec3 >& AppState::worldRotationCenter() const
+glm::vec3 AppState::worldRotationCenter() const
 {
-    return m_worldRotationCenter;
+    if ( m_worldRotationCenter )
+    {
+        return *m_worldRotationCenter;
+    }
+
+    return m_worldCrosshairs.worldOrigin();
 }
 
 void AppState::setWorldCrosshairsPos( const glm::vec3& worldCrosshairsPos )

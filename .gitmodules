@@ -40,3 +40,6 @@
 [submodule "externals/cmake-modules"]
 	path = externals/cmake-modules
 	url = https://github.com/rpavlik/cmake-modules.git
+[submodule "externals/tinyfsm"]
+	path = externals/tinyfsm
+	url = https://github.com/digint/tinyfsm.git
