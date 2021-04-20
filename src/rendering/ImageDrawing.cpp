@@ -19,7 +19,7 @@ void drawImageQuad(
         const camera::ViewRenderMode& shaderType,
         RenderData::Quad& quad,
         const View& view,
-        const glm::vec3& worldOrigin,
+        const glm::vec3& worldCrosshairs,
         float flashlightRadius,
         bool flashlightOverlays,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I,
@@ -50,7 +50,7 @@ void drawImageQuad(
         program.setUniform( "flashlightRadius", flashlightRadius );
         program.setUniform( "flashlightOverlays", flashlightOverlays );
 
-        const glm::vec4 clipCrosshairs = camera::clip_T_world( view.camera() ) * glm::vec4{ worldOrigin, 1.0f };
+        const glm::vec4 clipCrosshairs = camera::clip_T_world( view.camera() ) * glm::vec4{ worldCrosshairs, 1.0f };
         program.setUniform( "clipCrosshairs", glm::vec2{ clipCrosshairs / clipCrosshairs.w } );
 
         if ( showEdges )

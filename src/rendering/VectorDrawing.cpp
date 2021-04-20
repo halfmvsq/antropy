@@ -733,7 +733,8 @@ void drawAnnotations(
     nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
             miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
 
-    const glm::vec3 worldViewNormal = camera::worldDirection( view.camera(), Directions::View::Back );
+    const glm::vec3 worldViewNormal = camera::worldDirection(
+                view.camera(), Directions::View::Back );
 
     // Render annotations for each image
     for ( const auto& imgSegPair : I )
@@ -755,7 +756,8 @@ void drawAnnotations(
         // Don't render landmarks for invisible image:
         /// @todo Need to properly manage global visibility vs. visibility for just one component
         if ( ! img->settings().globalVisibility() ||
-             ( 1 == img->header().numComponentsPerPixel() && ! img->settings().visibility() ) )
+             ( 1 == img->header().numComponentsPerPixel() &&
+               ! img->settings().visibility() ) )
         {
             continue;
         }
@@ -778,7 +780,7 @@ void drawAnnotations(
 
         // Slice spacing of the image along the view normal is the plane distance threshold
         // for annotation searching:
-        const float sliceSpacing = data::sliceScrollDistance( -worldViewNormal, *img );
+        const float sliceSpacing = 0.5f * data::sliceScrollDistance( -worldViewNormal, *img );
 
 //        spdlog::trace( "Finding annotations for plane {} with distance threshold {}",
 //                       glm::to_string( subjectPlaneEquation ), sliceSpacing );

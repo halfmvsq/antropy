@@ -58,8 +58,8 @@ public:
     camera::Camera& camera();
 
     /// Update the view's camera based on the crosshairs World-space position.
-    /// @return True iff successful view update
-    bool updateImageSlice( const AppData& appData, const glm::vec3& worldCrosshairs );
+    /// @return The crosshairs position on the slice
+    glm::vec3 updateImageSlice( const AppData& appData, const glm::vec3& worldCrosshairs );
 
     std::optional< intersection::IntersectionVerticesVec4 >
     computeImageSliceIntersection( const Image* image, const CoordinateFrame& crosshairs ) const;

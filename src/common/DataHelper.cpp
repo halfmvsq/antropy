@@ -451,8 +451,8 @@ std::vector< uuids::uuid > findAnnotationsForImage(
         const glm::vec4& querySubjectPlaneEquation,
         float planeDistanceThresh )
 {
-    // Angle threshold = acos(sk_dotProductThresh) * 180/pi = 0.26 degrees
-    static constexpr float sk_dotProductThresh = 1.0e-5f;
+    // Angle threshold (in degrees) for checking whether two vectors are parallel
+    static constexpr float sk_parallelThreshold_degrees = 0.1f;
 
     std::vector< uuids::uuid > annotUids;
 
@@ -466,18 +466,17 @@ std::vector< uuids::uuid > findAnnotationsForImage(
         // Compare absolute values of dot product between normal vectors and
         // distances between plane offsets:
         const glm::vec3 n1 = glm::normalize( glm::vec3{ testSubjectPlaneEquation } );
-        const float d1 = testSubjectPlaneEquation[3];
+        const glm::vec3 n2 = glm::normalize( glm::vec3{ querySubjectPlaneEquation } );
 
-        glm::vec3 n2 = glm::normalize( glm::vec3{ querySubjectPlaneEquation } );
+        const float d1 = testSubjectPlaneEquation[3];
         float d2 = querySubjectPlaneEquation[3];
 
         if ( ( glm::dot( n1, n2 ) < 0.0f ) )
         {
-            n2 = -n2;
             d2 = -d2;
         }
 
-        const bool normalMatch = ( std::abs( glm::dot( n1, n2 ) - 1.0f ) < sk_dotProductThresh );
+        const bool normalMatch = camera::areVectorsParallel( n1, n2, sk_parallelThreshold_degrees );
         const bool offsetMatch = ( std::abs( d1 - d2 ) < planeDistanceThresh );
 
         if ( normalMatch && offsetMatch )

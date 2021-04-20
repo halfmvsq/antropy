@@ -323,6 +323,9 @@ private:
         glm::vec4 worldLastPos;
         glm::vec4 worldCurrPos;
 
+        glm::vec4 worldLastPos_offsetApplied;
+        glm::vec4 worldCurrPos_offsetApplied;
+
         glm::vec3 worldFrontAxis;
     };
 

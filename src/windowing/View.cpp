@@ -107,7 +107,7 @@ View::View( glm::vec4 winClipViewport,
 }
 
 
-bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCrosshairs )
+glm::vec3 View::updateImageSlice( const AppData& appData, const glm::vec3& worldCrosshairs )
 {
     static constexpr size_t k_maxNumWarnings = 10;
     static size_t warnCount = 0;
@@ -149,16 +149,13 @@ bool View::updateImageSlice( const AppData& appData, const glm::vec3& worldCross
             spdlog::warn( "Halting warning about camera front direction." );
         }
 
-        return false;
+        return worldCrosshairs;
     }
 
-    const glm::vec4 clipPlanePos =
-            camera::clip_T_world( m_camera ) *
-            glm::vec4{ worldPlanePos, 1.0f };
-
+    const glm::vec4 clipPlanePos = camera::clip_T_world( m_camera ) * glm::vec4{ worldPlanePos, 1.0f };
     m_clipPlaneDepth = clipPlanePos.z / clipPlanePos.w;
 
-    return true;
+    return worldPlanePos;
 }
 
 

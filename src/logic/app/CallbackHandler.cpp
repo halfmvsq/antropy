@@ -370,8 +370,8 @@ void CallbackHandler::doSegment(
               const int64_t* data )
     {
         if ( ! seg ) return;
-        m_rendering.updateSegTexture(
-                    segUid, seg->header().memoryComponentType(), dataOffset, dataSize, data );
+        m_rendering.updateSegTexture( segUid, seg->header().memoryComponentType(),
+                                      dataOffset, dataSize, data );
     };
 
     const auto activeImageUid = m_appData.activeImageUid();
@@ -435,8 +435,9 @@ void CallbackHandler::doSegment(
         const glm::vec3 spacing{ seg->header().spacing() };
         const glm::ivec3 dims{ seg->header().pixelDimensions() };
 
+        // Use the offset position, so that the user can paint in any offset view of a lightbox layout:
         const glm::mat4& pixel_T_worldDef = seg->transformations().pixel_T_worldDef();
-        const glm::vec4 pixelPos = pixel_T_worldDef * hit->worldCurrPos;
+        const glm::vec4 pixelPos = pixel_T_worldDef * hit->worldCurrPos_offsetApplied;
         const glm::vec3 pixelPos3 = pixelPos / pixelPos.w;
         const glm::ivec3 roundedPixelPos{ glm::round( pixelPos3 ) };
 
@@ -456,16 +457,11 @@ void CallbackHandler::doSegment(
 
         paintSegmentation(
                     segUid, seg, dims, spacing,
-                    labelToPaint,
-                    labelToReplace,
+                    labelToPaint, labelToReplace,
                     settings.replaceBackgroundWithForeground(),
-                    settings.useRoundBrush(),
-                    settings.use3dBrush(),
-                    settings.useIsotropicBrush(),
-                    brushSize,
-                    roundedPixelPos,
-                    voxelViewPlane,
-                    updateSegTexture );
+                    settings.useRoundBrush(), settings.use3dBrush(), settings.useIsotropicBrush(),
+                    brushSize, roundedPixelPos,
+                    voxelViewPlane, updateSegTexture );
     }
 }
 
@@ -504,14 +500,15 @@ void CallbackHandler::doAnnotate(
     const glm::vec4 worldPlaneNormal{ -hit->worldFrontAxis, 0.0f };
     const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
 
-    glm::vec4 subjectPlanePoint = subject_T_world * hit->worldCurrPos;
+    // Use the offset position, so that the user can annotate in any offset view of a lightbox layout:
+    glm::vec4 subjectPlanePoint = subject_T_world * hit->worldCurrPos_offsetApplied;
     subjectPlanePoint /= subjectPlanePoint.w;
 
     const glm::vec4 subjectPlaneEquation = math::makePlane(
                 subjectPlaneNormal, glm::vec3{ subjectPlanePoint } );
 
     // Use the image slice scroll distance as the threshold for plane distances:
-    const float planeDistanceThresh = data::sliceScrollDistance( hit->worldFrontAxis, *activeImage );
+    const float planeDistanceThresh = 0.5f * data::sliceScrollDistance( hit->worldFrontAxis, *activeImage );
 
     /// @todo Create AnnotationGroup, which consists of all annotations for an image that fall
     /// on one of the slices.
@@ -573,7 +570,7 @@ void CallbackHandler::doAnnotate(
     if ( ! projectedPoint )
     {
         spdlog::error( "Unable to add point {} to boundary {}",
-                       glm::to_string( hit->worldCurrPos ), k_outerBoundary );
+                       glm::to_string( hit->worldCurrPos_offsetApplied ), k_outerBoundary );
     }
 //    else
 //    {
@@ -1625,7 +1622,9 @@ CallbackHandler::getViewHit(
     }
 
     ViewHitData hitData( *view, *viewUid );
-    hitData.worldFrontAxis = camera::worldDirection( view->camera(), Directions::View::Front );
+
+    hitData.worldFrontAxis = camera::worldDirection(
+                view->camera(), Directions::View::Front );
 
     const glm::vec4 windowClipLastPos(
                 camera::windowNdc2d_T_windowPixels(
@@ -1657,23 +1656,26 @@ CallbackHandler::getViewHit(
         return std::nullopt;
     }
 
-    // Apply this view's offset from the crosshairs position in order to calculate the
-    // view plane position:
+    const glm::mat4 world_T_clip = camera::world_T_clip( view->camera() );
+
+    // Apply view's offset from crosshairs in order to calculate the view plane position:
     const float offsetDist = data::computeViewOffsetDistance(
                 m_appData, view->offsetSetting(), hitData.worldFrontAxis );
 
-    const glm::mat4 world_T_clip = camera::world_T_clip( view->camera() );
-
     const glm::vec4 offset{ offsetDist * hitData.worldFrontAxis, 0.0f };
 
-    hitData.worldLastPos = world_T_clip * viewClipLastPos;
-    hitData.worldCurrPos = world_T_clip * viewClipCurrPos;
+    glm::vec4 worldLastPos = world_T_clip * viewClipLastPos;
+    glm::vec4 worldCurrPos = world_T_clip * viewClipCurrPos;
 
-    hitData.worldLastPos = hitData.worldLastPos / hitData.worldLastPos.w;
-    hitData.worldCurrPos = hitData.worldCurrPos / hitData.worldCurrPos.w;
+    worldLastPos = worldLastPos / worldLastPos.w;
+    worldCurrPos = worldCurrPos / worldCurrPos.w;
 
-    hitData.worldLastPos -= offset;
-    hitData.worldCurrPos -= offset;
+    hitData.worldLastPos_offsetApplied = worldLastPos;
+    hitData.worldCurrPos_offsetApplied = worldCurrPos;
+
+    // Note!!! This undoes the offset, so that lightbox views don't shift.
+    hitData.worldLastPos = worldLastPos - offset;
+    hitData.worldCurrPos = worldCurrPos - offset;
 
     if ( m_appData.renderData().m_snapCrosshairsToReferenceVoxels )
     {

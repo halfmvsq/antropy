@@ -553,7 +553,7 @@ void Rendering::render()
 
     glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT );
 
-    renderImages();
+    renderImageData();
 //    renderOverlays();
     renderVectorOverlays();
 }
@@ -891,9 +891,45 @@ Rendering::bindMetricImageTextures(
     return textures;
 }
 
-void Rendering::doRenderingAllImagePlanes(
+void Rendering::renderOneImage(
         const View& view,
-        const std::function< void ( GLShaderProgram&, const CurrentImages&, bool showEdges ) > renderFunc )
+        const camera::FrameBounds& miewportViewBounds,
+        const glm::vec3& worldCrosshairs,
+        GLShaderProgram& program,
+        const CurrentImages& I,
+        bool showEdges )
+{
+    auto getImage = [this] ( const std::optional<uuids::uuid>& imageUid ) -> const Image*
+    {
+        return ( imageUid ? m_appData.image( *imageUid ) : nullptr );
+    };
+
+    auto& renderData = m_appData.renderData();
+
+    drawImageQuad( program, view.renderMode(), renderData.m_quad, view, worldCrosshairs,
+                   renderData.m_flashlightRadius, renderData.m_flashlightOverlays, I, getImage, showEdges );
+
+    if ( ! renderData.m_globalLandmarkParams.renderOnTopOfAllImagePlanes )
+    {
+        drawLandmarks( m_nvg, miewportViewBounds, worldCrosshairs, m_appData, view, I );
+        setupOpenGlState();
+    }
+
+    if ( ! renderData.m_globalAnnotationParams.renderOnTopOfAllImagePlanes )
+    {
+        drawAnnotations( m_nvg, miewportViewBounds, worldCrosshairs, m_appData, view, I );
+        setupOpenGlState();
+    }
+
+    drawImageViewIntersections( m_nvg, miewportViewBounds, m_appData, view, I,
+                                renderData.m_globalSliceIntersectionParams.renderInactiveImageViewIntersections );
+    setupOpenGlState();
+}
+
+void Rendering::renderAllImages(
+        const View& view,
+        const camera::FrameBounds& miewportViewBounds,
+        const glm::vec3& worldCrosshairs )
 {
     static std::list< std::reference_wrapper<GLTexture> > boundImageTextures;
     static std::list< std::reference_wrapper<GLTexture> > boundMetricTextures;
@@ -986,7 +1022,8 @@ void Rendering::doRenderingAllImagePlanes(
                      P.setUniform( "edgeColor", U.edgeColor );
                 }
 
-                renderFunc( P, CurrentImages{ imgSegPair }, U.showEdges );
+                renderOneImage( view, miewportViewBounds, worldCrosshairs,
+                                P, CurrentImages{ imgSegPair }, U.showEdges );
             }
             P.stopUse();
 
@@ -1032,7 +1069,7 @@ void Rendering::doRenderingAllImagePlanes(
 
                 P.setUniform( "useSquare", renderData.m_useSquare );
 
-                renderFunc( P, I, false );
+                renderOneImage( view, miewportViewBounds, worldCrosshairs, P, I, false );
             }
             P.stopUse();
         }
@@ -1058,7 +1095,7 @@ void Rendering::doRenderingAllImagePlanes(
 
                 P.setUniform( "texture1_T_texture0", U1.imgTexture_T_world * glm::inverse( U0.imgTexture_T_world ) );
 
-                renderFunc( P, I, false );
+                renderOneImage( view, miewportViewBounds, worldCrosshairs, P, I, false );
             }
             P.stopUse();
         }
@@ -1084,7 +1121,7 @@ void Rendering::doRenderingAllImagePlanes(
 
                 P.setUniform( "magentaCyan", renderData.m_overlayMagentaCyan );
 
-                renderFunc( P, I, false );
+                renderOneImage( view, miewportViewBounds, worldCrosshairs, P, I, false );
             }
             P.stopUse();
         }
@@ -1093,35 +1130,39 @@ void Rendering::doRenderingAllImagePlanes(
     }
 }
 
-void Rendering::doRenderingImageLandmarks(
+void Rendering::renderAllLandmarks(
         const View& view,
-        const std::function< void ( const CurrentImages& ) > renderFunc )
+        const camera::FrameBounds& miewportViewBounds,
+        const glm::vec3& worldCrosshairsOrigin )
 {
     const auto shaderType = view.renderMode();
     const auto metricImages = view.metricImages();
     const auto renderedImages = view.renderedImages();
 
-    if ( camera::ViewRenderMode::Image == shaderType ||
-         camera::ViewRenderMode::Checkerboard == shaderType ||
-         camera::ViewRenderMode::Quadrants == shaderType ||
-         camera::ViewRenderMode::Flashlight == shaderType )
-    {
-        CurrentImages I;
+    CurrentImages I;
 
-        if ( camera::ViewRenderMode::Image == shaderType )
-        {
-            I = getImageAndSegUidsForImageShaders( renderedImages );
-        }
-        else if ( camera::ViewRenderMode::Checkerboard == shaderType ||
-                  camera::ViewRenderMode::Quadrants == shaderType ||
-                  camera::ViewRenderMode::Flashlight == shaderType )
-        {
-            I = getImageAndSegUidsForMetricShaders( metricImages ); // guaranteed size 2
-        }
+    if ( camera::ViewRenderMode::Image == shaderType )
+    {
+        I = getImageAndSegUidsForImageShaders( renderedImages );
 
         for ( const auto& imgSegPair : I )
         {
-            renderFunc( CurrentImages{ imgSegPair } );
+            drawLandmarks( m_nvg, miewportViewBounds, worldCrosshairsOrigin,
+                           m_appData, view, CurrentImages{ imgSegPair } );
+            setupOpenGlState();
+        }
+    }
+    else if ( camera::ViewRenderMode::Checkerboard == shaderType ||
+              camera::ViewRenderMode::Quadrants == shaderType ||
+              camera::ViewRenderMode::Flashlight == shaderType )
+    {
+        I = getImageAndSegUidsForMetricShaders( metricImages ); // guaranteed size 2
+
+        for ( const auto& imgSegPair : I )
+        {
+            drawLandmarks( m_nvg, miewportViewBounds, worldCrosshairsOrigin,
+                           m_appData, view, CurrentImages{ imgSegPair } );
+            setupOpenGlState();
         }
     }
     else if ( camera::ViewRenderMode::Disabled == shaderType )
@@ -1131,21 +1172,61 @@ void Rendering::doRenderingImageLandmarks(
     else
     {
         // This function guarantees that I has size at least 2:
-        const CurrentImages I = getImageAndSegUidsForMetricShaders( metricImages );
-        renderFunc( I );
+        drawLandmarks( m_nvg, miewportViewBounds, worldCrosshairsOrigin,
+                       m_appData, view, getImageAndSegUidsForMetricShaders( metricImages ) );
+        setupOpenGlState();
     }
 }
 
-void Rendering::doRenderingImageAnnotations(
-        const View& /*view*/,
-        const std::function< void ( const CurrentImages& ) > /*renderFunc*/ )
+void Rendering::renderAllAnnotations(
+        const View& view,
+        const camera::FrameBounds& miewportViewBounds,
+        const glm::vec3& worldCrosshairsOrigin )
 {
-//    const auto shaderType = view.renderMode();
-//    const auto metricImages = view.metricImages();
-//    const auto renderedImages = view.renderedImages();
+    const auto shaderType = view.renderMode();
+    const auto metricImages = view.metricImages();
+    const auto renderedImages = view.renderedImages();
+
+    CurrentImages I;
+
+    if ( camera::ViewRenderMode::Image == shaderType )
+    {
+        I = getImageAndSegUidsForImageShaders( renderedImages );
+
+        for ( const auto& imgSegPair : I )
+        {
+            drawAnnotations( m_nvg, miewportViewBounds, worldCrosshairsOrigin,
+                             m_appData, view, CurrentImages{ imgSegPair } );
+            setupOpenGlState();
+        }
+    }
+    else if ( camera::ViewRenderMode::Checkerboard == shaderType ||
+              camera::ViewRenderMode::Quadrants == shaderType ||
+              camera::ViewRenderMode::Flashlight == shaderType )
+    {
+        I = getImageAndSegUidsForMetricShaders( metricImages ); // guaranteed size 2
+
+        for ( const auto& imgSegPair : I )
+        {
+            drawAnnotations( m_nvg, miewportViewBounds, worldCrosshairsOrigin,
+                             m_appData, view, CurrentImages{ imgSegPair } );
+            setupOpenGlState();
+        }
+    }
+    else if ( camera::ViewRenderMode::Disabled == shaderType )
+    {
+        return;
+    }
+    else
+    {
+        // This function guarantees that I has size at least 2:
+        drawAnnotations( m_nvg, miewportViewBounds, worldCrosshairsOrigin,
+                         m_appData, view, getImageAndSegUidsForMetricShaders( metricImages ) );
+        setupOpenGlState();
+    }
 }
 
-void Rendering::renderImages()
+void Rendering::renderImageData()
 {
     if ( ! m_isAppDoneLoadingImages )
     {
@@ -1153,19 +1234,10 @@ void Rendering::renderImages()
         return;
     }
 
-    auto getImage = [this] ( const std::optional<uuids::uuid>& imageUid ) -> const Image*
-    {
-        return ( imageUid ? m_appData.image( *imageUid ) : nullptr );
-    };
-
-    const glm::vec3 worldCrosshairsOrigin = m_appData.state().worldCrosshairs().worldOrigin();
-
     auto& renderData = m_appData.renderData();
 
     const bool renderLandmarksOnTop = renderData.m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
     const bool renderAnnotationsOnTop = renderData.m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
-    const bool renderInactiveImageIntersections =
-            renderData.m_globalSliceIntersectionParams.renderInactiveImageViewIntersections;
 
     for ( const auto& viewPair : m_appData.windowData().currentLayout().views() )
     {
@@ -1173,66 +1245,23 @@ void Rendering::renderImages()
 
         View& view = *( viewPair.second );
 
-        if ( ! view.updateImageSlice( m_appData, worldCrosshairsOrigin ) ) continue;
+        const glm::vec3 worldCrosshairsOffset = view.updateImageSlice(
+                    m_appData, m_appData.state().worldCrosshairs().worldOrigin() );
 
         // Bounds of the view frame in Miewport space:
         const auto miewportViewBounds = camera::computeMiewportFrameBounds(
                     view.windowClipViewport(), m_appData.windowData().viewport().getAsVec4() );
 
-        auto renderOneImage = [this, &renderData, view, &worldCrosshairsOrigin, &renderLandmarksOnTop,
-                &renderAnnotationsOnTop, &renderInactiveImageIntersections, &getImage, &miewportViewBounds]
-                ( GLShaderProgram& program, const CurrentImages& I, bool showEdges )
-        {
-            drawImageQuad( program,
-                           view.renderMode(),
-                           renderData.m_quad,
-                           view,
-                           worldCrosshairsOrigin,
-                           renderData.m_flashlightRadius,
-                           renderData.m_flashlightOverlays,
-                           I, getImage, showEdges );
-
-            if ( ! renderLandmarksOnTop )
-            {
-                drawLandmarks( m_nvg, miewportViewBounds, worldCrosshairsOrigin, m_appData, view, I );
-                setupOpenGlState();
-            }
-
-            if ( ! renderAnnotationsOnTop )
-            {
-                drawAnnotations( m_nvg, miewportViewBounds, worldCrosshairsOrigin, m_appData, view, I );
-                setupOpenGlState();
-            }
-
-            drawImageViewIntersections( m_nvg, miewportViewBounds, m_appData, view, I,
-                                        renderInactiveImageIntersections );
-            setupOpenGlState();
-        };
-
-        doRenderingAllImagePlanes( view, renderOneImage );
+        renderAllImages( view, miewportViewBounds, worldCrosshairsOffset );
 
         if ( renderLandmarksOnTop )
         {
-            auto renderLandmarksForView = [this, view, &worldCrosshairsOrigin, &miewportViewBounds]
-                    ( const CurrentImages& I )
-            {
-                drawLandmarks( m_nvg, miewportViewBounds, worldCrosshairsOrigin, m_appData, view, I );
-                setupOpenGlState();
-            };
-
-            doRenderingImageLandmarks( view, renderLandmarksForView );
+            renderAllLandmarks( view, miewportViewBounds, worldCrosshairsOffset );
         }
 
         if ( renderAnnotationsOnTop )
         {
-            auto renderAnnotationsForView = [this, view, &worldCrosshairsOrigin, &miewportViewBounds]
-                    ( const CurrentImages& I )
-            {
-                drawAnnotations( m_nvg, miewportViewBounds, worldCrosshairsOrigin, m_appData, view, I );
-                setupOpenGlState();
-            };
-
-            doRenderingImageAnnotations( view, renderAnnotationsForView );
+            renderAllAnnotations( view, miewportViewBounds, worldCrosshairsOffset );
         }
     }
 }

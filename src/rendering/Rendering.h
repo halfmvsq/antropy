@@ -24,6 +24,11 @@ class View;
 
 struct NVGcontext;
 
+namespace camera
+{
+union FrameBounds;
+}
+
 
 /**
  * @brief Encapsulates all rendering
@@ -111,22 +116,32 @@ private:
     bool createSimpleProgram( GLShaderProgram& program );
     bool createDifferenceProgram( GLShaderProgram& program );
 
-    void renderImages();
+    void renderImageData();
     void renderOverlays();
     void renderVectorOverlays();
 
-
-    void doRenderingAllImagePlanes(
+    void renderOneImage(
             const View& view,
-            const std::function< void ( GLShaderProgram&, const CurrentImages& I, bool showEdges ) > renderFunc );
+            const camera::FrameBounds& miewportViewBounds,
+            const glm::vec3& worldCrosshairsOrigin,
+            GLShaderProgram& program,
+            const CurrentImages& I,
+            bool showEdges );
 
-    void doRenderingImageLandmarks(
+    void renderAllImages(
             const View& view,
-            const std::function< void ( const CurrentImages& I ) > renderFunc );
+            const camera::FrameBounds& miewportViewBounds,
+            const glm::vec3& worldCrosshairsOrigin );
 
-    void doRenderingImageAnnotations(
+    void renderAllLandmarks(
             const View& view,
-            const std::function< void ( const CurrentImages& I ) > renderFunc );
+            const camera::FrameBounds& miewportViewBounds,
+            const glm::vec3& worldCrosshairsOrigin );
+
+    void renderAllAnnotations(
+            const View& view,
+            const camera::FrameBounds& miewportViewBounds,
+            const glm::vec3& worldCrosshairsOrigin );
 
     // Bind/unbind images, segmentations, color maps, and label tables
     std::list< std::reference_wrapper<GLTexture> > bindImageTextures( const ImgSegPair& P );
