@@ -11,6 +11,7 @@
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
+#include "logic/states/FsmList.hpp"
 
 #include "rendering/ImageDrawing.h"
 #include "rendering/TextureSetup.h"
@@ -921,7 +922,7 @@ void Rendering::renderOneImage(
         setupOpenGlState();
     }
 
-    drawImageViewIntersections( m_nvg, miewportViewBounds, m_appData, view, I,
+    drawImageViewIntersections( m_nvg, miewportViewBounds, worldCrosshairs, m_appData, view, I,
                                 renderData.m_globalSliceIntersectionParams.renderInactiveImageViewIntersections );
     setupOpenGlState();
 }
@@ -1245,6 +1246,9 @@ void Rendering::renderImageData()
 
         View& view = *( viewPair.second );
 
+        ////////////////////////////////// @todo We really need not pass around this crosshairs position,
+        /// since the view is already passed around!!!!
+
         const glm::vec3 worldCrosshairsOffset = view.updateImageSlice(
                     m_appData, m_appData.state().worldCrosshairs().worldOrigin() );
 
@@ -1317,9 +1321,6 @@ void Rendering::renderVectorOverlays()
             }
         }
 
-        const auto activeViewUid = windowData.activeViewUid();
-        const bool annotating = ( MouseMode::Annotate == m_appData.state().mouseMode() );
-
         for ( const auto& viewUid : windowData.currentViewUids() )
         {
             const View* view = windowData.getCurrentView( viewUid );
@@ -1341,8 +1342,17 @@ void Rendering::renderVectorOverlays()
                 drawAnatomicalLabels( m_nvg, miewportViewBounds, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
             }
 
-            const bool drawActiveOutline = ( annotating && activeViewUid && ( *activeViewUid == viewUid ) );
-            drawViewOutline( m_nvg, miewportViewBounds, drawActiveOutline );
+            bool viewIsSelectedForAnnotating = false;
+
+            if ( const auto state = state::AnnotationStateMachine::current_state_ptr )
+            {
+                if ( const auto selectedViewUid = state->selectedViewUid() )
+                {
+                    viewIsSelectedForAnnotating = ( viewUid == *selectedViewUid );
+                }
+            }
+
+            drawViewOutline( m_nvg, miewportViewBounds, viewIsSelectedForAnnotating );
         }
 
         drawWindowOutline( m_nvg, windowVP );

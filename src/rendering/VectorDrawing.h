@@ -72,6 +72,7 @@ void drawViewOutline(
 void drawImageViewIntersections(
         NVGcontext* nvg,
         const camera::FrameBounds& miewportViewBounds,
+        const glm::vec3& worldCrosshairs,
         AppData& appData,
         const View& view,
         const ImageSegPairs& I,

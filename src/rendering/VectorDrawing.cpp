@@ -176,6 +176,7 @@ void drawViewOutline(
 void drawImageViewIntersections(
         NVGcontext* nvg,
         const camera::FrameBounds& miewportViewBounds,
+        const glm::vec3& worldCrosshairsOrigin,
         AppData& appData,
         const View& view,
         const ImageSegPairs& I,
@@ -183,6 +184,10 @@ void drawImageViewIntersections(
 {
     // Line segment stipple length in pixels
     static constexpr float sk_stippleLen = 16.0f;
+
+    // These are the crosshairs in which the origin have been offset according to the view:
+    CoordinateFrame crosshairs = appData.state().worldCrosshairs();
+    crosshairs.setWorldOrigin( worldCrosshairsOrigin );
 
     nvgLineCap( nvg, NVG_BUTT );
     nvgLineJoin( nvg, NVG_MITER );
@@ -205,9 +210,7 @@ void drawImageViewIntersections(
 
         if ( ! isActive && ! renderInactiveImageIntersections ) continue;
 
-        auto worldIntersections = view.computeImageSliceIntersection(
-                    img, appData.state().worldCrosshairs() );
-
+        auto worldIntersections = view.computeImageSliceIntersection( img, crosshairs );
         if ( ! worldIntersections ) continue;
 
         // The last point is the centroid of the intersection. Ignore the centroid and replace it with a

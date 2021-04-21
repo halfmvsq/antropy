@@ -145,7 +145,9 @@ void AntropyApp::init()
     state::fsm_list::start();
 
     m_rendering.init();
-    m_glfw.init(); // Trigger initial windowing callbacks
+
+    // Trigger initial windowing callbacks
+    m_glfw.init();
 
     spdlog::debug( "Done initializing application" );
 }

@@ -9,11 +9,14 @@
 namespace state
 {
 
-using fsm_list = tinyfsm::FsmList< AnnotationStateMachine >;
+//using fsm_list = tinyfsm::FsmList< AnnotationStateMachine >;
+using fsm_list = AnnotationStateMachine;
 
 /**
  * @brief Dispatch event to AnnotationStateMachine.
- * Can list other state machines in the template.
+ *
+ * @note We can list other state machines in the template in order to
+ * dispatch events to them.
  */
 template<typename E>
 void send_event( const E& event )

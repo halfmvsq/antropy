@@ -55,12 +55,25 @@ void ViewSelectedState::entry()
 
     if ( m_selectedViewUid )
     {
-        spdlog::trace( "Selected view is {}", *m_selectedViewUid );
+        spdlog::trace( "Selected view {} for annotating", *m_selectedViewUid );
     }
     else
     {
         spdlog::error( "Entered ViewSelectedState without a selected view" );
+        send_event( TurnOffAnnotationMode() );
     }
+}
+
+void ViewSelectedState::exit()
+{
+    spdlog::trace( "ViewSelectedState::exit()" );
+    m_selectedViewUid = std::nullopt;
+}
+
+void ViewSelectedState::react( const SelectViewEvent& e )
+{
+    spdlog::trace( "ViewSelectedState::react( const SelectViewEvent& e )" );
+    m_selectedViewUid = e.selectedViewUid;
 }
 
 void ViewSelectedState::react( const TurnOffAnnotationMode& )
