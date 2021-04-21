@@ -108,11 +108,11 @@ void renderToolbar(
     {
         windowFlags |= ImGuiWindowFlags_NoMove;
 
-        const ImVec2 windowPos = ImVec2( ( corner & 1 ) ? io.DisplaySize.x - sk_pad : sk_pad,
-                                         ( corner & 2 ) ? io.DisplaySize.y - sk_pad : sk_pad );
+        const ImVec2 windowPos( ( corner & 1 ) ? io.DisplaySize.x - sk_pad : sk_pad,
+                                ( corner & 2 ) ? io.DisplaySize.y - sk_pad : sk_pad );
 
-        const ImVec2 windowPosPivot = ImVec2( ( corner & 1 ) ? 1.0f : 0.0f,
-                                              ( corner & 2 ) ? 1.0f : 0.0f );
+        const ImVec2 windowPosPivot( ( corner & 1 ) ? 1.0f : 0.0f,
+                                     ( corner & 2 ) ? 1.0f : 0.0f );
 
         ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
     }

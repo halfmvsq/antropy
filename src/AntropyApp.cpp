@@ -10,6 +10,7 @@
 #include "logic/annotation/LandmarkGroup.h"
 #include "logic/camera/MathUtility.h"
 #include "logic/interaction/events/MouseEvent.h"
+#include "logic/states/FsmList.hpp"
 //#include "logic/ipc/IPCMessage.h"
 
 #include <glm/glm.hpp>
@@ -139,6 +140,9 @@ AntropyApp::~AntropyApp()
 void AntropyApp::init()
 {
     spdlog::debug( "Begin initializing application" );
+
+    // Start annotation state machine
+    state::fsm_list::start();
 
     m_rendering.init();
     m_glfw.init(); // Trigger initial windowing callbacks

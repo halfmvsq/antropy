@@ -10,6 +10,7 @@
 #include "logic/annotation/Polygon.tpp"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
+#include "logic/states/FsmList.hpp"
 
 #include "rendering/Rendering.h"
 
@@ -1593,7 +1594,7 @@ CallbackHandler::getViewHit(
         const glm::vec2& windowPixelLastPos,
         const glm::vec2& windowPixelCurrPos,
         bool requireViewToBeActive,
-        const std::optional<glm::vec2> windowPixelStartPos )
+        const std::optional<glm::vec2>& windowPixelStartPos )
 {
     const bool hitBasedOnStartPos = windowPixelStartPos.has_value();
 
@@ -1620,6 +1621,12 @@ CallbackHandler::getViewHit(
         // Disabled views can't get hit
         return std::nullopt;
     }
+
+    // Send event to the state machine that a view was selected
+    state::SelectViewEvent selectView;
+    selectView.selectedViewUid = *viewUid;
+    send_event( selectView );
+
 
     ViewHitData hitData( *view, *viewUid );
 

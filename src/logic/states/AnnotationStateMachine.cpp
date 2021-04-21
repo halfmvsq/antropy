@@ -1,12 +1,19 @@
 #include "logic/states/AnnotationStateMachine.h"
+#include "logic/states/FsmList.hpp"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
 
+namespace state
+{
+
+std::optional<uuids::uuid> AnnotationStateMachine::m_selectedViewUid = std::nullopt;
+
+
 void AnnotationStateMachine::react( const tinyfsm::Event& )
 {
-    spdlog::warn( "Unhandled event sent to AnnotationViewSelectionStateMachine" );
+    spdlog::warn( "Unhandled event sent to AnnotationStateMachine" );
 }
 
 
@@ -17,23 +24,26 @@ void AnnotationOffState::entry()
 
 void AnnotationOffState::react( const TurnOnAnnotationMode& )
 {
-    transit<ViewSelectionState>();
+    spdlog::trace( "AnnotationOffState::react( const TurnOnAnnotationMode& )::entry()" );
+    transit<ViewBeingSelectedState>();
 }
 
 
-void ViewSelectionState::entry()
+void ViewBeingSelectedState::entry()
 {
-    spdlog::trace( "AnnotationOn_viewIsNotSelected::entry()" );
+    spdlog::trace( "ViewBeingSelectedState::entry()" );
 }
 
-void ViewSelectionState::react( const SelectViewEvent& e )
+void ViewBeingSelectedState::react( const SelectViewEvent& e )
 {
+    spdlog::trace( "ViewBeingSelectedState::react( const SelectViewEvent& e )" );
     m_selectedViewUid = e.selectedViewUid;
     transit<ViewSelectedState>();
 }
 
-void ViewSelectionState::react( const TurnOffAnnotationMode& )
+void ViewBeingSelectedState::react( const TurnOffAnnotationMode& )
 {
+    spdlog::trace( "ViewBeingSelectedState::react( const TurnOffAnnotationMode& )" );
     m_selectedViewUid = std::nullopt;
     transit<AnnotationOffState>();
 }
@@ -41,7 +51,7 @@ void ViewSelectionState::react( const TurnOffAnnotationMode& )
 
 void ViewSelectedState::entry()
 {
-    spdlog::trace( "AnnotationOn_viewIsSelected::entry()" );
+    spdlog::trace( "ViewSelectedState::entry()" );
 
     if ( m_selectedViewUid )
     {
@@ -49,15 +59,19 @@ void ViewSelectedState::entry()
     }
     else
     {
-        //ERRROR
+        spdlog::error( "Entered ViewSelectedState without a selected view" );
     }
 }
 
 void ViewSelectedState::react( const TurnOffAnnotationMode& )
 {
+    spdlog::trace( "ViewSelectedState::react( const TurnOffAnnotationMode& )" );
     m_selectedViewUid = std::nullopt;
     transit<AnnotationOffState>();
 }
 
+} // namespace state
+
+
 /// Initial state definition
-FSM_INITIAL_STATE( AnnotationStateMachine, AnnotationOffState )
+FSM_INITIAL_STATE( state::AnnotationStateMachine, state::AnnotationOffState )

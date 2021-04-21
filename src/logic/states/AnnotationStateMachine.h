@@ -2,11 +2,12 @@
 #define VIEW_SELECTION_STATE_MACHINE_H
 
 #include <tinyfsm.hpp>
-
 #include <uuid.h>
-
 #include <optional>
 
+
+namespace state
+{
 
 /*** Begin event declarations ***/
 
@@ -26,19 +27,17 @@ struct TurnOffAnnotationMode : public tinyfsm::Event {};
 /*** End event declarations ***/
 
 
+
 /**
  * @brief State machine for annotation view selection
  */
-class AnnotationStateMachine :
-        public tinyfsm::Fsm<AnnotationStateMachine>
+class AnnotationStateMachine : public tinyfsm::Fsm<AnnotationStateMachine>
 {
     friend class tinyfsm::Fsm<AnnotationStateMachine>;
 
 public:
 
     AnnotationStateMachine() = default;
-
-    /// @note tinyfsm::Fsm is missing virtual destructor
     virtual ~AnnotationStateMachine() = default;
 
 protected:
@@ -46,22 +45,24 @@ protected:
     /// Default reaction for unhandled events
     void react( const tinyfsm::Event& );
 
+    /// Default reactions for handled events
     virtual void react( const SelectViewEvent& ) {}
     virtual void react( const TurnOnAnnotationMode& ) {}
     virtual void react( const TurnOffAnnotationMode& ) {}
 
-    /// Entry actions for states
+    /// Default action when entering a state
     virtual void entry() {}
 
-    /// Exit actions for states
+    /// Default action when exiting a state
     virtual void exit() {}
 
-    std::optional<uuids::uuid> m_selectedViewUid = std::nullopt;
+    /// Selected view UID
+    static std::optional<uuids::uuid> m_selectedViewUid;
 };
 
 
 
-/*** Begin states of the machine ***/
+/*** Begin state declarations ***/
 
 /// @brief State where the user has turned annotating off
 class AnnotationOffState : public AnnotationStateMachine
@@ -72,7 +73,7 @@ class AnnotationOffState : public AnnotationStateMachine
 
 /// @brief State where the user has turned annotating on,
 /// but no view has yet been selected in which to annotate
-class ViewSelectionState : public AnnotationStateMachine
+class ViewBeingSelectedState : public AnnotationStateMachine
 {
     void entry() override;
     void react( const SelectViewEvent& ) override;
@@ -87,6 +88,8 @@ class ViewSelectedState : public AnnotationStateMachine
     void react( const TurnOffAnnotationMode& ) override;
 };
 
-/*** End states of the machine ***/
+/*** End state declarations ***/
+
+} // namespace state
 
 #endif // VIEW_SELECTION_STATE_MACHINE_H

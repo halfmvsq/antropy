@@ -1,5 +1,6 @@
 #include "logic/app/State.h"
 //#include "logic/ipc/IPCMessage.h"
+#include "logic/states/FsmList.hpp"
 
 
 AppState::AppState()
@@ -40,7 +41,22 @@ const CoordinateFrame& AppState::worldCrosshairs() const
     return m_worldCrosshairs;
 }
 
-void AppState::setMouseMode( MouseMode mode ) { m_mouseMode = mode; }
+void AppState::setMouseMode( MouseMode mode )
+{
+    const MouseMode oldMode = m_mouseMode;
+
+    m_mouseMode = mode;
+
+    if ( MouseMode::Annotate == oldMode && MouseMode::Annotate != mode )
+    {
+        send_event( state::TurnOffAnnotationMode() );
+    }
+    else if ( MouseMode::Annotate != oldMode && MouseMode::Annotate == mode )
+    {
+        send_event( state::TurnOnAnnotationMode() );
+    }
+}
+
 MouseMode AppState::mouseMode() const { return m_mouseMode; }
 
 void AppState::setButtonState( ButtonState state ) { m_buttonState = state; }

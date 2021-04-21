@@ -333,7 +333,7 @@ private:
             const glm::vec2& windowPixelLastPos,
             const glm::vec2& windowPixelCurrPos,
             bool requireViewToBeActive,
-            const std::optional<glm::vec2> windowPixelStartPos = std::nullopt );
+            const std::optional<glm::vec2>& windowPixelStartPos = std::nullopt );
 
 };
 
