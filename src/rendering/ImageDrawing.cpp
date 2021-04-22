@@ -78,7 +78,6 @@ void drawImageQuad(
             const glm::vec3 texSamplingDirX = glm::dot( glm::abs( pixelDirX ), invDims ) * pixelDirX;
             const glm::vec3 texSamplingDirY = glm::dot( glm::abs( pixelDirY ), invDims ) * pixelDirY;
 
-            program.setUniform( "texSampleSize", invDims );
             program.setUniform( "texSamplingDirX", texSamplingDirX );
             program.setUniform( "texSamplingDirY", texSamplingDirY );
         }
@@ -112,12 +111,10 @@ void drawImageQuad(
         const glm::vec3 pixelDirY = glm::normalize( pY - pO );
 
         const glm::vec3 img0_invDims = img0->transformations().invPixelDimensions();
-        const glm::vec3 img1_invDims = img0->transformations().invPixelDimensions();
 
         const glm::vec3 tex0SamplingDirX = glm::dot( glm::abs( pixelDirX ), img0_invDims ) * pixelDirX;
         const glm::vec3 tex0SamplingDirY = glm::dot( glm::abs( pixelDirY ), img0_invDims ) * pixelDirY;
 
-        program.setUniform( "texSampleSize", std::vector<glm::vec2>{ img0_invDims, img1_invDims } );
         program.setUniform( "tex0SamplingDirX", tex0SamplingDirX );
         program.setUniform( "tex0SamplingDirY", tex0SamplingDirY );
     }

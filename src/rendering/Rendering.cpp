@@ -1567,7 +1567,6 @@ bool Rendering::createEdgeProgram( GLShaderProgram& program )
         fsUniforms.insertUniform( "colormapEdges", UniformType::Bool, false );
         fsUniforms.insertUniform( "edgeColor", UniformType::Vec4, sk_zeroVec4 );
 
-        fsUniforms.insertUniform( "texSampleSize", UniformType::Vec3, sk_zeroVec3 );
         fsUniforms.insertUniform( "texSamplingDirX", UniformType::Vec3, sk_zeroVec3 );
         fsUniforms.insertUniform( "texSamplingDirY", UniformType::Vec3, sk_zeroVec3 );
 
@@ -1787,7 +1786,6 @@ bool Rendering::createCrossCorrelationProgram( GLShaderProgram& program )
         fsUniforms.insertUniform( "metricMasking", UniformType::Bool, false );
 
         fsUniforms.insertUniform( "texture1_T_texture0", UniformType::Mat4, sk_identMat4 );
-        fsUniforms.insertUniform( "texSampleSize", UniformType::Vec3Vector, Vec3Vector{ sk_zeroVec3, sk_zeroVec3 } );
         fsUniforms.insertUniform( "tex0SamplingDirX", UniformType::Vec3, sk_zeroVec3 );
         fsUniforms.insertUniform( "tex0SamplingDirY", UniformType::Vec3, sk_zeroVec3 );
 

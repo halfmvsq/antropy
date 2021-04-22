@@ -57,7 +57,6 @@ uniform bool colormapEdges; // Apply colormap to edges
 uniform vec4 edgeColor; // RGBA, pre-multiplied by alpha
 //uniform bool useFreiChen;
 
-uniform vec3 texSampleSize;
 uniform vec3 texSamplingDirX;
 uniform vec3 texSamplingDirY;
 
@@ -121,11 +120,11 @@ void main()
     if ( ! doRender ) discard;
 
     // Foreground masks, based on whether texture coordinates are in range [0.0, 1.0]^3:
-    bool imgMask = ! ( any( lessThan( fs_in.ImgTexCoords, MIN_IMAGE_TEXCOORD + texSampleSize ) ) ||
-                       any( greaterThan( fs_in.ImgTexCoords, MAX_IMAGE_TEXCOORD - texSampleSize ) ) );
+    bool imgMask = ! ( any( lessThan( fs_in.ImgTexCoords, MIN_IMAGE_TEXCOORD ) ) ||
+                       any( greaterThan( fs_in.ImgTexCoords, MAX_IMAGE_TEXCOORD ) ) );
 
-    bool segMask = ! ( any( lessThan( fs_in.SegTexCoords, MIN_IMAGE_TEXCOORD + texSampleSize ) ) ||
-                       any( greaterThan( fs_in.SegTexCoords, MAX_IMAGE_TEXCOORD - texSampleSize ) ) );
+    bool segMask = ! ( any( lessThan( fs_in.SegTexCoords, MIN_IMAGE_TEXCOORD ) ) ||
+                       any( greaterThan( fs_in.SegTexCoords, MAX_IMAGE_TEXCOORD ) ) );
 
     // Image values in a 3x3 neighborhood:
     mat3 V;
