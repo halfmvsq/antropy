@@ -30,7 +30,7 @@ The following libraries and depdencies are brought in as Git submodules to the A
 * GLM (https://github.com/g-truc/glm.git)
 * imgui-filebrowser (https://github.com/AirGuanZ/imgui-filebrowser.git)
 * imGuIZMO.quat (https://github.com/BrutPitt/imGuIZMO.quat.git)
-* "JSON for Modern C++" (https://github.com/nlohmann/json.git)
+* JSON for Modern C++ (https://github.com/nlohmann/json.git)
 * NanoVG (https://github.com/memononen/nanovg.git)
 * spdlog (https://github.com/gabime/spdlog.git)
 * stduuid (https://github.com/mariusbancila/stduuid.git)

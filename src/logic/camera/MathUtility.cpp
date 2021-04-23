@@ -207,4 +207,21 @@ glm::mat3 computeSubjectAxesInCamera(
     return glm::inverseTranspose( camera_T_world_rotation * world_T_subject_rotation );
 }
 
+
+std::pair< glm::vec4, glm::vec3 >
+computeSubjectPlaneEquation(
+        const glm::mat4 subject_T_world,
+        const glm::vec3& worldPlaneNormal,
+        const glm::vec3& worldPlanePoint )
+{
+    const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
+    const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * glm::vec4{ worldPlaneNormal, 0.0f } };
+
+    glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldPlanePoint, 1.0f };
+    subjectPlanePoint /= subjectPlanePoint.w;
+
+    return { math::makePlane( subjectPlaneNormal, glm::vec3{ subjectPlanePoint } ),
+                glm::vec3{ subjectPlanePoint } };
+}
+
 } // namespace math

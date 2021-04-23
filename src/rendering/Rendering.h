@@ -123,7 +123,7 @@ private:
     void renderOneImage(
             const View& view,
             const camera::FrameBounds& miewportViewBounds,
-            const glm::vec3& worldCrosshairsOrigin,
+            const glm::vec3& worldOffsetXhairs,
             GLShaderProgram& program,
             const CurrentImages& I,
             bool showEdges );
@@ -131,17 +131,17 @@ private:
     void renderAllImages(
             const View& view,
             const camera::FrameBounds& miewportViewBounds,
-            const glm::vec3& worldCrosshairsOrigin );
+            const glm::vec3& worldOffsetXhairs );
 
     void renderAllLandmarks(
             const View& view,
             const camera::FrameBounds& miewportViewBounds,
-            const glm::vec3& worldCrosshairsOrigin );
+            const glm::vec3& worldOffsetXhairs );
 
     void renderAllAnnotations(
             const View& view,
             const camera::FrameBounds& miewportViewBounds,
-            const glm::vec3& worldCrosshairsOrigin );
+            const glm::vec3& worldOffsetXhairs );
 
     // Bind/unbind images, segmentations, color maps, and label tables
     std::list< std::reference_wrapper<GLTexture> > bindImageTextures( const ImgSegPair& P );

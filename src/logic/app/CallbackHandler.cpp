@@ -269,6 +269,7 @@ void CallbackHandler::recenterViews(
 
         if ( const Image* refImg = m_appData.refImage() )
         {
+            /// @todo Put in one place
             worldPos = data::roundPointToNearestImageVoxelCenter( *refImg, worldPos );
         }
 
@@ -350,6 +351,7 @@ void CallbackHandler::doCrosshairsScroll(
     {
         if ( const Image* refImg = m_appData.refImage() )
         {
+            /// @todo Put in one place
             worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter(
                         *refImg, worldPos ), 1.0f };
         }
@@ -470,46 +472,40 @@ void CallbackHandler::doAnnotate(
         const glm::vec2& windowPrevPos,
         const glm::vec2& windowCurrPos )
 {
+    if ( ASM::is_in_state<state::AnnotationOffState>() ) return;
+    if ( ! ASM::current_state_ptr ) return;
+
+    const auto selectedViewUid = ASM::current_state_ptr->selectedViewUid();
+    if ( ! selectedViewUid ) return;
+
     auto hit = getViewHit( windowPrevPos, windowCurrPos, true );
     if ( ! hit ) return;
+
+    // If the user is not in the view selected for annotating, then return
+    if ( *selectedViewUid != hit->viewUid ) return;
+
+    // Ok: the pointer is in the view bounds and we're good to go. Make this the active view:
+    m_appData.windowData().setActiveViewUid( hit->viewUid );
 
     // Annotate on the active image
     const auto activeImageUid = m_appData.activeImageUid();
     const Image* activeImage = ( activeImageUid ? m_appData.image( *activeImageUid ) : nullptr );
     if ( ! activeImage ) return;
 
-    const auto activeViewUid = m_appData.windowData().activeViewUid();
+    // Compute the plane equation in Subjet space. Use the offset World position,
+    // so that the user can annotate in any offset view of a lightbox layout.
+    glm::vec4 subjectPlaneEquation;
+    glm::vec3 subjectPlanePoint;
 
-    // Ignore if actively annotating and there is an active view not equal to this view:
-    /// @todo Create AnnotatingState: { Nothing, PickingPoint, MovingPoint, SelectingPoint }
-    if ( m_appData.state().annotating() && activeViewUid )
-    {
-        if ( activeViewUid != hit->viewUid ) return;
-    }
-
-    // The pointer is in the view bounds! Make this the active view:
-    m_appData.windowData().setActiveViewUid( hit->viewUid );
-
-    // Apply this view's offset from the crosshairs position in order to calculate the view plane position.
-    // The offset is calculated based on the slice scroll distance of the reference image.
-
-    // Compute the equation of the view plane in the space of the active image Subject:
-    /// @todo Pull this out into a MathHelper function
-    const glm::mat4& subject_T_world = activeImage->transformations().subject_T_worldDef();
-    const glm::mat4 subject_T_world_IT = glm::inverseTranspose( subject_T_world );
-
-    const glm::vec4 worldPlaneNormal{ -hit->worldFrontAxis, 0.0f };
-    const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldPlaneNormal };
-
-    // Use the offset position, so that the user can annotate in any offset view of a lightbox layout:
-    glm::vec4 subjectPlanePoint = subject_T_world * hit->worldCurrPos_offsetApplied;
-    subjectPlanePoint /= subjectPlanePoint.w;
-
-    const glm::vec4 subjectPlaneEquation = math::makePlane(
-                subjectPlaneNormal, glm::vec3{ subjectPlanePoint } );
+    std::tie( subjectPlaneEquation, subjectPlanePoint ) =
+            math::computeSubjectPlaneEquation(
+                activeImage->transformations().subject_T_worldDef(),
+                -hit->worldFrontAxis,
+                glm::vec3{ hit->worldCurrPos_offsetApplied } );
 
     // Use the image slice scroll distance as the threshold for plane distances:
-    const float planeDistanceThresh = 0.5f * data::sliceScrollDistance( hit->worldFrontAxis, *activeImage );
+    const float planeDistanceThresh = 0.5f * data::sliceScrollDistance(
+                hit->worldFrontAxis, *activeImage );
 
     /// @todo Create AnnotationGroup, which consists of all annotations for an image that fall
     /// on one of the slices.
@@ -1688,6 +1684,7 @@ CallbackHandler::getViewHit(
     {
         if ( const Image* refImg = m_appData.refImage() )
         {
+            /// @todo Put in one place
             hitData.worldLastPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter(
                         *refImg, hitData.worldLastPos ), 1.0f };
 

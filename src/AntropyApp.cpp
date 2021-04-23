@@ -1150,6 +1150,9 @@ void AntropyApp::setCallbacks()
                 const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
                 if ( ! image ) return;
 
+                /// @todo Put this in CallbackHandler as separate function, because it is used frequently
+                /// @todo All logic related to rounding crosshairs positions should be in one place!
+
                 const glm::vec4 worldPos = image->transformations().worldDef_T_pixel() * glm::vec4{ voxelPos, 1.0f };
                 const glm::vec3 worldPosRounded = data::roundPointToNearestImageVoxelCenter(
                             *image, glm::vec3{ worldPos / worldPos.w } );

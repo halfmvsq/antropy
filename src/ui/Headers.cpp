@@ -6,6 +6,7 @@
 #include "ui/Popups.h"
 #include "ui/Widgets.h"
 
+#include "common/DataHelper.h" // data::roundPointToNearestImageVoxelCenter
 #include "common/MathFuncs.h"
 
 #include "image/Image.h"
@@ -48,10 +49,10 @@ static const ImVec4 sk_blackText( 0, 0, 0, 1 );
 /// Size of small toolbar buttons (pixels)
 static const ImVec2 sk_smallToolbarButtonSize( 24, 24 );
 
-static const std::string sk_referenceAndActiveImageMessage( "This is the reference and active image." );
-static const std::string sk_referenceImageMessage( "This is the reference image." );
-static const std::string sk_activeImageMessage( "This is the active image." );
-static const std::string sk_nonActiveImageMessage( "This is not the active image." );
+static const std::string sk_referenceAndActiveImageMessage( "This is the reference and active image" );
+static const std::string sk_referenceImageMessage( "This is the reference image" );
+static const std::string sk_activeImageMessage( "This is the active image" );
+static const std::string sk_nonActiveImageMessage( "This is not the active image" );
 
 static const ImGuiColorEditFlags sk_colorEditFlags =
         ImGuiColorEditFlags_NoInputs |
@@ -261,7 +262,6 @@ void renderImageHeaderInformation(
         // ImPlot https://github.com/epezent/implot
         // others https://github.com/ocornut/imgui/wiki/Useful-Widgets
 
-        ;
 
 //        auto f = [&imgSettings] (int idx) -> f
 //        static float arr[] = { 0.6f, 0.1f, 1.0f, 0.5f, 0.92f, 0.1f, 0.2f };
@@ -396,6 +396,32 @@ void renderImageHeader(
     ImGui::SameLine(); helpMarker( "Set the image display name and border color" );
 
 
+    if ( ImGui::Button( ICON_FK_HAND_O_UP, sk_smallToolbarButtonSize ) )
+    {
+        glm::vec3 worldPos{ imgTx.worldDef_T_subject() *
+                glm::vec4{ imgHeader.subjectBBoxCenter(), 1.0f } };
+
+        /// @todo Put this in CallbackHandler as separate function, because it is used frequently
+        if ( appData.renderData().m_snapCrosshairsToReferenceVoxels )
+        {
+            if ( const Image* refImg = appData.refImage() )
+            {
+                worldPos = data::roundPointToNearestImageVoxelCenter( *refImg, worldPos );
+            }
+        }
+
+        appData.state().setWorldCrosshairsPos( worldPos );
+    }
+
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Move crosshairs to the center of the image" );
+    }
+
+    ImGui::SameLine();
+    ImGui::Text( "Go to image center" );
+
+
     if ( ! isActiveImage )
     {
         if ( ImGui::Button( ICON_FK_TOGGLE_OFF ) )
@@ -405,7 +431,7 @@ void renderImageHeader(
 
         if ( ImGui::IsItemHovered() )
         {
-            ImGui::SetTooltip( "Make this the active image." );
+            ImGui::SetTooltip( "Make this the active image" );
         }
     }
     else
@@ -416,7 +442,7 @@ void renderImageHeader(
 
         if ( ImGui::IsItemHovered() )
         {
-            ImGui::SetTooltip( "This is the active image." );
+            ImGui::SetTooltip( "This is the active image" );
         }
     }
 
@@ -461,7 +487,7 @@ void renderImageHeader(
             }
 
             ImGui::SameLine();
-            ImGui::Text( "Transformation is locked." );
+            ImGui::Text( "Transformation is locked" );
         }
         else
         {
@@ -471,7 +497,7 @@ void renderImageHeader(
             }
 
             ImGui::SameLine();
-            ImGui::Text( "Transformation is unlocked." );
+            ImGui::Text( "Transformation is unlocked" );
         }
     }
 
@@ -1226,7 +1252,7 @@ void renderSegmentationHeader(
         }
         if ( ImGui::IsItemHovered() )
         {
-            ImGui::SetTooltip( "Make this the active image." );
+            ImGui::SetTooltip( "Make this the active image" );
         }
     }
     else
@@ -1262,7 +1288,7 @@ void renderSegmentationHeader(
     const auto segUids = appData.imageToSegUids( imageUid );
     if ( segUids.empty() )
     {
-        ImGui::Text( "This image has no segmentation." );
+        ImGui::Text( "This image has no segmentation" );
         spdlog::error( "Image {} has no segmentations", imageUid );
         return;
     }

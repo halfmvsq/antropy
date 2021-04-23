@@ -46,9 +46,6 @@ public:
     void setAnimating( bool set );
     bool animating() const;
 
-    void setAnnotating( bool set );
-    bool annotating() const;
-
 
 private:
 
@@ -60,7 +57,6 @@ private:
     ImageSelection m_recenteringMode; //!< Image selection to use when recentering views and crosshairs
 
     bool m_animating; //!< Is the application currently animating something?
-    bool m_annotating; //!< Is the user currently annotating?
 
     CoordinateFrame m_worldCrosshairs; //!< Crosshairs coordinate frame, defined in World space
     std::optional< glm::vec3 > m_worldRotationCenter; //!< Rotation center position, defined in World space

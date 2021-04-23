@@ -5,6 +5,7 @@
 
 #include "logic/camera/CameraHelpers.h"
 #include "logic/interaction/events/ButtonState.h"
+#include "logic/states/FsmList.hpp"
 
 #include <glm/glm.hpp>
 #include <spdlog/spdlog.h>
@@ -394,7 +395,8 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     case MouseMode::Annotate:
     {
         // Disable scrolling while annotating
-        if ( app->appState().annotating() )
+        if ( ASM::current_state_ptr &&
+             ASM::current_state_ptr->selectedViewUid() )
         {
             break;
         }

@@ -69,6 +69,8 @@ protected:
 
 /*** Begin state declarations ***/
 
+/// @todo Create AnnotatingState: { Nothing, PickingPoint, MovingPoint, SelectingPoint }
+
 /**
  * @brief State where the user has turned annotating off
  */
@@ -107,5 +109,7 @@ class ViewSelectedState : public AnnotationStateMachine
 /*** End state declarations ***/
 
 } // namespace state
+
+using ASM = state::AnnotationStateMachine;
 
 #endif // VIEW_SELECTION_STATE_MACHINE_H

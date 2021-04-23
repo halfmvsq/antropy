@@ -714,6 +714,19 @@ glm::mat3 computeSubjectAxesInCamera(
         const glm::mat3& camera_T_world_rotation,
         const glm::mat3& world_T_subject_rotation );
 
+
+/**
+ * @brief Compute the equation of the view plane in Subject space
+ * @param subject_T_world
+ * @param worldPlaneNormal
+ * @param worldPlanePoint
+ * @return
+ */
+std::pair< glm::vec4, glm::vec3 > computeSubjectPlaneEquation(
+        const glm::mat4 subject_T_world,
+        const glm::vec3& worldPlaneNormal,
+        const glm::vec3& worldPlanePoint );
+
 } // namespace math
 
 #endif // MATH_UTILITY_H

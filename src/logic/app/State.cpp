@@ -9,7 +9,6 @@ AppState::AppState()
       m_buttonState(),
       m_recenteringMode( ImageSelection::AllLoadedImages ),
       m_animating( false ),
-      m_annotating( false ),
       m_worldCrosshairs(),
       m_worldRotationCenter( std::nullopt )
       //m_ipcHandler()
@@ -67,9 +66,6 @@ ImageSelection AppState::recenteringMode() const { return m_recenteringMode; }
 
 void AppState::setAnimating( bool set ) { m_animating = set; }
 bool AppState::animating() const { return m_animating; }
-
-void AppState::setAnnotating( bool set ) { m_annotating = set; }
-bool AppState::annotating() const { return m_annotating; }
 
 
 /*
