@@ -589,7 +589,7 @@ glm::vec3 worldTranslationPerpendicularToWorldAxis(
 }
 
 
-glm::vec2 windowNdc2d_T_windowPixels(
+glm::vec2 windowNdc_T_window(
         const Viewport& windowViewport,
         const glm::vec2& windowPixelPos )
 {
@@ -895,7 +895,7 @@ glm::vec4 world_T_view( const Viewport& viewport, const camera::Camera& camera,
                         const glm::vec2& viewPos, float ndcZ )
 {
     /// @note Maybe replace ndcZ with focal distance in clip space?
-    const glm::vec4 clipPos{ windowNdc2d_T_windowPixels( viewport, viewPos ), ndcZ, 1.0f };
+    const glm::vec4 clipPos{ windowNdc_T_window( viewport, viewPos ), ndcZ, 1.0f };
     const glm::vec4 worldPos = camera.world_T_camera() * camera.camera_T_clip() * clipPos;
     return worldPos / worldPos.w;
 }

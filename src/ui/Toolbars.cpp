@@ -855,10 +855,22 @@ void renderSegToolbar(
 
 
         if ( isHoriz ) ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_BULLSEYE, sk_toolbarButtonSize) )
+        {
+            ImGui::OpenPopup( "brushSizePopup" );
+        }
+
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Brush options" );
+        }
+
+
+        if ( isHoriz ) ImGui::SameLine();
         ImGui::Dummy( buttonSpace );
 
         static constexpr uint32_t minBrushVox = 1;
-        static constexpr uint32_t maxBrushVox = 1023;
+        static constexpr uint32_t maxBrushVox = 511;
 
 
         if ( isHoriz ) ImGui::SameLine();
@@ -874,6 +886,38 @@ void renderSegToolbar(
             ImGui::SetTooltip( "%s", "Increase brush size (+)" );
         }
 
+
+
+        if ( isHoriz ) ImGui::SameLine();
+
+        ImGui::PushStyleColor( ImGuiCol_ButtonActive, colors[ImGuiCol_Button] );
+//        ImGui::PushItemWidth( sk_toolbarButtonSize.x );
+        {
+            const uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
+            const std::string brushSizeString = std::to_string( brushSizeVox );
+            ImGui::Button( brushSizeString.c_str(), sk_toolbarButtonSize );
+
+//        static constexpr uint32_t sk_step = 1;
+//        static constexpr uint32_t sk_stepBig = 2;
+//        ImGui::Text( "%d", brushSizeVox );
+//        if ( ImGui::InputScalar( "##brushSizeInput", ImGuiDataType_U32,
+//                                 &brushSizeVox, nullptr, nullptr, "%d" ) )
+//        {
+//            brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
+//            appData.settings().setBrushSizeInVoxels( brushSizeVox );
+//        }
+
+//        ImGui::PopItemWidth();
+            ImGui::PopStyleColor( 1 ); // ImGuiCol_ButtonActive
+        }
+
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "%s", "Brush size (voxels)" );
+        }
+
+
+
         if ( isHoriz ) ImGui::SameLine();
         if ( ImGui::Button( ICON_FK_MINUS_CIRCLE, sk_toolbarButtonSize) )
         {
@@ -887,39 +931,6 @@ void renderSegToolbar(
             ImGui::SetTooltip( "%s", "Decrease brush size (-)" );
         }
 
-
-        /*
-        if ( isHoriz ) ImGui::SameLine();
-
-        {
-            uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-
-            ImGui::PushStyleColor( ImGuiCol_FrameBg, inactiveColor );
-            ImGui::PushItemWidth( -1 );
-
-            if ( ImGui::InputScalar( "##brushSizeInput", ImGuiDataType_U32,
-                                     &brushSizeVox, nullptr, nullptr, "%d" ) )
-            {
-                brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
-                appData.settings().setBrushSizeInVoxels( brushSizeVox );
-            }
-
-            ImGui::PopItemWidth();
-            ImGui::PopStyleColor( 1 ); // ImGuiCol_FrameBg
-        }
-        */
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_BULLSEYE, sk_toolbarButtonSize) )
-        {
-            ImGui::OpenPopup( "brushSizePopup" );
-        }
-
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "%s", "Brush options" );
-        }
 
 
         /// @todo Should save off default values (prior to toolbar's change) and push them here:
@@ -950,11 +961,13 @@ void renderSegToolbar(
                 uint32_t stepSmall = 1;
                 uint32_t stepBig = 5;
 
-                if ( ImGui::InputScalar( "width (vox)##brushSizeVox", ImGuiDataType_U32, &brushSizeVox, &stepSmall, &stepBig ) )
+                ImGui::PushItemWidth( 120 );
+                if ( ImGui::InputScalar( " width (vox)##brushSizeVox", ImGuiDataType_U32, &brushSizeVox, &stepSmall, &stepBig ) )
                 {
                     brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
                     appData.settings().setBrushSizeInVoxels( brushSizeVox );
                 }
+                ImGui::PopItemWidth();
             }
             //                else
             //                {

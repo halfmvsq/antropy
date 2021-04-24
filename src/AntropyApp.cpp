@@ -187,9 +187,17 @@ void AntropyApp::run()
         m_data.guiData().m_renderUiWindows = true;
         m_data.guiData().m_renderUiOverlays = true;
 
-        // Prepare layouts and views:
+        // Prepare layouts:
+        if ( 1 < m_data.numImages() )
+        {
+            static constexpr bool k_offsetViews = false;
+            static constexpr bool k_isLightbox = false;
+            m_data.windowData().addGridLayout( m_data.numImages(), 1, k_offsetViews, k_isLightbox );
+        }
+
         m_data.windowData().addAxCorSagLayout( m_data.numImages() );
         m_data.windowData().addLightboxLayoutForImage( refImg->header().pixelDimensions().z );
+
         m_data.windowData().setDefaultRenderedImagesForAllLayouts( m_data.imageUidsOrdered() );
 
         m_callbackHandler.recenterViews(

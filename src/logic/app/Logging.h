@@ -11,7 +11,10 @@ class Logging
 {
 public:
 
-    Logging();
+    Logging() = default;
+    ~Logging() = default;
+
+    void setup();
 
     /**
      * @brief Set logging level for the console sink

@@ -13,10 +13,25 @@ int main( int argc, char* argv[] )
         spdlog::debug( "------------------------ END SESSION (FAILURE) ------------------------" );
     };
 
+    Logging logging;
+
     try
     {
-        Logging logging;
+        logging.setup();
+    }
+    catch ( const std::exception& e )
+    {
+        std::cerr << "Exception when setting up logger: " << e.what() << std::endl;
+        return EXIT_FAILURE;
+    }
+    catch ( ... )
+    {
+        std::cerr << "Unknown exception when setting up logger" << std::endl;
+        return EXIT_FAILURE;
+    }
 
+    try
+    {
         spdlog::debug( "------------------------ BEGIN SESSION ------------------------" );
         AntropyApp::logPreamble();
 
@@ -38,7 +53,6 @@ int main( int argc, char* argv[] )
         logging.setConsoleSinkLevel( params.consoleLogLevel );
         spdlog::debug( "Parsed command line parameters:\n{}", params );
 
-        // Create, initialize, and run the application:
         AntropyApp app;
         app.loadImagesFromParams( params );
         app.init();

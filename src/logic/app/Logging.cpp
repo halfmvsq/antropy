@@ -7,16 +7,10 @@
 #include <sstream>
 
 
-namespace
+void Logging::setup()
 {
+    static const std::string sk_logFileName( "logs/antropy.txt" );
 
-static const std::string sk_logFileName( "logs/antropy.txt" );
-
-}
-
-
-Logging::Logging()
-{
     try
     {
         // Create multi-threaded sinks for console and daily file logging.
@@ -37,12 +31,12 @@ Logging::Logging()
         // Create synchronous loggers sharing the same sinks
         auto default_logger = std::make_shared<spdlog::logger>(
                     "default", std::begin(sink_list), std::end(sink_list) );
+
         default_logger->set_level( spdlog::level::trace );
+        default_logger->flush_on( spdlog::level::debug );
 
         // Register for global access with spdlog::get
         spdlog::register_logger( default_logger );
-
-        // Default logger (e.g. spdlog::info)
         spdlog::set_default_logger( default_logger );
     }
     catch ( const spdlog::spdlog_ex& e )
@@ -58,7 +52,7 @@ Logging::Logging()
         throw_debug( ss.str( ))
     }
 
-    spdlog::debug( "Constructed the logger" );
+    spdlog::debug( "Setup the logger" );
 }
 
 

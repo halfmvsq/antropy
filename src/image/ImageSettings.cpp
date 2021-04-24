@@ -59,7 +59,7 @@ ImageSettings::ImageSettings(
         setting.m_showEdges = false;
         setting.m_thresholdEdges = false;
         setting.m_useFreiChen = false;
-        setting.m_edgeMagnitude = 0.5f;
+        setting.m_edgeMagnitude = 0.25f;
         setting.m_windowedEdges = false;
         setting.m_overlayEdges = false;
         setting.m_colormapEdges = false;

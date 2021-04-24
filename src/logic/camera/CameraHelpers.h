@@ -229,7 +229,7 @@ glm::vec3 worldTranslationPerpendicularToWorldAxis(
  * @param windowPixelPos
  * @return
  */
-glm::vec2 windowNdc2d_T_windowPixels(
+glm::vec2 windowNdc_T_window(
         const Viewport& windowViewport,
         const glm::vec2& windowPixelPos );
 

@@ -29,6 +29,12 @@ static std::optional<glm::vec2> s_windowLastCursorPos;
 // The start cursor position in Window space: where the cursor was clicked prior to dragging
 static std::optional<glm::vec2> s_windowStartCursorPos;
 
+// Should zooms be synchronized for all views?
+bool syncZoomsForAllViews( const ModifierState& modState )
+{
+    return ( modState.shift );
+}
+
 }
 
 
@@ -113,17 +119,30 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
                 app->windowData().getWindowSize().y,
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    if ( ! s_windowLastCursorPos )
-    {
-        s_windowLastCursorPos = windowCurrentPos;
-    }
-
     if ( ! s_windowStartCursorPos )
     {
         s_windowStartCursorPos = windowCurrentPos;
     }
 
+    if ( ! s_windowLastCursorPos )
+    {
+        s_windowLastCursorPos = windowCurrentPos;
+    }
+
     CallbackHandler& handler = app->callbackHandler();
+
+    const auto startHit = handler.getViewHit( *s_windowStartCursorPos );
+
+    // Compute previous previous and current hits based on the transformation of the
+    // starting view. This preserves continuity between previous and current coordinates.
+
+    const auto prevHit = ( startHit )
+            ? handler.getViewHit( *s_windowLastCursorPos, &(startHit->view) )
+            : handler.getViewHit( *s_windowLastCursorPos );
+
+    const auto currHit = ( startHit )
+            ? handler.getViewHit( windowCurrentPos, &(startHit->view) )
+            : handler.getViewHit( windowCurrentPos );
 
     switch ( app->appData().state().mouseMode() )
     {
@@ -131,101 +150,102 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
     {
         if ( s_mouseButtonState.left )
         {
-            handler.doCrosshairsMove( *s_windowLastCursorPos, windowCurrentPos );
+            if ( ! currHit ) break;
+            handler.doCrosshairsMove( *currHit );
         }
         else if ( s_mouseButtonState.right )
         {
-            const bool syncZoomsForAllViews = s_modifierState.shift;
+            if ( ! startHit || ! prevHit || ! currHit ) break;
 
-            handler.doCameraZoomDrag( *s_windowLastCursorPos, windowCurrentPos,
-                                      *s_windowStartCursorPos,
-                                      ZoomBehavior::ToCrosshairs, syncZoomsForAllViews );
+            handler.doCameraZoomDrag(
+                        *startHit, *prevHit, *currHit,
+                        ZoomBehavior::ToCrosshairs,
+                        syncZoomsForAllViews( s_modifierState ) );
         }
         else if ( s_mouseButtonState.middle )
         {
-            handler.doCameraTranslate2d( *s_windowLastCursorPos, windowCurrentPos,
-                                         *s_windowStartCursorPos );
+            if ( ! startHit || ! prevHit || ! currHit ) break;
+            handler.doCameraTranslate2d( *startHit, *prevHit, *currHit );
         }
         break;
     }
     case MouseMode::Segment:
     {
-        if ( s_mouseButtonState.left )
+        if ( ! currHit ) break;
+
+        if ( s_mouseButtonState.left || s_mouseButtonState.right )
         {
             if ( app->appData().settings().crosshairsMoveWithBrush() )
             {
-                handler.doCrosshairsMove( *s_windowLastCursorPos, windowCurrentPos );
+                handler.doCrosshairsMove( *currHit );
             }
 
-            handler.doSegment( *s_windowLastCursorPos, windowCurrentPos, true );
+            const bool swapFgAndBg = ( s_mouseButtonState.right );
+            handler.doSegment( *currHit, swapFgAndBg );
         }
-        else if ( s_mouseButtonState.right )
-        {
-            if ( app->appData().settings().crosshairsMoveWithBrush() )
-            {
-                handler.doCrosshairsMove( *s_windowLastCursorPos, windowCurrentPos );
-            }
 
-            handler.doSegment( *s_windowLastCursorPos, windowCurrentPos, false );
-        }
         break;
     }
     case MouseMode::Annotate:
     {       
+        if ( ! currHit ) break;
+
         if ( s_mouseButtonState.left )
         {
             if ( app->appData().settings().crosshairsMoveWithAnnotationPointCreation() )
             {
-                handler.doCrosshairsMove( *s_windowLastCursorPos, windowCurrentPos );
+                handler.doCrosshairsMove( *currHit );
             }
 
-            handler.doAnnotate( *s_windowLastCursorPos, windowCurrentPos );
+            handler.doAnnotate( *currHit );
         }
         break;
     }
     case MouseMode::WindowLevel:
     {
+        if ( ! prevHit || ! currHit ) break;
+
         if ( s_mouseButtonState.left )
         {
-            handler.doWindowLevel( *s_windowLastCursorPos, windowCurrentPos );
+            handler.doWindowLevel( *prevHit, *currHit );
         }
         else if ( s_mouseButtonState.right )
         {
-            handler.doOpacity( *s_windowLastCursorPos, windowCurrentPos );
+            handler.doOpacity( *prevHit, *currHit );
         }
         break;
     }
     case MouseMode::CameraZoom:
     {
-        if ( s_mouseButtonState.left )
-        {
-            const bool syncZoomsForAllViews = s_modifierState.shift;
+        if ( ! startHit || ! prevHit || ! currHit ) break;
 
-            handler.doCameraZoomDrag( *s_windowLastCursorPos, windowCurrentPos,
-                                      *s_windowStartCursorPos,
-                                      ZoomBehavior::ToCrosshairs, syncZoomsForAllViews );
+        if ( s_mouseButtonState.left )
+        {           
+            handler.doCameraZoomDrag(
+                        *startHit, *prevHit, *currHit,
+                        ZoomBehavior::ToCrosshairs,
+                        syncZoomsForAllViews( s_modifierState ) );
         }
         else if ( s_mouseButtonState.right )
         {
-            const bool syncZoomsForAllViews = s_modifierState.shift;
-
-            handler.doCameraZoomDrag( *s_windowLastCursorPos, windowCurrentPos,
-                                      *s_windowStartCursorPos,
-                                      ZoomBehavior::ToStartPosition, syncZoomsForAllViews );
+            handler.doCameraZoomDrag(
+                        *startHit, *prevHit, *currHit,
+                        ZoomBehavior::ToStartPosition,
+                        syncZoomsForAllViews( s_modifierState ) );
         }
         else if ( s_mouseButtonState.middle )
         {
-            handler.doCameraTranslate2d( *s_windowLastCursorPos, windowCurrentPos,
-                                         *s_windowStartCursorPos );
+            handler.doCameraTranslate2d( *startHit, *prevHit, *currHit );
         }
         break;
     }
     case MouseMode::CameraTranslate:
     {
+        if ( ! startHit || ! prevHit || ! currHit ) break;
+
         if ( s_mouseButtonState.left )
         {
-            handler.doCameraTranslate2d( *s_windowLastCursorPos, windowCurrentPos,
-                                         *s_windowStartCursorPos );
+            handler.doCameraTranslate2d( *startHit, *prevHit, *currHit );
         }
         else if ( s_mouseButtonState.right )
         {
@@ -235,73 +255,69 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
     }
     case MouseMode::CameraRotate:
     {
+        if ( ! startHit || ! prevHit || ! currHit ) break;
+
         if ( s_mouseButtonState.left )
         {
-            handler.doCameraRotate2d( *s_windowLastCursorPos, windowCurrentPos,
-                                      *s_windowStartCursorPos );
+            handler.doCameraRotate2d( *startHit, *prevHit, *currHit );
         }
         else if ( s_mouseButtonState.right )
         {
             if ( s_modifierState.shift )
             {
-                handler.doCameraRotate3d( *s_windowLastCursorPos, windowCurrentPos,
-                                          *s_windowStartCursorPos,
-                                          AxisConstraint::X );
+                handler.doCameraRotate3d( *startHit, *prevHit, *currHit, AxisConstraint::X );
             }
             else if ( s_modifierState.control )
             {
-                handler.doCameraRotate3d( *s_windowLastCursorPos, windowCurrentPos,
-                                          *s_windowStartCursorPos,
-                                          AxisConstraint::Y );
+                handler.doCameraRotate3d( *startHit, *prevHit, *currHit, AxisConstraint::Y );
             }
             else if ( s_modifierState.alt )
             {
-                handler.doCameraRotate2d( *s_windowLastCursorPos, windowCurrentPos,
-                                          *s_windowStartCursorPos );
+                handler.doCameraRotate2d( *startHit, *prevHit, *currHit );
             }
             else
             {
-                handler.doCameraRotate3d( *s_windowLastCursorPos, windowCurrentPos,
-                                          *s_windowStartCursorPos, std::nullopt );
+                handler.doCameraRotate3d( *startHit, *prevHit, *currHit, std::nullopt );
             }
         }
         break;
     }
     case MouseMode::ImageTranslate:
     {
+        if ( ! startHit || ! prevHit || ! currHit ) break;
+
         if ( s_mouseButtonState.left )
         {
-            handler.doImageTranslate( *s_windowLastCursorPos, windowCurrentPos,
-                                      *s_windowStartCursorPos, true );
+            handler.doImageTranslate( *startHit, *prevHit, *currHit, true );
         }
         else if ( s_mouseButtonState.right )
         {
-            handler.doImageTranslate( *s_windowLastCursorPos, windowCurrentPos,
-                                      *s_windowStartCursorPos, false );
+            handler.doImageTranslate( *startHit, *prevHit, *currHit, false );
         }
         break;
     }
     case MouseMode::ImageRotate:
     {
+        if ( ! startHit || ! prevHit || ! currHit ) break;
+
         if ( s_mouseButtonState.left )
         {
-            handler.doImageRotate( *s_windowLastCursorPos, windowCurrentPos,
-                                   *s_windowStartCursorPos, true );
+            handler.doImageRotate( *startHit, *prevHit, *currHit, true );
         }
         else if ( s_mouseButtonState.right )
         {
-            handler.doImageRotate( *s_windowLastCursorPos, windowCurrentPos,
-                                   *s_windowStartCursorPos, false );
+            handler.doImageRotate( *startHit, *prevHit, *currHit, false );
         }
         break;
     }
     case MouseMode::ImageScale:
     {
+        if ( ! startHit || ! prevHit || ! currHit ) break;
+
         if ( s_mouseButtonState.left )
         {
             const bool constrainIsotropic = s_modifierState.shift;
-            handler.doImageScale( *s_windowLastCursorPos, windowCurrentPos,
-                                  *s_windowStartCursorPos, constrainIsotropic );
+            handler.doImageScale( *startHit, *prevHit, *currHit, constrainIsotropic );
         }
         break;
     }
@@ -370,6 +386,8 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
                 app->windowData().getWindowSize().y,
                 { mindowCursorPosX, mindowCursorPosY } );
 
+    const auto hit = handler.getViewHit( windowCursorPos );
+
     switch ( app->appData().state().mouseMode() )
     {
     case MouseMode::Pointer:
@@ -381,15 +399,16 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     case MouseMode::ImageScale:
     case MouseMode::WindowLevel:
     {
-        handler.doCrosshairsScroll( windowCursorPos, { scrollOffsetX, scrollOffsetY } );
+        if ( ! hit ) return;
+        handler.doCrosshairsScroll( *hit, { scrollOffsetX, scrollOffsetY } );
         break;
     }
     case MouseMode::CameraZoom:
     {
-        const bool syncZoomsForAllViews = s_modifierState.shift;
-
-        handler.doCameraZoomScroll( { scrollOffsetX, scrollOffsetY }, windowCursorPos,
-                                    ZoomBehavior::ToCrosshairs, syncZoomsForAllViews );
+        if ( ! hit ) return;
+        handler.doCameraZoomScroll( *hit, { scrollOffsetX, scrollOffsetY },
+                                    ZoomBehavior::ToCrosshairs,
+                                    syncZoomsForAllViews( s_modifierState ) );
         break;
     }
     case MouseMode::Annotate:
@@ -402,7 +421,8 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
         }
         else
         {
-            handler.doCrosshairsScroll( windowCursorPos, { scrollOffsetX, scrollOffsetY } );
+            if ( ! hit ) break;
+            handler.doCrosshairsScroll( *hit, { scrollOffsetX, scrollOffsetY } );
         }
 
         break;
@@ -433,6 +453,13 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
     glfwGetCursorPos( window, &mindowCursorPosX, &mindowCursorPosY );
 
     CallbackHandler& handler = app->callbackHandler();
+
+    const glm::vec2 windowCursorPos = camera::window_T_mindow(
+                app->windowData().getWindowSize().y,
+                { mindowCursorPosX, mindowCursorPosY } );
+
+    const auto hit = handler.getViewHit( windowCursorPos );
+
 
     switch ( key )
     {
@@ -483,11 +510,8 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
         }
         else
         {
-            const glm::vec2 windowCursorPos = camera::window_T_mindow(
-                        app->windowData().getWindowSize().y,
-                        { mindowCursorPosX, mindowCursorPosY } );
-
-            handler.scrollViewSlice( windowCursorPos, -1 );
+            if ( ! hit ) break;
+            handler.scrollViewSlice( *hit, -1 );
         }
 
         break;
@@ -502,11 +526,8 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
         }
         else
         {
-            const glm::vec2 windowCursorPos = camera::window_T_mindow(
-                        app->windowData().getWindowSize().y,
-                        { mindowCursorPosX, mindowCursorPosY } );
-
-            handler.scrollViewSlice( windowCursorPos, 1 );
+            if ( ! hit ) break;
+            handler.scrollViewSlice( *hit, 1 );
         }
 
         break;
@@ -515,44 +536,32 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
     {
         cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
 
-        const glm::vec2 windowCursorPos = camera::window_T_mindow(
-                    app->windowData().getWindowSize().y,
-                    { mindowCursorPosX, mindowCursorPosY } );
-
-        handler.moveCrosshairsOnViewSlice( windowCursorPos, -1, 0 );
+        if ( ! hit ) break;
+        handler.moveCrosshairsOnViewSlice( *hit, -1, 0 );
         break;
     }
     case GLFW_KEY_RIGHT:
     {
         cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
 
-        const glm::vec2 windowCursorPos = camera::window_T_mindow(
-                    app->windowData().getWindowSize().y,
-                    { mindowCursorPosX, mindowCursorPosY } );
-
-        handler.moveCrosshairsOnViewSlice( windowCursorPos, 1, 0 );
+        if ( ! hit ) break;
+        handler.moveCrosshairsOnViewSlice( *hit, 1, 0 );
         break;
     }
     case GLFW_KEY_UP:
     {
         cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
 
-        const glm::vec2 windowCursorPos = camera::window_T_mindow(
-                    app->windowData().getWindowSize().y,
-                    { mindowCursorPosX, mindowCursorPosY } );
-
-        handler.moveCrosshairsOnViewSlice( windowCursorPos, 0, 1 );
+        if ( ! hit ) break;
+        handler.moveCrosshairsOnViewSlice( *hit, 0, 1 );
         break;
     }
     case GLFW_KEY_DOWN:
     {
         cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
 
-        const glm::vec2 windowCursorPos = camera::window_T_mindow(
-                    app->windowData().getWindowSize().y,
-                    { mindowCursorPosX, mindowCursorPosY } );
-
-        handler.moveCrosshairsOnViewSlice( windowCursorPos, 0, -1 );
+        if ( ! hit ) break;
+        handler.moveCrosshairsOnViewSlice( *hit, 0, -1 );
         break;
     }
 

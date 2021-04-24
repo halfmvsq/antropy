@@ -376,9 +376,6 @@ void WindowData::setupViews()
     m_layouts.emplace_back( createFourUpLayout() );
     m_layouts.emplace_back( createTriLayout() );
     m_layouts.emplace_back( createGridLayout ( 1, 1, false, false, camera::CameraType::Axial ) );
-    m_layouts.emplace_back( createGridLayout ( 2, 1, false, false, camera::CameraType::Axial ) );
-    m_layouts.emplace_back( createGridLayout ( 3, 1, false, false, camera::CameraType::Axial ) );
-
     updateAllViews();
 }
 
@@ -618,7 +615,7 @@ WindowData::currentViewUidAtCursor( const glm::vec2& windowPos ) const
 {
     if ( m_layouts.empty() ) return std::nullopt;
 
-    const glm::vec2 winClipPos = camera::windowNdc2d_T_windowPixels( m_viewport, windowPos );
+    const glm::vec2 winClipPos = camera::windowNdc_T_window( m_viewport, windowPos );
 
     for ( const auto& view : m_layouts.at( m_currentLayout ).views() )
     {

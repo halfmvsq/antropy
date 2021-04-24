@@ -87,10 +87,6 @@ getImageVoxelCoordsAtCrosshairs(
         const AppData& appData,
         size_t imageIndex );
 
-void moveCrosshairsOnViewSlice(
-        AppData& appData,
-        const glm::vec2& currWindowPos,
-        int stepX, int stepY );
 
 /**
  * @brief Find annotation for a given image. The search is done by matching the

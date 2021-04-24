@@ -19,7 +19,7 @@ AppSettings::AppSettings()
       m_brushSizeInVoxels( 1 ),
       m_brushSizeInMm( 1.0f ),
 
-      m_crosshairsMoveWithAnnotationPointCreation( true ),
+      m_crosshairsMoveWithAnnotationPointCreation( false ),
       m_lockAnatomicalCoordinateAxesWithReferenceImage( false )
 {
 }

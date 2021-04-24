@@ -540,10 +540,18 @@ void renderViewOrientationToolWindow(
                 }
             }
 
+
+            if ( ImGui::Button( "Flip" ) )
+            {
+                worldNewFwdDir = -worldNewFwdDir;
+                applyRotation = true;
+            }
+            ImGui::SameLine(); helpMarker( "Flip forward view direction vector" );
+
+
             ImGui::Separator();
-
-
             ImGui::Spacing();
+
             ImGui::Text( "Orthogonal direction:" );
             ImGui::Spacing();
 

@@ -29,6 +29,31 @@ public:
     CallbackHandler( AppData&, GlfwWrapper&, Rendering& );
     ~CallbackHandler() = default;
 
+
+    /**
+     * @brief When a view is hit by a mouse/pointer click, this structure is used to
+     * return data about the view that was hit, including its ID, a reference to the view,
+     * and the hit position in Clip space of the view.
+     */
+    struct ViewHitData
+    {
+        ViewHitData( View& v, uuids::uuid uid )
+            : view( v ), viewUid( uid ) {}
+
+        View& view;
+        uuids::uuid viewUid;
+
+        glm::vec2 windowClipPos;
+        glm::vec2 viewClipPos;
+        glm::vec4 worldPos;
+        glm::vec4 worldPos_offsetApplied;
+        glm::vec3 worldFrontAxis;
+    };
+
+    std::optional<ViewHitData> getViewHit(
+            const glm::vec2& windowPos,
+            const View* viewForTxOverride = nullptr );
+
     /**
      * @brief Clears all voxels in a segmentation, setting them to 0
      * @param segUid
@@ -53,18 +78,14 @@ public:
      * @param windowLastPos
      * @param windowCurrPos
      */
-    void doCrosshairsMove(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos );
+    void doCrosshairsMove( const ViewHitData& hit );
 
     /**
      * @brief Scroll the crosshairs
      * @param windowCurrPos
      * @param scrollOffset
      */
-    void doCrosshairsScroll(
-            const glm::vec2& windowCurrPos,
-            const glm::vec2& scrollOffset );
+    void doCrosshairsScroll( const ViewHitData& hit, const glm::vec2& scrollOffset );
 
     /**
      * @brief Segment the image
@@ -72,37 +93,28 @@ public:
      * @param windowCurrPos
      * @param leftButton
      */
-    void doSegment(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos,
-            bool leftButton );
+    void doSegment( const ViewHitData& hit, bool swapFgAndBg );
 
     /**
      * @brief doAnnotate
      * @param windowLastPos
      * @param windowCurrPos
      */
-    void doAnnotate(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos );
+    void doAnnotate( const ViewHitData& hit );
 
     /**
      * @brief Adjust image window/level
      * @param windowLastPos
      * @param windowCurrPos
      */
-    void doWindowLevel(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos );
+    void doWindowLevel( const ViewHitData& prevHit, const ViewHitData& currHit );
 
     /**
      * @brief Adjust image opacity
      * @param windowLastPos
      * @param windowCurrPos
      */
-    void doOpacity(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos );
+    void doOpacity( const ViewHitData& prevHit, const ViewHitData& currHit );
 
     /**
      * @brief 2D translation of the camera (panning)
@@ -111,9 +123,9 @@ public:
      * @param windowStartPos
      */
     void doCameraTranslate2d(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos,
-            const glm::vec2& windowStartPos );
+            const ViewHitData& startHit,
+            const ViewHitData& prevHit,
+            const ViewHitData& currHit );
 
     /**
      * @brief 2D rotation of the camera
@@ -122,9 +134,9 @@ public:
      * @param windowStartPos
      */
     void doCameraRotate2d(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos,
-            const glm::vec2& windowStartPos );
+            const ViewHitData& startHit,
+            const ViewHitData& prevHit,
+            const ViewHitData& currHit );
 
     /**
      * @brief 3D rotation of the camera
@@ -134,9 +146,9 @@ public:
      * @param constraint
      */
     void doCameraRotate3d(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos,
-            const glm::vec2& windowStartPos,
+            const ViewHitData& startHit,
+            const ViewHitData& prevHit,
+            const ViewHitData& currHit,
             const std::optional<AxisConstraint>& constraint );
 
     /**
@@ -165,9 +177,9 @@ public:
      * @param syncZoomForAllViews
      */
     void doCameraZoomDrag(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos,
-            const glm::vec2& windowStartPos,
+            const ViewHitData& startHit,
+            const ViewHitData& prevHit,
+            const ViewHitData& currHit,
             const ZoomBehavior& zoomBehavior,
             bool syncZoomForAllViews );
 
@@ -179,8 +191,8 @@ public:
      * @param syncZoomForAllViews
      */
     void doCameraZoomScroll(
+            const ViewHitData& hit,
             const glm::vec2& scrollOffset,
-            const glm::vec2& windowStartPos,
             const ZoomBehavior& zoomBehavior,
             bool syncZoomForAllViews );
 
@@ -192,9 +204,9 @@ public:
      * @param inPlane
      */
     void doImageRotate(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos,
-            const glm::vec2& windowStartPos,
+            const ViewHitData& startHit,
+            const ViewHitData& prevHit,
+            const ViewHitData& currHit,
             bool inPlane );
 
     /**
@@ -205,9 +217,9 @@ public:
      * @param inPlane
      */
     void doImageTranslate(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos,
-            const glm::vec2& windowStartPos,
+            const ViewHitData& startHit,
+            const ViewHitData& prevHit,
+            const ViewHitData& currHit,
             bool inPlane );
 
     /**
@@ -218,9 +230,9 @@ public:
      * @param constrainIsotropic
      */
     void doImageScale(
-            const glm::vec2& windowLastPos,
-            const glm::vec2& windowCurrPos,
-            const glm::vec2& windowStartPos,
+            const ViewHitData& startHit,
+            const ViewHitData& prevHit,
+            const ViewHitData& currHit,
             bool constrainIsotropic );
 
     /**
@@ -228,9 +240,7 @@ public:
      * @param windowCurrPos
      * @param numSlices
      */
-    void scrollViewSlice(
-            const glm::vec2& windowCurrPos,
-            int numSlices );
+    void scrollViewSlice( const ViewHitData& hit, int numSlices );
 
     /**
      * @brief moveCrosshairsOnViewSlice
@@ -238,9 +248,7 @@ public:
      * @param stepX
      * @param stepY
      */
-    void moveCrosshairsOnViewSlice(
-            const glm::vec2& windowCurrPos,
-            int stepX, int stepY );
+    void moveCrosshairsOnViewSlice( const ViewHitData& hit, int stepX, int stepY );
 
     /**
      * @brief Recenter all views on the selected images. Optionally recenter crosshairs there too.
@@ -302,39 +310,14 @@ private:
     Rendering& m_rendering;
 
     /**
-     * @brief When a view is hit by a mouse/pointer click, this structure is used to
-     * return data about the view that was hit, including its ID, a reference to the view,
-     * and the hit position in Clip space of the view.
+     * @brief This function is intended to run prior to cursor callbacks that require an active view.
+     * If there is an active view and the active is NOT equal to the given view UID, then return false.
+     * Otherwise, set the given view as active and return true. For callbacks that require an active view,
+     * the returned false flag indicates that the callback should NOT proceed.
+     *
+     * @param[in] viewUid View UID to check against the active UID.
      */
-    struct ViewHitData
-    {
-        ViewHitData( View& v, uuids::uuid uid )
-            : view( v ), viewUid( uid ) {}
-
-        View& view;
-        uuids::uuid viewUid;
-
-        glm::vec2 windowClipLastPos;
-        glm::vec2 windowClipCurrPos;
-
-        glm::vec2 viewClipLastPos;
-        glm::vec2 viewClipCurrPos;
-
-        glm::vec4 worldLastPos;
-        glm::vec4 worldCurrPos;
-
-        glm::vec4 worldLastPos_offsetApplied;
-        glm::vec4 worldCurrPos_offsetApplied;
-
-        glm::vec3 worldFrontAxis;
-    };
-
-    std::optional<ViewHitData> getViewHit(
-            const glm::vec2& windowPixelLastPos,
-            const glm::vec2& windowPixelCurrPos,
-            bool requireViewToBeActive,
-            const std::optional<glm::vec2>& windowPixelStartPos = std::nullopt );
-
+    bool checkAndSetActiveView( const uuids::uuid& viewUid );
 };
 
 #endif // CALLBACK_HANDLER_H

@@ -418,33 +418,6 @@ getImageVoxelCoordsAtCrosshairs(
 }
 
 
-void moveCrosshairsOnViewSlice(
-        AppData& appData,
-        const glm::vec2& currWindowPos,
-        int stepX, int stepY )
-{
-    const auto viewUid = appData.windowData().currentViewUidAtCursor( currWindowPos );
-    if ( ! viewUid ) return;
-
-    const View* view = appData.windowData().getCurrentView( *viewUid );
-    if ( ! view ) return;
-    if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
-
-    const glm::vec3 worldRightAxis = camera::worldDirection( view->camera(), Directions::View::Right );
-    const glm::vec3 worldUpAxis = camera::worldDirection( view->camera(), Directions::View::Up );
-
-    const glm::vec2 moveDistances = data::sliceMoveDistance(
-                appData, worldRightAxis, worldUpAxis, ImageSelection::VisibleImagesInView, view );
-
-    const glm::vec3 worldCrosshairs = appData.state().worldCrosshairs().worldOrigin();
-
-    appData.state().setWorldCrosshairsPos(
-                worldCrosshairs +
-                static_cast<float>( stepX ) * moveDistances.x * worldRightAxis +
-                static_cast<float>( stepY ) * moveDistances.y * worldUpAxis );
-}
-
-
 std::vector< uuids::uuid > findAnnotationsForImage(
         const AppData& appData,
         const uuids::uuid& imageUid,
