@@ -37,10 +37,8 @@ public:
      */
     struct ViewHitData
     {
-        ViewHitData( View& v, uuids::uuid uid )
-            : view( v ), viewUid( uid ) {}
-
-        View& view;
+        /// @todo Make this a reference so that we never have to check for null!!!
+        View* view = nullptr;
         uuids::uuid viewUid;
 
         glm::vec2 windowClipPos;
@@ -52,7 +50,7 @@ public:
 
     std::optional<ViewHitData> getViewHit(
             const glm::vec2& windowPos,
-            const View* viewForTxOverride = nullptr );
+            const std::optional<uuids::uuid>& viewUidForOverride = std::nullopt );
 
     /**
      * @brief Clears all voxels in a segmentation, setting them to 0

@@ -132,7 +132,7 @@ std::string typeString( const MouseMode& mouseMode )
         { MouseMode::CameraRotate, "Rotate view\nLeft button: rotate in plane\nRight button: rotate out of plane\n(Use Shift/Ctrl to rotate about view X/Y)" },
         { MouseMode::CameraZoom, "Zoom view (Z)\nLeft button: zoom to crosshairs\nRight button: zoom to cursor" },
         { MouseMode::Segment, "Segment (B)\nLeft button: paint foreground label\nRight button: paint background label" },
-        { MouseMode::Annotate, "Annotate (N)" },
+        { MouseMode::Annotate, "Annotate" },
         { MouseMode::ImageTranslate, "Translate image (T)\nLeft button: translate in plane\nRight button: translate out of plane" },
         { MouseMode::ImageRotate, "Rotate image (R)\nLeft button: rotate in plane\nRight button: rotate out of plane" },
         { MouseMode::ImageScale, "Scale image (Y)" }
