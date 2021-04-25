@@ -302,6 +302,8 @@ void renderLandmarkChildWindow(
 
     if ( ImGui::BeginMenuBar() )
     {
+        /// @todo Pull this function out of here.
+        /// Will need to add concept of "active image or landmarking".
         if ( ImGui::MenuItem( sk_addNew.c_str() ) )
         {
             // Add new landmark at crosshairs position in the correct space

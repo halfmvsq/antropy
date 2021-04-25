@@ -17,9 +17,24 @@ namespace state
 
 /*** Begin event declarations ***/
 
+/// Mouse pointer pressed
 struct MousePressEvent : public tinyfsm::Event
 {
     MousePressEvent( const ViewHit& h ) : hit( h ) {}
+    const ViewHit& hit; //!< View hit information for this event
+};
+
+/// Mouse pointer released
+struct MouseReleaseEvent : public tinyfsm::Event
+{
+    MouseReleaseEvent( const ViewHit& h ) : hit( h ) {}
+    const ViewHit& hit; //!< View hit information for this event
+};
+
+/// Mouse pointer moved
+struct MouseMoveEvent : public tinyfsm::Event
+{
+    MouseMoveEvent( const ViewHit& h ) : hit( h ) {}
     const ViewHit& hit; //!< View hit information for this event
 };
 
@@ -35,6 +50,9 @@ struct TurnOffAnnotationMode : public tinyfsm::Event {};
 
 /**
  * @brief State machine for annotation
+ *
+ * @note Access the current sate with current_state_ptr()
+ * @note Check if in state with is_in_state<STATE>()
  */
 class AnnotationStateMachine : public tinyfsm::Fsm<AnnotationStateMachine>
 {
@@ -69,6 +87,9 @@ protected:
 
     /// Default reactions for handled events
     virtual void react( const MousePressEvent& ) {}
+    virtual void react( const MouseReleaseEvent& ) {}
+    virtual void react( const MouseMoveEvent& ) {}
+
     virtual void react( const TurnOnAnnotationMode& ) {}
     virtual void react( const TurnOffAnnotationMode& ) {}
 
@@ -123,6 +144,8 @@ class ViewSelectedState : public AnnotationStateMachine
 
 } // namespace state
 
+
+// Shortcut for referring to the state machine:
 using ASM = state::AnnotationStateMachine;
 
 #endif // VIEW_SELECTION_STATE_MACHINE_H

@@ -741,7 +741,7 @@ void CallbackHandler::doCameraRotate3d(
         const ViewHit& startHit,
         const ViewHit& prevHit,
         const ViewHit& currHit,
-        const std::optional<AxisConstraint>& constraint )
+        const AxisConstraint& constraint )
 {
     View* viewToRotate = startHit.view;
     if ( ! viewToRotate ) return;
@@ -754,24 +754,22 @@ void CallbackHandler::doCameraRotate3d(
     glm::vec2 viewClipPrevPos = prevHit.viewClipPos;
     glm::vec2 viewClipCurrPos = currHit.viewClipPos;
 
-    if ( constraint )
+    switch ( constraint )
     {
-        switch ( *constraint )
-        {
-        case AxisConstraint::X :
-        {
-            viewClipPrevPos.x = 0.0f;
-            viewClipCurrPos.x = 0.0f;
-            break;
-        }
-        case AxisConstraint::Y :
-        {
-            viewClipPrevPos.y = 0.0f;
-            viewClipCurrPos.y = 0.0f;
-            break;
-        }
-        default: break;
-        }
+    case AxisConstraint::X :
+    {
+        viewClipPrevPos.x = 0.0f;
+        viewClipCurrPos.x = 0.0f;
+        break;
+    }
+    case AxisConstraint::Y :
+    {
+        viewClipPrevPos.y = 0.0f;
+        viewClipCurrPos.y = 0.0f;
+        break;
+    }
+    case AxisConstraint::None:
+    default: break;
     }
 
     /// @todo Different behavior for rotation 3D view types!

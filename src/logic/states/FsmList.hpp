@@ -9,14 +9,16 @@
 namespace state
 {
 
+// If we have multiple state machines, then the FsmList can be used.
+// This allows us to dispatch events to multiple machines.
 //using fsm_list = tinyfsm::FsmList< AnnotationStateMachine >;
+
+// We have only one state machine:
 using fsm_list = AnnotationStateMachine;
 
+
 /**
- * @brief Dispatch event to AnnotationStateMachine.
- *
- * @note We can list other state machines in the template in order to
- * dispatch events to them.
+ * @brief Dispatch event to the state machine(s)
  */
 template<typename E>
 void send_event( const E& event )

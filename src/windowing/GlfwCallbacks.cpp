@@ -92,6 +92,9 @@ void windowSizeCallback( GLFWwindow* window, int windowWidth, int windowHeight )
 
 void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mindowCursorPosY )
 {
+    static constexpr bool inPlane = true;
+    static constexpr bool outOfPlane = false;
+
     auto app = reinterpret_cast<AntropyApp*>( glfwGetWindowUserPointer( window ) );
     if ( ! app )
     {
@@ -136,10 +139,13 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
     const auto currHit_withOverride =
             getViewHit( app->appData(), windowCurrentPos, s_startHit->viewUid );
 
-    // Compute current hit, without any override provided. This prevents the
-    // hit from being valid if the cursor is outside of a view.
-    const auto currHit_noOverride =
-            getViewHit( app->appData(), windowCurrentPos, std::nullopt );
+    // Compute current hit without any override provided. This prevents the
+    // hit from being valid if the cursor hits outside of a view.
+    const auto currHit_invalidOutsideView =
+            getViewHit( app->appData(), windowCurrentPos );
+
+    // Send event to annotation state machine
+    send_event( state::MouseMoveEvent( *currHit_invalidOutsideView ) );
 
     CallbackHandler& handler = app->callbackHandler();
 
@@ -149,13 +155,12 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
     {
         if ( s_mouseButtonState.left )
         {
-            if ( ! currHit_noOverride ) break;
-            handler.doCrosshairsMove( *currHit_noOverride );
+            if ( ! currHit_invalidOutsideView ) break;
+            handler.doCrosshairsMove( *currHit_invalidOutsideView );
         }
         else if ( s_mouseButtonState.right )
         {
             if ( ! currHit_withOverride ) break;
-
             handler.doCameraZoomDrag(
                         *s_startHit, *s_prevHit, *currHit_withOverride,
                         ZoomBehavior::ToCrosshairs,
@@ -170,33 +175,33 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
     }
     case MouseMode::Segment:
     {
-        if ( ! currHit_noOverride ) break;
+        if ( ! currHit_invalidOutsideView ) break;
 
         if ( s_mouseButtonState.left || s_mouseButtonState.right )
         {
             if ( app->appData().settings().crosshairsMoveWithBrush() )
             {
-                handler.doCrosshairsMove( *currHit_noOverride );
+                handler.doCrosshairsMove( *currHit_invalidOutsideView );
             }
 
             const bool swapFgAndBg = ( s_mouseButtonState.right );
-            handler.doSegment( *currHit_noOverride, swapFgAndBg );
+            handler.doSegment( *currHit_invalidOutsideView, swapFgAndBg );
         }
 
         break;
     }
     case MouseMode::Annotate:
     {       
-        if ( ! currHit_noOverride ) break;
+        if ( ! currHit_invalidOutsideView ) break;
 
         if ( s_mouseButtonState.left )
         {
             if ( app->appData().settings().crosshairsMoveWithAnnotationPointCreation() )
             {
-                handler.doCrosshairsMove( *currHit_noOverride );
+                handler.doCrosshairsMove( *currHit_invalidOutsideView );
             }
 
-            handler.doAnnotate( *currHit_noOverride );
+            handler.doAnnotate( *currHit_invalidOutsideView );
         }
         break;
     }
@@ -264,11 +269,13 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
         {
             if ( s_modifierState.shift )
             {
-                handler.doCameraRotate3d( *s_startHit, *s_prevHit, *currHit_withOverride, AxisConstraint::X );
+                handler.doCameraRotate3d( *s_startHit, *s_prevHit, *currHit_withOverride,
+                                          AxisConstraint::X );
             }
             else if ( s_modifierState.control )
             {
-                handler.doCameraRotate3d( *s_startHit, *s_prevHit, *currHit_withOverride, AxisConstraint::Y );
+                handler.doCameraRotate3d( *s_startHit, *s_prevHit, *currHit_withOverride,
+                                          AxisConstraint::Y );
             }
             else if ( s_modifierState.alt )
             {
@@ -276,7 +283,8 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
             }
             else
             {
-                handler.doCameraRotate3d( *s_startHit, *s_prevHit, *currHit_withOverride, std::nullopt );
+                handler.doCameraRotate3d( *s_startHit, *s_prevHit, *currHit_withOverride,
+                                          AxisConstraint::None );
             }
         }
         break;
@@ -287,11 +295,11 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
 
         if ( s_mouseButtonState.left )
         {
-            handler.doImageTranslate( *s_startHit, *s_prevHit, *currHit_withOverride, true );
+            handler.doImageTranslate( *s_startHit, *s_prevHit, *currHit_withOverride, inPlane );
         }
         else if ( s_mouseButtonState.right )
         {
-            handler.doImageTranslate( *s_startHit, *s_prevHit, *currHit_withOverride, false );
+            handler.doImageTranslate( *s_startHit, *s_prevHit, *currHit_withOverride, outOfPlane );
         }
         break;
     }
@@ -301,11 +309,11 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
 
         if ( s_mouseButtonState.left )
         {
-            handler.doImageRotate( *s_startHit, *s_prevHit, *currHit_withOverride, true );
+            handler.doImageRotate( *s_startHit, *s_prevHit, *currHit_withOverride, inPlane );
         }
         else if ( s_mouseButtonState.right )
         {
-            handler.doImageRotate( *s_startHit, *s_prevHit, *currHit_withOverride, false );
+            handler.doImageRotate( *s_startHit, *s_prevHit, *currHit_withOverride, outOfPlane );
         }
         break;
     }
@@ -337,41 +345,45 @@ void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
     const ImGuiIO& io = ImGui::GetIO();
     if ( io.WantCaptureMouse ) return; // ImGui has captured event
 
+    // Update button state
     s_mouseButtonState.updateFromGlfwEvent( button, action );
     s_modifierState.updateFromGlfwEvent( mods );
 
-    // Reset start and previous hits:
+    // Reset start and previous hits
     s_startHit = std::nullopt;
     s_prevHit = std::nullopt;
 
     double mindowCursorPosX, mindowCursorPosY;
     glfwGetCursorPos( window, &mindowCursorPosX, &mindowCursorPosY );
-    cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
 
     const glm::vec2 windowCursorPos = camera::window_T_mindow(
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    const auto hit = getViewHit( app->appData(), windowCursorPos, std::nullopt );
+    const auto hit = getViewHit( app->appData(), windowCursorPos );
     if ( ! hit ) return;
 
+    // Send event to the annotation state machine
     switch ( action )
     {
     case GLFW_PRESS:
     {
-        // Send event to the state machine that a view was selected
-        state::MousePressEvent pressEvent( *hit );
-        send_event( pressEvent );
+        send_event( state::MousePressEvent( *hit ) );
         break;
     }
     case GLFW_RELEASE:
     {
         // app->state().setMouseMode( MouseMode::Nothing );
         app->appData().windowData().setActiveViewUid( std::nullopt );
+
+        send_event( state::MouseReleaseEvent( *hit ) );
         break;
     }
     default: break;
     }
+
+    // Trigger the cursor position callback
+    cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
 }
 
 
@@ -423,17 +435,13 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     }
     case MouseMode::Annotate:
     {
-        // Disable scrolling while annotating
-        if ( ASM::current_state_ptr &&
-             ASM::current_state_ptr->selectedViewUid() )
+        // Disable scrolling while annotating:
+        if ( ! ASM::is_in_state<state::AnnotationOffState>() )
         {
             break;
         }
-        else
-        {
-            handler.doCrosshairsScroll( *hit, { scrollOffsetX, scrollOffsetY } );
-        }
 
+        handler.doCrosshairsScroll( *hit, { scrollOffsetX, scrollOffsetY } );
         break;
     }
     }
@@ -465,7 +473,7 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    const auto hit = getViewHit( app->appData(), windowCursorPos, std::nullopt );
+    const auto hit = getViewHit( app->appData(), windowCursorPos );
 
     CallbackHandler& handler = app->callbackHandler();
 
@@ -510,8 +518,6 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
 
     case GLFW_KEY_PAGE_DOWN:
     {
-        cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
-
         if ( s_modifierState.shift )
         {
             handler.cycleImageComponent( -1 );
@@ -526,8 +532,6 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
     }
     case GLFW_KEY_PAGE_UP:
     {
-        cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
-
         if ( s_modifierState.shift )
         {
             handler.cycleImageComponent( 1 );
@@ -542,32 +546,24 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
     }
     case GLFW_KEY_LEFT:
     {
-        cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
-
         if ( ! hit ) break;
         handler.moveCrosshairsOnViewSlice( *hit, -1, 0 );
         break;
     }
     case GLFW_KEY_RIGHT:
     {
-        cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
-
         if ( ! hit ) break;
         handler.moveCrosshairsOnViewSlice( *hit, 1, 0 );
         break;
     }
     case GLFW_KEY_UP:
     {
-        cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
-
         if ( ! hit ) break;
         handler.moveCrosshairsOnViewSlice( *hit, 0, 1 );
         break;
     }
     case GLFW_KEY_DOWN:
     {
-        cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
-
         if ( ! hit ) break;
         handler.moveCrosshairsOnViewSlice( *hit, 0, -1 );
         break;

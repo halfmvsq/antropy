@@ -156,7 +156,8 @@ enum class AxisConstraint
 {
     X,
     Y,
-    Z
+    Z,
+    None
 };
 
 

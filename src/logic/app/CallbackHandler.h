@@ -122,7 +122,7 @@ public:
             const ViewHit& startHit,
             const ViewHit& prevHit,
             const ViewHit& currHit,
-            const std::optional<AxisConstraint>& constraint );
+            const AxisConstraint& constraint );
 
     /**
      * @brief 3D rotation of the camera
