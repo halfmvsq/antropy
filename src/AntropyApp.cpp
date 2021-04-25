@@ -144,6 +144,16 @@ void AntropyApp::init()
     // Start annotation state machine
     state::fsm_list::start();
 
+    if ( auto* state = state::fsm_list::current_state_ptr )
+    {
+        state->setAppData( &m_data );
+    }
+    else
+    {
+        spdlog::error( "Null annotation state machine" );
+    }
+
+    // Initialize rendering
     m_rendering.init();
 
     // Trigger initial windowing callbacks

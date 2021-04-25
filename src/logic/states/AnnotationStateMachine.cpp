@@ -34,10 +34,10 @@ void ViewBeingSelectedState::entry()
     spdlog::trace( "ViewBeingSelectedState::entry()" );
 }
 
-void ViewBeingSelectedState::react( const SelectViewEvent& e )
+void ViewBeingSelectedState::react( const MousePressEvent& e )
 {
     spdlog::trace( "ViewBeingSelectedState::react( const SelectViewEvent& e )" );
-    m_selectedViewUid = e.selectedViewUid;
+    m_selectedViewUid = e.hit.viewUid;
     transit<ViewSelectedState>();
 }
 
@@ -70,10 +70,10 @@ void ViewSelectedState::exit()
     m_selectedViewUid = std::nullopt;
 }
 
-void ViewSelectedState::react( const SelectViewEvent& e )
+void ViewSelectedState::react( const MousePressEvent& e )
 {
     spdlog::trace( "ViewSelectedState::react( const SelectViewEvent& e )" );
-    m_selectedViewUid = e.selectedViewUid;
+    m_selectedViewUid = e.hit.viewUid;
 }
 
 void ViewSelectedState::react( const TurnOffAnnotationMode& )

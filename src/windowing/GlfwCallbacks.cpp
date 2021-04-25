@@ -4,6 +4,7 @@
 #include "common/Types.h"
 
 #include "logic/camera/CameraHelpers.h"
+#include "logic/interaction/ViewHit.h"
 #include "logic/interaction/events/ButtonState.h"
 #include "logic/states/FsmList.hpp"
 
@@ -24,10 +25,10 @@ static ButtonState s_mouseButtonState;
 static ModifierState s_modifierState;
 
 // The last cursor position in Window space
-static std::optional<CallbackHandler::ViewHitData> s_prevHit;
+static std::optional<ViewHit> s_prevHit;
 
 // The start cursor position in Window space: where the cursor was clicked prior to dragging
-static std::optional<CallbackHandler::ViewHitData> s_startHit;
+static std::optional<ViewHit> s_startHit;
 
 // Should zooms be synchronized for all views?
 bool syncZoomsForAllViews( const ModifierState& modState )
@@ -119,26 +120,28 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    CallbackHandler& handler = app->callbackHandler();
-
     if ( ! s_startHit )
     {
-        s_startHit = handler.getViewHit( windowCurrentPos );
+        s_startHit = getViewHit( app->appData(), windowCurrentPos );
     }
 
     if ( ! s_prevHit )
     {
-        s_prevHit = handler.getViewHit( windowCurrentPos );
+        s_prevHit = getViewHit( app->appData(), windowCurrentPos );
     }
 
     // Compute current hit based on the transformation of the starting view.
     // This preserves continuity between previous and current coordinates.
     // It also allows the hit to be valid outside of a view.
-    const auto currHit_withOverride = handler.getViewHit( windowCurrentPos, s_startHit->viewUid );
+    const auto currHit_withOverride =
+            getViewHit( app->appData(), windowCurrentPos, s_startHit->viewUid );
 
     // Compute current hit, without any override provided. This prevents the
     // hit from being valid if the cursor is outside of a view.
-    const auto currHit_noOverride = handler.getViewHit( windowCurrentPos, std::nullopt );
+    const auto currHit_noOverride =
+            getViewHit( app->appData(), windowCurrentPos, std::nullopt );
+
+    CallbackHandler& handler = app->callbackHandler();
 
     switch ( app->appData().state().mouseMode() )
     {
@@ -324,38 +327,41 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
 
 void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
 {
+    auto app = reinterpret_cast<AntropyApp*>( glfwGetWindowUserPointer( window ) );
+    if ( ! app )
+    {
+        spdlog::warn( "App is null in mouse button callback" );
+        return;
+    }
+
     const ImGuiIO& io = ImGui::GetIO();
     if ( io.WantCaptureMouse ) return; // ImGui has captured event
 
     s_mouseButtonState.updateFromGlfwEvent( button, action );
     s_modifierState.updateFromGlfwEvent( mods );
 
-    s_prevHit = std::nullopt;
+    // Reset start and previous hits:
     s_startHit = std::nullopt;
+    s_prevHit = std::nullopt;
 
-    auto app = reinterpret_cast<AntropyApp*>( glfwGetWindowUserPointer( window ) );
-    if ( ! app )
-    {
-        spdlog::warn( "App is null in mouse button callback" );
-        return;
-    }   
+    double mindowCursorPosX, mindowCursorPosY;
+    glfwGetCursorPos( window, &mindowCursorPosX, &mindowCursorPosY );
+    cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
+
+    const glm::vec2 windowCursorPos = camera::window_T_mindow(
+                static_cast<float>( app->windowData().getWindowSize().y ),
+                { mindowCursorPosX, mindowCursorPosY } );
+
+    const auto hit = getViewHit( app->appData(), windowCursorPos, std::nullopt );
+    if ( ! hit ) return;
 
     switch ( action )
     {
     case GLFW_PRESS:
     {
-        double mindowCursorPosX, mindowCursorPosY;
-        glfwGetCursorPos( window, &mindowCursorPosX, &mindowCursorPosY );
-        cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
-
-        if ( s_prevHit )
-        {
-            // Send event to the state machine that a view was selected
-            state::SelectViewEvent selectView;
-            selectView.selectedViewUid = s_prevHit->viewUid;
-            send_event( selectView );
-        }
-
+        // Send event to the state machine that a view was selected
+        state::MousePressEvent pressEvent( *hit );
+        send_event( pressEvent );
         break;
     }
     case GLFW_RELEASE:
@@ -385,13 +391,14 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     glfwGetCursorPos( window, &mindowCursorPosX, &mindowCursorPosY );
     cursorPosCallback( window, mindowCursorPosX, mindowCursorPosY );
 
-    CallbackHandler& handler = app->callbackHandler();
-
     const glm::vec2 windowCursorPos = camera::window_T_mindow(
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    const auto hit = handler.getViewHit( windowCursorPos, std::nullopt );
+    const auto hit = getViewHit( app->appData(), windowCursorPos, std::nullopt );
+    if ( ! hit ) return;
+
+    CallbackHandler& handler = app->callbackHandler();
 
     switch ( app->appData().state().mouseMode() )
     {
@@ -404,13 +411,11 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     case MouseMode::ImageScale:
     case MouseMode::WindowLevel:
     {
-        if ( ! hit ) return;
         handler.doCrosshairsScroll( *hit, { scrollOffsetX, scrollOffsetY } );
         break;
     }
     case MouseMode::CameraZoom:
     {
-        if ( ! hit ) return;
         handler.doCameraZoomScroll( *hit, { scrollOffsetX, scrollOffsetY },
                                     ZoomBehavior::ToCrosshairs,
                                     syncZoomsForAllViews( s_modifierState ) );
@@ -426,7 +431,6 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
         }
         else
         {
-            if ( ! hit ) break;
             handler.doCrosshairsScroll( *hit, { scrollOffsetX, scrollOffsetY } );
         }
 
@@ -457,14 +461,13 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
     double mindowCursorPosX, mindowCursorPosY;
     glfwGetCursorPos( window, &mindowCursorPosX, &mindowCursorPosY );
 
-    CallbackHandler& handler = app->callbackHandler();
-
     const glm::vec2 windowCursorPos = camera::window_T_mindow(
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    const auto hit = handler.getViewHit( windowCursorPos, std::nullopt );
+    const auto hit = getViewHit( app->appData(), windowCursorPos, std::nullopt );
 
+    CallbackHandler& handler = app->callbackHandler();
 
     switch ( key )
     {

@@ -1,9 +1,15 @@
 #ifndef VIEW_SELECTION_STATE_MACHINE_H
 #define VIEW_SELECTION_STATE_MACHINE_H
 
+#include "logic/interaction/ViewHit.h"
+
 #include <tinyfsm.hpp>
 #include <uuid.h>
+
+#include <memory>
 #include <optional>
+
+class AppData;
 
 
 namespace state
@@ -11,11 +17,10 @@ namespace state
 
 /*** Begin event declarations ***/
 
-/// User has selected a view in which to create/modify annotations
-struct SelectViewEvent : public tinyfsm::Event
+struct MousePressEvent : public tinyfsm::Event
 {
-    /// Uid of the selected view
-    uuids::uuid selectedViewUid;
+    MousePressEvent( const ViewHit& h ) : hit( h ) {}
+    const ViewHit& hit; //!< View hit information for this event
 };
 
 /// User has turned on annotation mode: they want to create/modify annotations
@@ -40,10 +45,16 @@ public:
     AnnotationStateMachine() = default;
     virtual ~AnnotationStateMachine() = default;
 
+    void setAppData( AppData* appData )
+    {
+        m_appData = appData;
+    }
+
     const std::optional<uuids::uuid>& selectedViewUid() const
     {
         return m_selectedViewUid;
     }
+
 
 protected:
 
@@ -57,9 +68,11 @@ protected:
     void react( const tinyfsm::Event& );
 
     /// Default reactions for handled events
-    virtual void react( const SelectViewEvent& ) {}
+    virtual void react( const MousePressEvent& ) {}
     virtual void react( const TurnOnAnnotationMode& ) {}
     virtual void react( const TurnOffAnnotationMode& ) {}
+
+    AppData* m_appData = nullptr;
 
     /// Selected view UID
     static std::optional<uuids::uuid> m_selectedViewUid;
@@ -89,7 +102,7 @@ class ViewBeingSelectedState : public AnnotationStateMachine
 {
     void entry() override;
 
-    void react( const SelectViewEvent& ) override;
+    void react( const MousePressEvent& ) override;
     void react( const TurnOffAnnotationMode& ) override;
 };
 
@@ -102,7 +115,7 @@ class ViewSelectedState : public AnnotationStateMachine
     void entry() override;
     void exit() override;
 
-    void react( const SelectViewEvent& ) override;
+    void react( const MousePressEvent& ) override;
     void react( const TurnOffAnnotationMode& ) override;
 };
 

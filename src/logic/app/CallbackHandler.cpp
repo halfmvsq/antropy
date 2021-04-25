@@ -13,7 +13,6 @@
 #include "logic/states/FsmList.hpp"
 
 #include "rendering/Rendering.h"
-
 #include "windowing/GlfwWrapper.h"
 
 #include <GridCut/GridGraph_3D_6C.h>
@@ -319,7 +318,7 @@ void CallbackHandler::recenterView(
                 sk_resetObliqueOrientation );
 }
 
-void CallbackHandler::doCrosshairsMove( const ViewHitData& hit )
+void CallbackHandler::doCrosshairsMove( const ViewHit& hit )
 {
     if ( ! checkAndSetActiveView( hit.viewUid ) ) return;
 
@@ -327,7 +326,7 @@ void CallbackHandler::doCrosshairsMove( const ViewHitData& hit )
 }
 
 void CallbackHandler::doCrosshairsScroll(
-        const ViewHitData& hit,
+        const ViewHit& hit,
         const glm::vec2& scrollOffset )
 {
     const float scrollDistance = data::sliceScrollDistance(
@@ -350,7 +349,7 @@ void CallbackHandler::doCrosshairsScroll(
     m_appData.state().setWorldCrosshairsPos( glm::vec3{ worldPos } );
 }
 
-void CallbackHandler::doSegment( const ViewHitData& hit, bool swapFgAndBg )
+void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
 {
     static const glm::ivec3 sk_voxelZero{ 0, 0, 0 };
 
@@ -456,7 +455,7 @@ void CallbackHandler::doSegment( const ViewHitData& hit, bool swapFgAndBg )
     }
 }
 
-void CallbackHandler::doAnnotate( const ViewHitData& hit )
+void CallbackHandler::doAnnotate( const ViewHit& hit )
 {
     if ( ASM::is_in_state<state::AnnotationOffState>() ) return;
     if ( ! ASM::current_state_ptr ) return;
@@ -561,7 +560,7 @@ void CallbackHandler::doAnnotate( const ViewHitData& hit )
 //    }
 }
 
-void CallbackHandler::doWindowLevel( const ViewHitData& prevHit, const ViewHitData& currHit )
+void CallbackHandler::doWindowLevel( const ViewHit& prevHit, const ViewHit& currHit )
 {
     if ( ! currHit.view ) return;
 
@@ -604,7 +603,7 @@ void CallbackHandler::doWindowLevel( const ViewHitData& prevHit, const ViewHitDa
 }
 
 
-void CallbackHandler::doOpacity( const ViewHitData& prevHit, const ViewHitData& currHit )
+void CallbackHandler::doOpacity( const ViewHit& prevHit, const ViewHit& currHit )
 {
     static constexpr double sk_opMin = 0.0;
     static constexpr double sk_opMax = 1.0;
@@ -637,9 +636,9 @@ void CallbackHandler::doOpacity( const ViewHitData& prevHit, const ViewHitData& 
 }
 
 void CallbackHandler::doCameraTranslate2d(
-        const ViewHitData& startHit,
-        const ViewHitData& prevHit,
-        const ViewHitData& currHit )
+        const ViewHit& startHit,
+        const ViewHit& prevHit,
+        const ViewHit& currHit )
 {
     const glm::vec3 worldOrigin = m_appData.state().worldCrosshairs().worldOrigin();
 
@@ -683,9 +682,9 @@ void CallbackHandler::doCameraTranslate2d(
 }
 
 void CallbackHandler::doCameraRotate2d(
-        const ViewHitData& startHit,
-        const ViewHitData& prevHit,
-        const ViewHitData& currHit )
+        const ViewHit& startHit,
+        const ViewHit& prevHit,
+        const ViewHit& currHit )
 {
     View* viewToRotate = startHit.view;
     if ( ! viewToRotate ) return;
@@ -739,9 +738,9 @@ void CallbackHandler::doCameraRotate2d(
 }
 
 void CallbackHandler::doCameraRotate3d(
-        const ViewHitData& startHit,
-        const ViewHitData& prevHit,
-        const ViewHitData& currHit,
+        const ViewHit& startHit,
+        const ViewHit& prevHit,
+        const ViewHit& currHit,
         const std::optional<AxisConstraint>& constraint )
 {
     View* viewToRotate = startHit.view;
@@ -897,9 +896,9 @@ void CallbackHandler::handleSetViewForwardDirection(
 }
 
 void CallbackHandler::doCameraZoomDrag(
-        const ViewHitData& startHit,
-        const ViewHitData& prevHit,
-        const ViewHitData& currHit,
+        const ViewHit& startHit,
+        const ViewHit& prevHit,
+        const ViewHit& currHit,
         const ZoomBehavior& zoomBehavior,
         bool syncZoomForAllViews )
 {
@@ -974,7 +973,7 @@ void CallbackHandler::doCameraZoomDrag(
 }
 
 void CallbackHandler::doCameraZoomScroll(
-        const ViewHitData& hit,
+        const ViewHit& hit,
         const glm::vec2& scrollOffset,
         const ZoomBehavior& zoomBehavior,
         bool syncZoomForAllViews )
@@ -1051,7 +1050,7 @@ void CallbackHandler::doCameraZoomScroll(
     }
 }
 
-void CallbackHandler::scrollViewSlice( const ViewHitData& hit, int numSlices )
+void CallbackHandler::scrollViewSlice( const ViewHit& hit, int numSlices )
 {
     if ( checkAndSetActiveView( hit.viewUid ) ) return;
 
@@ -1066,9 +1065,9 @@ void CallbackHandler::scrollViewSlice( const ViewHitData& hit, int numSlices )
 }
 
 void CallbackHandler::doImageTranslate(
-        const ViewHitData& startHit,
-        const ViewHitData& prevHit,
-        const ViewHitData& currHit,
+        const ViewHit& startHit,
+        const ViewHit& prevHit,
+        const ViewHit& currHit,
         bool inPlane )
 {
     View* viewToUse = startHit.view;
@@ -1135,9 +1134,9 @@ void CallbackHandler::doImageTranslate(
 }
 
 void CallbackHandler::doImageRotate(
-        const ViewHitData& startHit,
-        const ViewHitData& prevHit,
-        const ViewHitData& currHit,
+        const ViewHit& startHit,
+        const ViewHit& prevHit,
+        const ViewHit& currHit,
         bool inPlane )
 {
     View* viewToUse = startHit.view;
@@ -1206,9 +1205,9 @@ void CallbackHandler::doImageRotate(
 }
 
 void CallbackHandler::doImageScale(
-        const ViewHitData& startHit,
-        const ViewHitData& prevHit,
-        const ViewHitData& currHit,
+        const ViewHit& startHit,
+        const ViewHit& prevHit,
+        const ViewHit& currHit,
         bool constrainIsotropic )
 {
     static const glm::vec3 sk_zero( 0.0f, 0.0f, 0.0f );
@@ -1497,7 +1496,7 @@ void CallbackHandler::setShowOverlays( bool show )
 }
 
 void CallbackHandler::moveCrosshairsOnViewSlice(
-        const ViewHitData& hit, int stepX, int stepY )
+        const ViewHit& hit, int stepX, int stepY )
 {
     if ( ! hit.view ) return;
 
@@ -1576,96 +1575,6 @@ bool CallbackHandler::syncManualImageTransformationOnSegs( const uuids::uuid& im
     }
 
     return true;
-}
-
-
-std::optional<CallbackHandler::ViewHitData>
-CallbackHandler::getViewHit(
-        const glm::vec2& windowPos,
-        const std::optional<uuids::uuid>& viewUidForOverride )
-{
-    ViewHitData hit;
-
-    if ( const auto viewUid = m_appData.windowData().currentViewUidAtCursor( windowPos ) )
-    {
-        // Hit a view
-        hit.viewUid = *viewUid;
-    }
-    else if ( viewUidForOverride )
-    {
-        // Did not hit a view, so use the override view
-        hit.viewUid = *viewUidForOverride;
-    }
-    else
-    {
-        // Did not hit a view and no override provided, so return null
-        return std::nullopt;
-    }
-
-    hit.view = m_appData.windowData().getCurrentView( hit.viewUid );
-
-    if ( ! hit.view )
-    {
-        // Invalid view
-        return std::nullopt;
-    }
-
-    // View to use for transformations. Use the override if provided:
-    const View* txView = ( viewUidForOverride )
-            ? m_appData.windowData().getCurrentView( *viewUidForOverride )
-            : hit.view;
-
-    if ( ! txView )
-    {
-        // Invalid view
-        return std::nullopt;
-    }
-
-    if ( camera::ViewRenderMode::Disabled == hit.view->renderMode() )
-    {
-        return std::nullopt;
-    }
-
-    hit.worldFrontAxis = camera::worldDirection( txView->camera(), Directions::View::Front );
-
-    const glm::vec4 winClipPos(
-                camera::windowNdc_T_window( m_appData.windowData().viewport(), windowPos ),
-                txView->clipPlaneDepth(), 1.0f );
-
-    hit.windowClipPos = glm::vec2{ winClipPos };
-
-    glm::vec4 viewClipPos = txView->viewClip_T_windowClip() * winClipPos;
-    viewClipPos /= viewClipPos.w;
-
-    hit.viewClipPos = glm::vec2{ viewClipPos };
-
-    const glm::mat4 world_T_clip = camera::world_T_clip( txView->camera() );
-
-    // Apply view's offset from crosshairs in order to calculate the view plane position:
-    const float offsetDist = data::computeViewOffsetDistance(
-                m_appData, txView->offsetSetting(), hit.worldFrontAxis );
-
-    const glm::vec4 offset{ offsetDist * hit.worldFrontAxis, 0.0f };
-
-    glm::vec4 worldPos = world_T_clip * viewClipPos;
-    worldPos = worldPos / worldPos.w;
-
-    hit.worldPos_offsetApplied = worldPos;
-
-    // Note: This undoes the offset, so that lightbox views don't shift.
-    hit.worldPos = worldPos - offset;
-
-    if ( m_appData.renderData().m_snapCrosshairsToReferenceVoxels )
-    {
-        if ( const Image* refImg = m_appData.refImage() )
-        {
-            /// @todo Put in one place
-            hit.worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter(
-                        *refImg, hit.worldPos ), 1.0f };
-        }
-    }
-
-    return hit;
 }
 
 

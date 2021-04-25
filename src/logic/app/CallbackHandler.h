@@ -2,13 +2,11 @@
 #define CALLBACK_HANDLER_H
 
 #include "common/Types.h"
+#include "logic/interaction/ViewHit.h"
 
 #include <uuid.h>
 
 #include <glm/fwd.hpp>
-#include <glm/vec2.hpp>
-#include <glm/vec3.hpp>
-#include <glm/vec4.hpp>
 
 
 class AppData;
@@ -28,29 +26,6 @@ public:
 
     CallbackHandler( AppData&, GlfwWrapper&, Rendering& );
     ~CallbackHandler() = default;
-
-
-    /**
-     * @brief When a view is hit by a mouse/pointer click, this structure is used to
-     * return data about the view that was hit, including its ID, a reference to the view,
-     * and the hit position in Clip space of the view.
-     */
-    struct ViewHitData
-    {
-        /// @todo Make this a reference so that we never have to check for null!!!
-        View* view = nullptr;
-        uuids::uuid viewUid;
-
-        glm::vec2 windowClipPos;
-        glm::vec2 viewClipPos;
-        glm::vec4 worldPos;
-        glm::vec4 worldPos_offsetApplied;
-        glm::vec3 worldFrontAxis;
-    };
-
-    std::optional<ViewHitData> getViewHit(
-            const glm::vec2& windowPos,
-            const std::optional<uuids::uuid>& viewUidForOverride = std::nullopt );
 
     /**
      * @brief Clears all voxels in a segmentation, setting them to 0
@@ -76,14 +51,14 @@ public:
      * @param windowLastPos
      * @param windowCurrPos
      */
-    void doCrosshairsMove( const ViewHitData& hit );
+    void doCrosshairsMove( const ViewHit& hit );
 
     /**
      * @brief Scroll the crosshairs
      * @param windowCurrPos
      * @param scrollOffset
      */
-    void doCrosshairsScroll( const ViewHitData& hit, const glm::vec2& scrollOffset );
+    void doCrosshairsScroll( const ViewHit& hit, const glm::vec2& scrollOffset );
 
     /**
      * @brief Segment the image
@@ -91,28 +66,28 @@ public:
      * @param windowCurrPos
      * @param leftButton
      */
-    void doSegment( const ViewHitData& hit, bool swapFgAndBg );
+    void doSegment( const ViewHit& hit, bool swapFgAndBg );
 
     /**
      * @brief doAnnotate
      * @param windowLastPos
      * @param windowCurrPos
      */
-    void doAnnotate( const ViewHitData& hit );
+    void doAnnotate( const ViewHit& hit );
 
     /**
      * @brief Adjust image window/level
      * @param windowLastPos
      * @param windowCurrPos
      */
-    void doWindowLevel( const ViewHitData& prevHit, const ViewHitData& currHit );
+    void doWindowLevel( const ViewHit& prevHit, const ViewHit& currHit );
 
     /**
      * @brief Adjust image opacity
      * @param windowLastPos
      * @param windowCurrPos
      */
-    void doOpacity( const ViewHitData& prevHit, const ViewHitData& currHit );
+    void doOpacity( const ViewHit& prevHit, const ViewHit& currHit );
 
     /**
      * @brief 2D translation of the camera (panning)
@@ -121,9 +96,9 @@ public:
      * @param windowStartPos
      */
     void doCameraTranslate2d(
-            const ViewHitData& startHit,
-            const ViewHitData& prevHit,
-            const ViewHitData& currHit );
+            const ViewHit& startHit,
+            const ViewHit& prevHit,
+            const ViewHit& currHit );
 
     /**
      * @brief 2D rotation of the camera
@@ -132,9 +107,9 @@ public:
      * @param windowStartPos
      */
     void doCameraRotate2d(
-            const ViewHitData& startHit,
-            const ViewHitData& prevHit,
-            const ViewHitData& currHit );
+            const ViewHit& startHit,
+            const ViewHit& prevHit,
+            const ViewHit& currHit );
 
     /**
      * @brief 3D rotation of the camera
@@ -144,9 +119,9 @@ public:
      * @param constraint
      */
     void doCameraRotate3d(
-            const ViewHitData& startHit,
-            const ViewHitData& prevHit,
-            const ViewHitData& currHit,
+            const ViewHit& startHit,
+            const ViewHit& prevHit,
+            const ViewHit& currHit,
             const std::optional<AxisConstraint>& constraint );
 
     /**
@@ -175,9 +150,9 @@ public:
      * @param syncZoomForAllViews
      */
     void doCameraZoomDrag(
-            const ViewHitData& startHit,
-            const ViewHitData& prevHit,
-            const ViewHitData& currHit,
+            const ViewHit& startHit,
+            const ViewHit& prevHit,
+            const ViewHit& currHit,
             const ZoomBehavior& zoomBehavior,
             bool syncZoomForAllViews );
 
@@ -189,7 +164,7 @@ public:
      * @param syncZoomForAllViews
      */
     void doCameraZoomScroll(
-            const ViewHitData& hit,
+            const ViewHit& hit,
             const glm::vec2& scrollOffset,
             const ZoomBehavior& zoomBehavior,
             bool syncZoomForAllViews );
@@ -202,9 +177,9 @@ public:
      * @param inPlane
      */
     void doImageRotate(
-            const ViewHitData& startHit,
-            const ViewHitData& prevHit,
-            const ViewHitData& currHit,
+            const ViewHit& startHit,
+            const ViewHit& prevHit,
+            const ViewHit& currHit,
             bool inPlane );
 
     /**
@@ -215,9 +190,9 @@ public:
      * @param inPlane
      */
     void doImageTranslate(
-            const ViewHitData& startHit,
-            const ViewHitData& prevHit,
-            const ViewHitData& currHit,
+            const ViewHit& startHit,
+            const ViewHit& prevHit,
+            const ViewHit& currHit,
             bool inPlane );
 
     /**
@@ -228,9 +203,9 @@ public:
      * @param constrainIsotropic
      */
     void doImageScale(
-            const ViewHitData& startHit,
-            const ViewHitData& prevHit,
-            const ViewHitData& currHit,
+            const ViewHit& startHit,
+            const ViewHit& prevHit,
+            const ViewHit& currHit,
             bool constrainIsotropic );
 
     /**
@@ -238,7 +213,7 @@ public:
      * @param windowCurrPos
      * @param numSlices
      */
-    void scrollViewSlice( const ViewHitData& hit, int numSlices );
+    void scrollViewSlice( const ViewHit& hit, int numSlices );
 
     /**
      * @brief moveCrosshairsOnViewSlice
@@ -246,7 +221,7 @@ public:
      * @param stepX
      * @param stepY
      */
-    void moveCrosshairsOnViewSlice( const ViewHitData& hit, int stepX, int stepY );
+    void moveCrosshairsOnViewSlice( const ViewHit& hit, int stepX, int stepY );
 
     /**
      * @brief Recenter all views on the selected images. Optionally recenter crosshairs there too.
