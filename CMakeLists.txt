@@ -352,8 +352,10 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/logic/camera/OrthogonalProjection.cpp
     ${SRC_DIR}/logic/camera/PerspectiveProjection.cpp
     ${SRC_DIR}/logic/camera/Projection.cpp
+
     ${SRC_DIR}/logic/interaction/ViewHit.cpp
     ${SRC_DIR}/logic/interaction/events/ButtonState.cpp
+
     ${SRC_DIR}/logic/serialization/ProjectSerialization.cpp
     ${SRC_DIR}/logic/states/AnnotationStateMachine.cpp
 

@@ -360,15 +360,15 @@ void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    const auto hit = getViewHit( app->appData(), windowCursorPos );
-    if ( ! hit ) return;
+    const auto hit_invalidOutsideView = getViewHit( app->appData(), windowCursorPos );
+    if ( ! hit_invalidOutsideView ) return;
 
     // Send event to the annotation state machine
     switch ( action )
     {
     case GLFW_PRESS:
     {
-        send_event( state::MousePressEvent( *hit ) );
+        send_event( state::MousePressEvent( *hit_invalidOutsideView ) );
         break;
     }
     case GLFW_RELEASE:
@@ -376,7 +376,7 @@ void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
         // app->state().setMouseMode( MouseMode::Nothing );
         app->appData().windowData().setActiveViewUid( std::nullopt );
 
-        send_event( state::MouseReleaseEvent( *hit ) );
+        send_event( state::MouseReleaseEvent( *hit_invalidOutsideView ) );
         break;
     }
     default: break;
@@ -407,8 +407,8 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    const auto hit = getViewHit( app->appData(), windowCursorPos, std::nullopt );
-    if ( ! hit ) return;
+    const auto hit_invalidOutsideView = getViewHit( app->appData(), windowCursorPos );
+    if ( ! hit_invalidOutsideView ) return;
 
     CallbackHandler& handler = app->callbackHandler();
 
@@ -423,12 +423,14 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     case MouseMode::ImageScale:
     case MouseMode::WindowLevel:
     {
-        handler.doCrosshairsScroll( *hit, { scrollOffsetX, scrollOffsetY } );
+        handler.doCrosshairsScroll( *hit_invalidOutsideView,
+                                    { scrollOffsetX, scrollOffsetY } );
         break;
     }
     case MouseMode::CameraZoom:
     {
-        handler.doCameraZoomScroll( *hit, { scrollOffsetX, scrollOffsetY },
+        handler.doCameraZoomScroll( *hit_invalidOutsideView,
+                                    { scrollOffsetX, scrollOffsetY },
                                     ZoomBehavior::ToCrosshairs,
                                     syncZoomsForAllViews( s_modifierState ) );
         break;
@@ -436,12 +438,14 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     case MouseMode::Annotate:
     {
         // Disable scrolling while annotating:
+        /// @todo Make this specific to when the user is actually doing annotation!
         if ( ! ASM::is_in_state<state::AnnotationOffState>() )
         {
             break;
         }
 
-        handler.doCrosshairsScroll( *hit, { scrollOffsetX, scrollOffsetY } );
+        handler.doCrosshairsScroll( *hit_invalidOutsideView,
+                                    { scrollOffsetX, scrollOffsetY } );
         break;
     }
     }
@@ -473,7 +477,7 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
-    const auto hit = getViewHit( app->appData(), windowCursorPos );
+    const auto hit_invalidOutsideView = getViewHit( app->appData(), windowCursorPos );
 
     CallbackHandler& handler = app->callbackHandler();
 
@@ -524,8 +528,8 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
         }
         else
         {
-            if ( ! hit ) break;
-            handler.scrollViewSlice( *hit, -1 );
+            if ( ! hit_invalidOutsideView ) break;
+            handler.scrollViewSlice( *hit_invalidOutsideView, -1 );
         }
 
         break;
@@ -538,34 +542,34 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
         }
         else
         {
-            if ( ! hit ) break;
-            handler.scrollViewSlice( *hit, 1 );
+            if ( ! hit_invalidOutsideView ) break;
+            handler.scrollViewSlice( *hit_invalidOutsideView, 1 );
         }
 
         break;
     }
     case GLFW_KEY_LEFT:
     {
-        if ( ! hit ) break;
-        handler.moveCrosshairsOnViewSlice( *hit, -1, 0 );
+        if ( ! hit_invalidOutsideView ) break;
+        handler.moveCrosshairsOnViewSlice( *hit_invalidOutsideView, -1, 0 );
         break;
     }
     case GLFW_KEY_RIGHT:
     {
-        if ( ! hit ) break;
-        handler.moveCrosshairsOnViewSlice( *hit, 1, 0 );
+        if ( ! hit_invalidOutsideView ) break;
+        handler.moveCrosshairsOnViewSlice( *hit_invalidOutsideView, 1, 0 );
         break;
     }
     case GLFW_KEY_UP:
     {
-        if ( ! hit ) break;
-        handler.moveCrosshairsOnViewSlice( *hit, 0, 1 );
+        if ( ! hit_invalidOutsideView ) break;
+        handler.moveCrosshairsOnViewSlice( *hit_invalidOutsideView, 0, 1 );
         break;
     }
     case GLFW_KEY_DOWN:
     {
-        if ( ! hit ) break;
-        handler.moveCrosshairsOnViewSlice( *hit, 0, -1 );
+        if ( ! hit_invalidOutsideView ) break;
+        handler.moveCrosshairsOnViewSlice( *hit_invalidOutsideView, 0, -1 );
         break;
     }
 
