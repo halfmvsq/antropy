@@ -20,8 +20,14 @@
 
 
 /**
- * @brief A planar, closed polygon of any winding order that can have multiple holes.
- * Each polygon vertex is parameterized in 2D, but it may represent a point in 3D.
+ * @brief A polygon of any winding order that can have multiple holes inside of an outer boundary.
+ * The planarity of the polygon is not enforced: that is the reponsibility of the user.
+ * The polygon's outer boundary can be either open or closed. By definition, all holes
+ * must be closed boundaries. If a polygon boundary is specified as closed, then it is assumed
+ * that its last vertex is connected by an edge to the first vertex. The user need NOT specify
+ * a final vertex that is identical to the first vertex. For example, a closed triangular polygon
+ * can be defined with exactly three vertices.
+ *
  * The polygon can have a triangulation that uses only its original vertices.
  *
  * @tparam TComp Vertex component type
@@ -32,10 +38,10 @@ class AnnotPolygon
 {
 public:
 
-    /// Vertex point type (use GLM)
+    /// Vertex point type
     using PointType = glm::vec<Dim, TComp, glm::highp>;
 
-    /// Axis-aligned bounding box type (2D bounding box)
+    /// Axis-aligned bounding box type
     using AABBoxType = AABB_N<Dim, TComp>;
 
 
@@ -44,12 +50,26 @@ public:
         :
           m_vertices(),
           m_triangulation(),
+          m_closed( false ),
           m_currentUid(),
           m_aabb( std::nullopt ),
           m_centroid( 0 )
     {}
 
     ~AnnotPolygon() = default;
+
+
+    /// Set whether the polygon's outer boundary is open or closed. If closed, then it is assumed
+    /// that the last vertex conntects to the first vertex.
+    void setClosed( bool closed )
+    {
+        m_closed = closed;
+    }
+
+    bool isClosed() const
+    {
+        return m_closed;
+    }
 
 
     /// Set all vertices of the polygon. The first vector defines the main (outer) polygon boundary;
@@ -98,7 +118,7 @@ public:
 
 
     /// Add a vertex to a given boundary, where 0 refers to the outer boundary;
-    /// boundaries >= 1 are for holds
+    /// boundaries >= 1 are for holes
     bool addVertexToBoundary( size_t boundary, PointType vertex )
     {
         if ( boundary >= m_vertices.size() )
@@ -190,8 +210,8 @@ public:
     }
 
 
-    /// Get all vertices of a given boundary, where 0 refers to the outer boundary; boundaries >= 1
-    /// are holes.
+    /// Get all vertices of a given boundary, where 0 refers to the outer boundary;
+    /// boundaries >= 1 are holes.
     /// @return Empty vector if invalid boundary
     const std::vector<PointType>& getBoundaryVertices( size_t boundary ) const
     {
@@ -444,6 +464,9 @@ private:
     /// Vector of indices that refer to the vertices of the input polygon. Three consecutive indices
     /// form a clockwise triangle.
     std::vector<size_t> m_triangulation;
+
+    /// Flag indicating whether the outer boundary of the polygon is closed or open.
+    bool m_closed;
 
     /// A unique ID that is re-generated every time anything changes for this polygon,
     /// including vertices and triangulation.

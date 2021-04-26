@@ -1,8 +1,7 @@
 #include "logic/annotation/Annotation.h"
+#include "logic/camera/MathUtility.h"
 
 #include "common/Exception.hpp"
-
-#include "logic/camera/MathUtility.h"
 
 #include <glm/glm.hpp>
 
@@ -30,9 +29,13 @@ Annotation::Annotation(
       m_layer( 0 ),
       m_maxLayer( 0 ),
       m_visibility( true ),
-      m_opacity( sk_defaultOpacity ),
-      m_color{ std::move( color ) },
+
+      m_lineOpacity( sk_defaultOpacity ),
+      m_lineColor{ std::move( color ) },
       m_lineThickness( sk_defaultThickness ),
+
+      m_fillOpacity( sk_defaultOpacity ),
+      m_fillColor{ std::move( color ) },
 
       m_subjectPlaneEquation{ 1.0f, 0.0f, 0.0f, 0.0f },
       m_subjectPlaneOrigin{ 0.0f, 0.0f, 0.0f },
@@ -156,27 +159,27 @@ bool Annotation::getVisibility() const
     return m_visibility;
 }
 
-void Annotation::setOpacity( float opacity )
+void Annotation::setLineOpacity( float opacity )
 {
     if ( 0.0f <= opacity && opacity <= 1.0f )
     {
-        m_opacity = opacity;
+        m_lineOpacity = opacity;
     }
 }
 
-float Annotation::getOpacity() const
+float Annotation::getLineOpacity() const
 {
-    return m_opacity;
+    return m_lineOpacity;
 }
 
-void Annotation::setColor( glm::vec3 color )
+void Annotation::setLineColor( glm::vec3 color )
 {
-    m_color = std::move( color );
+    m_lineColor = std::move( color );
 }
 
-const glm::vec3& Annotation::getColor() const
+const glm::vec3& Annotation::getLineColor() const
 {
-    return m_color;
+    return m_lineColor;
 }
 
 void Annotation::setLineThickness( float thickness )
@@ -190,6 +193,29 @@ void Annotation::setLineThickness( float thickness )
 float Annotation::getLineThickness() const
 {
     return m_lineThickness;
+}
+
+void Annotation::setFillOpacity( float opacity )
+{
+    if ( 0.0f <= opacity && opacity <= 1.0f )
+    {
+        m_fillOpacity = opacity;
+    }
+}
+
+float Annotation::getFillOpacity() const
+{
+    return m_fillOpacity;
+}
+
+void Annotation::setFillColor( glm::vec3 color )
+{
+    m_fillColor = std::move( color );
+}
+
+const glm::vec3& Annotation::getFillColor() const
+{
+    return m_fillColor;
 }
 
 const glm::vec4& Annotation::getSubjectPlaneEquation() const

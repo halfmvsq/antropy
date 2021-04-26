@@ -2066,19 +2066,19 @@ void renderAnnotationsHeader(
 
 
     // Opacity slider:
-    float annotOpacity = activeAnnot->getOpacity();
+    float annotOpacity = activeAnnot->getLineOpacity();
     if ( mySliderF32( "Opacity", &annotOpacity, 0.0f, 1.0f ) )
     {
-        activeAnnot->setOpacity( annotOpacity );
+        activeAnnot->setLineOpacity( annotOpacity );
     }
     ImGui::SameLine(); helpMarker( "Annotation opacity" );
 
 
     // Color:
-    glm::vec3 annotColor = activeAnnot->getColor();
+    glm::vec3 annotColor = activeAnnot->getLineColor();
     if ( ImGui::ColorEdit3( "Color", glm::value_ptr( annotColor ), sk_annotColorEditFlags ) )
     {
-        activeAnnot->setColor( annotColor );
+        activeAnnot->setLineColor( annotColor );
     }
     ImGui::SameLine(); helpMarker( "Set the annotation color" );
 

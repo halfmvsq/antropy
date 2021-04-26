@@ -24,7 +24,10 @@ class AppData;
 
 /**
  * @brief An image annotation, which (for now) is a closed, planar polygon with vertices
- * defined with 2D coordinates. The annotation plane is defined in the image's Subject coordinate system.
+ * defined with 2D coordinates. Note: Each polygon vertex is parameterized in 2D,
+ * but it may represent a point in 3D.
+ *
+ * The annotation plane is defined in the image's Subject coordinate system.
  *
  * @todo Layering
  * @todo Text and regular shape annotations
@@ -88,17 +91,26 @@ public:
     void setVisibility( bool visibility );
     bool getVisibility() const;
 
-    /// @brief Set/get the annotation opacity in range [0.0, 1.0]
-    void setOpacity( float opacity );
-    float getOpacity() const;
+    /// @brief Set/get the annotation line opacity in range [0.0, 1.0]
+    void setLineOpacity( float opacity );
+    float getLineOpacity() const;
 
-    /// @brief Set/get the annotation color (non-premultiplied RGB)
-    void setColor( glm::vec3 color );
-    const glm::vec3& getColor() const;
+    /// @brief Set/get the annotation line color (non-premultiplied RGB)
+    void setLineColor( glm::vec3 color );
+    const glm::vec3& getLineColor() const;
 
     /// @brief Set/get the annotation line stroke thickness
     void setLineThickness( float thickness );
     float getLineThickness() const;
+
+    /// @brief Set/get the annotation fill opacity in range [0.0, 1.0]
+    void setFillOpacity( float opacity );
+    float getFillOpacity() const;
+
+    /// @brief Set/get the annotation fill color (non-premultiplied RGB)
+    void setFillColor( glm::vec3 color );
+    const glm::vec3& getFillColor() const;
+
 
     /// @brief Get the annotation plane equation in Subject space
     const glm::vec4& getSubjectPlaneEquation() const;
@@ -152,14 +164,20 @@ private:
     /// Annotation visibility
     bool m_visibility;
 
-    /// Annotation opacity in [0.0, 1.0] range
-    float m_opacity;
+    /// Annotation line opacity in [0.0, 1.0] range
+    float m_lineOpacity;
 
-    /// Annotation color (non-premultiplied RGB triple)
-    glm::vec3 m_color;
+    /// Annotation line color (non-premultiplied RGB triple)
+    glm::vec3 m_lineColor;
 
     /// Annotation line thickness
     float m_lineThickness;
+
+    /// Annotation fill opacity in [0.0, 1.0] range
+    float m_fillOpacity;
+
+    /// Annotation fill color (non-premultiplied RGB triple)
+    glm::vec3 m_fillColor;
 
     /// Equation of the 3D plane containing this annotation. The plane is defined by the
     /// coefficients (A, B, C, D) of equation Ax + By + Cz + D = 0, where (x, y, z) are

@@ -820,8 +820,8 @@ void drawAnnotations(
 
         /// @todo Should annotation opacity be modulated with image opacity?
         /// Landmarks opacity is not.
-        const glm::vec3 color = annot->getColor();
-        const float opacity = annot->getOpacity() * static_cast<float>( img->settings().opacity() );
+        const glm::vec3 color = annot->getLineColor();
+        const float opacity = annot->getLineOpacity() * static_cast<float>( img->settings().opacity() );
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
         nvgStrokeWidth( nvg, annot->getLineThickness() );
