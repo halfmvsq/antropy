@@ -1337,17 +1337,29 @@ void Rendering::renderVectorOverlays()
                 drawAnatomicalLabels( m_nvg, miewportViewBounds, m_appData.renderData().m_anatomicalLabelColor, labelPosInfo );
             }
 
-            bool viewIsSelectedForAnnotating = false;
+
+            ViewOutlineMode outlineMode = ViewOutlineMode::None;
 
             if ( ASM::current_state_ptr )
             {
-                if ( const auto selectedViewUid = ASM::current_state_ptr->selectedViewUid() )
+                if ( const auto hoveredViewUid = ASM::current_state_ptr->m_hoveredViewUid )
                 {
-                    viewIsSelectedForAnnotating = ( viewUid == *selectedViewUid );
+                    if ( ( viewUid == *hoveredViewUid ) )
+                    {
+                        outlineMode = ViewOutlineMode::Hovered;
+                    }
+                }
+
+                if ( const auto selectedViewUid = ASM::current_state_ptr->m_selectedViewUid )
+                {
+                    if ( ( viewUid == *selectedViewUid ) )
+                    {
+                        outlineMode = ViewOutlineMode::Selected;
+                    }
                 }
             }
 
-            drawViewOutline( m_nvg, miewportViewBounds, viewIsSelectedForAnnotating );
+            drawViewOutline( m_nvg, miewportViewBounds, outlineMode );
         }
 
         drawWindowOutline( m_nvg, windowVP );

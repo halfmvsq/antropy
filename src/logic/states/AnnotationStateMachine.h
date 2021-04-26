@@ -2,11 +2,10 @@
 #define VIEW_SELECTION_STATE_MACHINE_H
 
 #include "logic/interaction/ViewHit.h"
+#include "logic/interaction/events/ButtonState.h"
 
 #include <tinyfsm.hpp>
 #include <uuid.h>
-
-#include <memory>
 #include <optional>
 
 class AppData;
@@ -17,26 +16,46 @@ namespace state
 
 /*** Begin event declarations ***/
 
-/// Mouse pointer pressed
-struct MousePressEvent : public tinyfsm::Event
+struct MouseEvent : public tinyfsm::Event
 {
-    MousePressEvent( const ViewHit& h ) : hit( h ) {}
-    const ViewHit& hit; //!< View hit information for this event
+    MouseEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
+        : hit( h ), buttonState( b ), modifierState( m ) {}
+
+    virtual ~MouseEvent() = default;
+
+    const ViewHit hit; //!< View hit information for this event
+    const ButtonState buttonState; //!< Mouse button state
+    const ModifierState modifierState; //!< Keyboard modifier state
+};
+
+
+/// Mouse pointer pressed
+struct MousePressEvent : public MouseEvent
+{
+    MousePressEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
+        : MouseEvent( h, b, m ) {}
+
+    ~MousePressEvent() override = default;
 };
 
 /// Mouse pointer released
-struct MouseReleaseEvent : public tinyfsm::Event
+struct MouseReleaseEvent : public MouseEvent
 {
-    MouseReleaseEvent( const ViewHit& h ) : hit( h ) {}
-    const ViewHit& hit; //!< View hit information for this event
+    MouseReleaseEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
+        : MouseEvent( h, b, m ) {}
+
+    ~MouseReleaseEvent() override = default;
 };
 
 /// Mouse pointer moved
-struct MouseMoveEvent : public tinyfsm::Event
+struct MouseMoveEvent : public MouseEvent
 {
-    MouseMoveEvent( const ViewHit& h ) : hit( h ) {}
-    const ViewHit& hit; //!< View hit information for this event
+    MouseMoveEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
+        : MouseEvent( h, b, m ) {}
+
+    ~MouseMoveEvent() override = default;
 };
+
 
 /// User has turned on annotation mode: they want to create/modify annotations
 struct TurnOnAnnotationMode : public tinyfsm::Event {};
@@ -68,10 +87,11 @@ public:
         m_appData = appData;
     }
 
-    const std::optional<uuids::uuid>& selectedViewUid() const
-    {
-        return m_selectedViewUid;
-    }
+    /// Hovered (putatively selected) view UID
+    static std::optional<uuids::uuid> m_hoveredViewUid;
+
+    /// Selected view UID
+    static std::optional<uuids::uuid> m_selectedViewUid;
 
 
 protected:
@@ -94,9 +114,6 @@ protected:
     virtual void react( const TurnOffAnnotationMode& ) {}
 
     AppData* m_appData = nullptr;
-
-    /// Selected view UID
-    static std::optional<uuids::uuid> m_selectedViewUid;
 };
 
 
@@ -124,6 +141,7 @@ class ViewBeingSelectedState : public AnnotationStateMachine
     void entry() override;
 
     void react( const MousePressEvent& ) override;
+    void react( const MouseMoveEvent& ) override;
     void react( const TurnOffAnnotationMode& ) override;
 };
 
@@ -137,6 +155,7 @@ class ViewSelectedState : public AnnotationStateMachine
     void exit() override;
 
     void react( const MousePressEvent& ) override;
+    void react( const MouseMoveEvent& ) override;
     void react( const TurnOffAnnotationMode& ) override;
 };
 

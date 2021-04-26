@@ -8,14 +8,14 @@ Copyright 2021 Penn Image Computing and Science Lab, Department of Radiology, Un
 
 Antropy requires C++17 and build generation uses CMake. It has been built on the following platforms:
 
+* macOS 10.14.6 (with clang 11.0.0)
 * Ubuntu 20.04 (with gcc 9.3.0)
-* macOS 10.14.6 (with Apple clang 11.0.0)
-* Windows 10 (with Microsoft Visual Studio 19)
+* Windows 10 (with MSVC++ 14.26)
 
 Please download and install these libraries:
 
-* ITK 5.1.0
-* Boost 1.66 (header libraries only)
+* ITK (>= 5.1.0)
+* Boost (>= 1.66, header libraries only)
 
 More recent versions of ITK and Boost should also work with potentially minor modification to Antropy code. Please note that from Boost, only the header-only libraries (none of the compiled libraries) are required.
 
@@ -24,7 +24,7 @@ The following libraries and depdencies are brought in as Git submodules to the A
 * argparse (https://github.com/p-ranav/argparse.git)
 * CMake Modules Collection (https://github.com/rpavlik/cmake-modules)
 * CMakeRC (https://github.com/vector-of-bool/cmrc.git)
-* "Dear ImGui" (https://github.com/ocornut/imgui.git)
+* Dear ImGui (https://github.com/ocornut/imgui.git)
 * ghc::filesystem (https://github.com/gulrak/filesystem.git)
 * GLFW (https://github.com/glfw/glfw.git)
 * GLM (https://github.com/g-truc/glm.git)

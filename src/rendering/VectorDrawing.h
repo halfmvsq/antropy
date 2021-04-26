@@ -64,10 +64,17 @@ void drawWindowOutline(
         NVGcontext* nvg,
         const Viewport& windowVP );
 
+enum class ViewOutlineMode
+{
+    Hovered,
+    Selected,
+    None
+};
+
 void drawViewOutline(
         NVGcontext* nvg,
         const camera::FrameBounds& miewportViewBounds,
-        bool drawActiveOutline );
+        const ViewOutlineMode& outlineMode );
 
 void drawImageViewIntersections(
         NVGcontext* nvg,

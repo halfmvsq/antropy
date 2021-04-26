@@ -460,7 +460,7 @@ void CallbackHandler::doAnnotate( const ViewHit& hit )
     if ( ASM::is_in_state<state::AnnotationOffState>() ) return;
     if ( ! ASM::current_state_ptr ) return;
 
-    const auto selectedViewUid = ASM::current_state_ptr->selectedViewUid();
+    const auto selectedViewUid = ASM::current_state_ptr->m_selectedViewUid;
     if ( ! selectedViewUid ) return;
 
     if ( ! checkAndSetActiveView( hit.viewUid ) ) return;
@@ -468,13 +468,20 @@ void CallbackHandler::doAnnotate( const ViewHit& hit )
     // If the user is not in the view selected for annotating, then return
     if ( *selectedViewUid != hit.viewUid ) return;
 
-    // Ok: the pointer is in the view bounds and we're good to go. Make this the active view:
-    m_appData.windowData().setActiveViewUid( hit.viewUid );
-
     // Annotate on the active image
     const auto activeImageUid = m_appData.activeImageUid();
     const Image* activeImage = ( activeImageUid ? m_appData.image( *activeImageUid ) : nullptr );
     if ( ! activeImage ) return;
+
+    if ( 0 == std::count( std::begin( hit.view->visibleImages() ),
+                          std::end( hit.view->visibleImages() ),
+                          *activeImageUid ) )
+    {
+        return; // The active image is not visible
+    }
+
+    // Ok: the pointer is in the view bounds and we're good to go. Make this the active view:
+    m_appData.windowData().setActiveViewUid( hit.viewUid );
 
     // Compute the plane equation in Subjet space. Use the offset World position,
     // so that the user can annotate in any offset view of a lightbox layout.

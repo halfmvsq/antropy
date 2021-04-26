@@ -8,7 +8,8 @@
 namespace state
 {
 
-std::optional<uuids::uuid> AnnotationStateMachine::m_selectedViewUid = std::nullopt;
+std::optional<uuids::uuid> ASM::m_hoveredViewUid = std::nullopt;
+std::optional<uuids::uuid> ASM::m_selectedViewUid = std::nullopt;
 
 
 void AnnotationStateMachine::react( const tinyfsm::Event& )
@@ -36,15 +37,23 @@ void ViewBeingSelectedState::entry()
 
 void ViewBeingSelectedState::react( const MousePressEvent& e )
 {
-    spdlog::trace( "ViewBeingSelectedState::react( const SelectViewEvent& e )" );
+    spdlog::trace( "ViewBeingSelectedState::react( const MousePressEvent& e )" );
+    m_hoveredViewUid = std::nullopt;
     m_selectedViewUid = e.hit.viewUid;
     transit<ViewSelectedState>();
+}
+
+void ViewBeingSelectedState::react( const MouseMoveEvent& e )
+{
+    spdlog::trace( "ViewBeingSelectedState::react( const MouseMoveEvent& e )" );
+    m_hoveredViewUid = e.hit.viewUid;
 }
 
 void ViewBeingSelectedState::react( const TurnOffAnnotationMode& )
 {
     spdlog::trace( "ViewBeingSelectedState::react( const TurnOffAnnotationMode& )" );
     m_selectedViewUid = std::nullopt;
+    m_hoveredViewUid = std::nullopt;
     transit<AnnotationOffState>();
 }
 
@@ -72,8 +81,14 @@ void ViewSelectedState::exit()
 
 void ViewSelectedState::react( const MousePressEvent& e )
 {
-    spdlog::trace( "ViewSelectedState::react( const SelectViewEvent& e )" );
+    spdlog::trace( "ViewSelectedState::react( const MousePressEvent& e )" );
     m_selectedViewUid = e.hit.viewUid;
+}
+
+void ViewSelectedState::react( const MouseMoveEvent& e )
+{
+    spdlog::trace( "ViewSelectedState::react( const MouseMoveEvent& e )" );
+    m_hoveredViewUid = e.hit.viewUid;
 }
 
 void ViewSelectedState::react( const TurnOffAnnotationMode& )

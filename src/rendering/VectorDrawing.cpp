@@ -37,6 +37,7 @@ static const NVGcolor s_grey40( nvgRGBA( 102, 102, 102, 255 ) );
 static const NVGcolor s_grey50( nvgRGBA( 127, 127, 127, 255 ) );
 static const NVGcolor s_grey60( nvgRGBA( 153, 153, 153, 255 ) );
 static const NVGcolor s_grey75( nvgRGBA( 195, 195, 195, 255 ) );
+static const NVGcolor s_yellowDull( nvgRGBA( 128, 128, 0, 255 ) );
 static const NVGcolor s_yellow( nvgRGBA( 255, 255, 0, 255 ) );
 static const NVGcolor s_red( nvgRGBA( 255, 0, 0, 255 ) );
 
@@ -139,7 +140,7 @@ void drawWindowOutline(
 void drawViewOutline(
         NVGcontext* nvg,
         const camera::FrameBounds& miewportViewBounds,
-        bool drawActiveOutline )
+        const ViewOutlineMode& outlineMode )
 {
     static constexpr float k_padOuter = 0.0f;
 //    static constexpr float k_padInner = 2.0f;
@@ -162,13 +163,24 @@ void drawViewOutline(
         nvgStroke( nvg );
     };
 
-
-    if ( drawActiveOutline )
+    switch ( outlineMode )
+    {
+    case ViewOutlineMode::Hovered:
+    {
+        drawRectangle( k_padActive, 2.0f, s_yellowDull );
+        break;
+    }
+    case ViewOutlineMode::Selected:
     {
         drawRectangle( k_padActive, 2.0f, s_yellow );
+        break;
+    }
+    case ViewOutlineMode::None:
+    {
+        break;
+    }
     }
 
-    // View outline:
     drawRectangle( k_padOuter, sk_outlineStrokeWidth, s_grey50 );
 //    drawRectangle( k_padInner, 1.0f, s_grey60 );
 }
