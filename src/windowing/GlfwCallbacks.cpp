@@ -534,7 +534,6 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
             if ( ! hit_invalidOutsideView ) break;
             handler.scrollViewSlice( *hit_invalidOutsideView, -1 );
         }
-
         break;
     }
     case GLFW_KEY_PAGE_UP:
@@ -548,7 +547,6 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
             if ( ! hit_invalidOutsideView ) break;
             handler.scrollViewSlice( *hit_invalidOutsideView, 1 );
         }
-
         break;
     }
     case GLFW_KEY_LEFT:
@@ -578,14 +576,29 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
 
     case GLFW_KEY_LEFT_BRACKET:
     {
-        handler.cyclePrevLayout();
+        if ( s_modifierState.shift )
+        {
+            handler.cycleActiveImage( -1 );
+        }
+        else
+        {
+            handler.cyclePrevLayout();
+        }
         break;
     }
     case GLFW_KEY_RIGHT_BRACKET:
     {
-        handler.cycleNextLayout();
+        if ( s_modifierState.shift )
+        {
+            handler.cycleActiveImage( 1 );
+        }
+        else
+        {
+            handler.cycleNextLayout();
+        }
         break;
     }
+
     case GLFW_KEY_COMMA:
     {
         if ( s_modifierState.shift )

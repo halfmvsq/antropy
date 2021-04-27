@@ -40,7 +40,7 @@ void ViewBeingSelectedState::react( const MousePressEvent& e )
     spdlog::trace( "ViewBeingSelectedState::react( const MousePressEvent& e )" );
     m_hoveredViewUid = std::nullopt;
     m_selectedViewUid = e.hit.viewUid;
-    transit<ViewSelectedState>();
+    transit<ReadyState>();
 }
 
 void ViewBeingSelectedState::react( const MouseMoveEvent& e )
@@ -58,7 +58,7 @@ void ViewBeingSelectedState::react( const TurnOffAnnotationMode& )
 }
 
 
-void ViewSelectedState::entry()
+void ReadyState::entry()
 {
     spdlog::trace( "ViewSelectedState::entry()" );
 
@@ -73,28 +73,68 @@ void ViewSelectedState::entry()
     }
 }
 
-void ViewSelectedState::exit()
+void ReadyState::exit()
 {
     spdlog::trace( "ViewSelectedState::exit()" );
     m_selectedViewUid = std::nullopt;
 }
 
-void ViewSelectedState::react( const MousePressEvent& e )
+void ReadyState::react( const MousePressEvent& e )
 {
     spdlog::trace( "ViewSelectedState::react( const MousePressEvent& e )" );
     m_selectedViewUid = e.hit.viewUid;
 }
 
-void ViewSelectedState::react( const MouseMoveEvent& e )
+void ReadyState::react( const MouseReleaseEvent& /*e*/ )
+{
+    spdlog::trace( "ViewSelectedState::react( const MouseReleaseEvent& e )" );
+}
+
+void ReadyState::react( const MouseMoveEvent& e )
 {
     spdlog::trace( "ViewSelectedState::react( const MouseMoveEvent& e )" );
     m_hoveredViewUid = e.hit.viewUid;
 }
 
-void ViewSelectedState::react( const TurnOffAnnotationMode& )
+void ReadyState::react( const TurnOffAnnotationMode& )
 {
     spdlog::trace( "ViewSelectedState::react( const TurnOffAnnotationMode& )" );
     m_selectedViewUid = std::nullopt;
+    m_hoveredViewUid = std::nullopt;
+    transit<AnnotationOffState>();
+}
+
+
+void VertexSelectedState::entry()
+{
+    spdlog::trace( "VertexSelectedState::entry()" );
+}
+
+void VertexSelectedState::exit()
+{
+    spdlog::trace( "VertexSelectedState::exit()" );
+}
+
+void VertexSelectedState::react( const MousePressEvent& /*e*/ )
+{
+    spdlog::trace( "VertexSelectedState::react( const MousePressEvent& e )" );
+}
+
+void VertexSelectedState::react( const MouseReleaseEvent& /*e*/ )
+{
+    spdlog::trace( "VertexSelectedState::react( const MouseReleaseEvent& e )" );
+}
+
+void VertexSelectedState::react( const MouseMoveEvent& /*e*/ )
+{
+    spdlog::trace( "VertexSelectedState::react( const MouseMoveEvent& e )" );
+}
+
+void VertexSelectedState::react( const TurnOffAnnotationMode& )
+{
+    spdlog::trace( "VertexSelectedState::react( const TurnOffAnnotationMode& )" );
+    m_selectedViewUid = std::nullopt;
+    m_hoveredViewUid = std::nullopt;
     transit<AnnotationOffState>();
 }
 

@@ -6,7 +6,9 @@
 #include "ui/Popups.h"
 #include "ui/Widgets.h"
 
-#include "common/DataHelper.h" // data::roundPointToNearestImageVoxelCenter
+// data::roundPointToNearestImageVoxelCenter
+// data::getAnnotationSubjectPlaneName
+#include "common/DataHelper.h"
 #include "common/MathFuncs.h"
 
 #include "image/Image.h"
@@ -1831,6 +1833,8 @@ void renderAnnotationsHeader(
             ImGuiColorEditFlags_PickerHueBar |
             ImGuiColorEditFlags_DisplayRGB |
             ImGuiColorEditFlags_DisplayHex |
+//            ImGuiColorEditFlags_AlphaBar |
+//            ImGuiColorEditFlags_AlphaPreviewHalf |
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
 
@@ -2005,7 +2009,10 @@ void renderAnnotationsHeader(
                 /// @see Line 2791 of demo:
                 /// ImGui::SetScrollHereY(i * 0.25f); // 0.0f:top, 0.5f:center, 1.0f:bottom
 
-                if ( ImGui::Selectable( annot->getDisplayName().c_str(), isSelected ) )
+                const std::string text = annot->getDisplayName() +
+                        " [" + data::getAnnotationSubjectPlaneName( *annot ) + "]";
+
+                if ( ImGui::Selectable( text.c_str(), isSelected ) )
                 {
                     // Make the annotation active and move crosshairs to it:
                     appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
@@ -2069,23 +2076,33 @@ void renderAnnotationsHeader(
     float annotOpacity = activeAnnot->getLineOpacity();
     if ( mySliderF32( "Opacity", &annotOpacity, 0.0f, 1.0f ) )
     {
+        activeAnnot->setFillOpacity( annotOpacity );
         activeAnnot->setLineOpacity( annotOpacity );
     }
     ImGui::SameLine(); helpMarker( "Annotation opacity" );
 
 
-    // Color:
-    glm::vec3 annotColor = activeAnnot->getLineColor();
-    if ( ImGui::ColorEdit3( "Color", glm::value_ptr( annotColor ), sk_annotColorEditFlags ) )
+    // Fill color:
+    glm::vec3 annotFillColor = activeAnnot->getFillColor();
+    if ( ImGui::ColorEdit3( "Fill color", glm::value_ptr( annotFillColor ), sk_annotColorEditFlags ) )
     {
-        activeAnnot->setLineColor( annotColor );
+        activeAnnot->setFillColor( annotFillColor );
     }
-    ImGui::SameLine(); helpMarker( "Set the annotation color" );
+    ImGui::SameLine(); helpMarker( "Set the annotation fill color" );
+
+
+    // Line color:
+    glm::vec3 annotLineColor = activeAnnot->getLineColor();
+    if ( ImGui::ColorEdit3( "Line color", glm::value_ptr( annotLineColor ), sk_annotColorEditFlags ) )
+    {
+        activeAnnot->setLineColor( annotLineColor );
+    }
+    ImGui::SameLine(); helpMarker( "Set the annotation line color" );
 
 
     // Line stroke thickness:
     float annotThickness = activeAnnot->getLineThickness();
-    if ( ImGui::InputFloat( "Thickness", &annotThickness, 0.1f, 1.0f, "%0.2f" ) )
+    if ( ImGui::InputFloat( "Line thickness", &annotThickness, 0.1f, 1.0f, "%0.2f" ) )
     {
         if ( annotThickness >= 0.0f )
         {
@@ -2096,8 +2113,27 @@ void renderAnnotationsHeader(
     ImGui::Separator();
 
 
+    ImGui::Text( "Boundary:" );
+
+    bool isClosed = activeAnnot->polygon().isClosed();
+    if ( ImGui::RadioButton( "Open", ! isClosed ) )
+    {
+        activeAnnot->polygon().setClosed( false );
+    }
+
+    ImGui::SameLine();
+    if ( ImGui::RadioButton( "Closed", isClosed ) )
+    {
+        activeAnnot->polygon().setClosed( true );
+    }
+    ImGui::SameLine(); helpMarker( "Set whether the outer polygon boundary is open or closed" );
+
+
+
+    ImGui::Separator();
+
     // Plane normal vector and offset:
-    ImGui::Text( "Annotation plane:" );
+    ImGui::Text( "Annotation plane (Subject space):" );
 
     const char* coordFormat = appData.guiData().m_coordsPrecisionFormat.c_str();
 

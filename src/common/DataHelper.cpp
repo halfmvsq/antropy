@@ -475,4 +475,32 @@ glm::vec3 roundPointToNearestImageVoxelCenter(
     return glm::vec3{ roundedWorldPos / roundedWorldPos.w };
 }
 
+
+std::string getAnnotationSubjectPlaneName( const Annotation& annotation )
+{
+    static const std::unordered_map< Directions::Anatomy, std::string > sk_directionToName
+    {
+        { Directions::Anatomy::Left, "Sagittal" },
+        { Directions::Anatomy::Posterior, "Coronal" },
+        { Directions::Anatomy::Superior, "Axial" }
+    };
+
+    static const std::string sk_oblique( "Oblique" );
+
+    static constexpr float sk_parallelThreshold_degrees = 0.1f;
+
+    const glm::vec3 subjectPlaneNormal = glm::vec3{ annotation.getSubjectPlaneEquation() };
+
+    for ( const auto& dir : sk_directionToName )
+    {
+        if ( camera::areVectorsParallel(
+                 Directions::get( dir.first ), subjectPlaneNormal, sk_parallelThreshold_degrees ) )
+        {
+            return dir.second;
+        }
+    }
+
+    return sk_oblique;
+}
+
 } // namespace data

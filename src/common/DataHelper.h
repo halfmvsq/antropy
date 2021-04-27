@@ -13,11 +13,13 @@
 
 #include <array>
 #include <optional>
+#include <string>
 #include <tuple>
 #include <utility>
 #include <vector>
 
 
+class Annotation;
 class AppData;
 class Image;
 
@@ -108,6 +110,8 @@ std::vector< uuids::uuid > findAnnotationsForImage(
 glm::vec3 roundPointToNearestImageVoxelCenter(
         const Image& image,
         const glm::vec3& worldPos );
+
+std::string getAnnotationSubjectPlaneName( const Annotation& );
 
 } // namespace data
 

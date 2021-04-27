@@ -149,12 +149,24 @@ class ViewBeingSelectedState : public AnnotationStateMachine
  * @brief State where the user has turned annotating on
  * and has also selected a view in which to perform annotation
  */
-class ViewSelectedState : public AnnotationStateMachine
+class ReadyState : public AnnotationStateMachine
 {
     void entry() override;
     void exit() override;
 
     void react( const MousePressEvent& ) override;
+    void react( const MouseReleaseEvent& ) override;
+    void react( const MouseMoveEvent& ) override;
+    void react( const TurnOffAnnotationMode& ) override;
+};
+
+class VertexSelectedState : public AnnotationStateMachine
+{
+    void entry() override;
+    void exit() override;
+
+    void react( const MousePressEvent& ) override;
+    void react( const MouseReleaseEvent& ) override;
     void react( const MouseMoveEvent& ) override;
     void react( const TurnOffAnnotationMode& ) override;
 };

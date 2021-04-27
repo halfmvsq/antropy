@@ -253,9 +253,11 @@ public:
 
     void cyclePrevLayout();
     void cycleNextLayout();
+
     void cycleOverlayAndUiVisibility();
 
     void cycleImageComponent( int i );
+    void cycleActiveImage( int i );
 
     void cycleForegroundSegLabel( int i );
     void cycleBackgroundSegLabel( int i );

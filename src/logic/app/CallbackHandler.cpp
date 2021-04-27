@@ -1057,8 +1057,6 @@ void CallbackHandler::doCameraZoomScroll(
 
 void CallbackHandler::scrollViewSlice( const ViewHit& hit, int numSlices )
 {
-    if ( checkAndSetActiveView( hit.viewUid ) ) return;
-
     const float scrollDistance = data::sliceScrollDistance(
                 m_appData, hit.worldFrontAxis,
                 ImageSelection::VisibleImagesInView,
@@ -1444,6 +1442,23 @@ void CallbackHandler::cycleImageComponent( int i )
     const int c = static_cast<int>( image->settings().activeComponent() );
 
     image->settings().setActiveComponent( static_cast<uint32_t>( ( N + c + i ) % N ) );
+}
+
+void CallbackHandler::cycleActiveImage( int i )
+{
+    const auto imageUid = m_appData.activeImageUid();
+    if ( ! imageUid ) return;
+
+    const auto imageIndex = m_appData.imageIndex( *imageUid );
+    if ( ! imageIndex ) return;
+
+    const int N = static_cast<int>( m_appData.numImages() );
+    const size_t newImageIndex = static_cast<size_t>( ( N + (*imageIndex) + i ) % N );
+
+    const auto newImageUid = m_appData.imageUid( newImageIndex );
+    if ( ! newImageUid ) return;
+
+    m_appData.setActiveImageUid( *newImageUid );
 }
 
 
