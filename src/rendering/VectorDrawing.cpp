@@ -740,8 +740,8 @@ void drawAnnotations(
         const View& view,
         const ImageSegPairs& I )
 {
-    nvgLineCap( nvg, NVG_BUTT );
-    nvgLineJoin( nvg, NVG_MITER );
+    nvgLineCap( nvg, NVG_ROUND ); // NVG_BUTT (default), NVG_ROUND, NVG_SQUARE
+    nvgLineJoin( nvg, NVG_MITER ); // NVG_MITER (default), NVG_ROUND, NVG_BEVEL
 
     startNvgFrame( nvg, appData.windowData().viewport() ); /*** START FRAME ***/
 
@@ -820,8 +820,8 @@ void drawAnnotations(
 
         /// @todo Should annotation opacity be modulated with image opacity?
         /// Landmarks opacity is not.
-        const glm::vec3 color = annot->getLineColor();
-        const float opacity = annot->getLineOpacity() * static_cast<float>( img->settings().opacity() );
+        const glm::vec4 color = annot->getLineColor();
+        const float opacity = annot->getOpacity() * color.a * static_cast<float>( img->settings().opacity() );
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
         nvgStrokeWidth( nvg, annot->getLineThickness() );

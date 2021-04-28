@@ -480,12 +480,12 @@ std::string getAnnotationSubjectPlaneName( const Annotation& annotation )
 {
     static const std::unordered_map< Directions::Anatomy, std::string > sk_directionToName
     {
-        { Directions::Anatomy::Left, "Sagittal" },
-        { Directions::Anatomy::Posterior, "Coronal" },
-        { Directions::Anatomy::Superior, "Axial" }
+        { Directions::Anatomy::Left, "sagittal" },
+        { Directions::Anatomy::Posterior, "coronal" },
+        { Directions::Anatomy::Superior, "axial" }
     };
 
-    static const std::string sk_oblique( "Oblique" );
+    static const std::string sk_oblique( "oblique" );
 
     static constexpr float sk_parallelThreshold_degrees = 0.1f;
 

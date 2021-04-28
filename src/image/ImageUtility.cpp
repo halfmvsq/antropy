@@ -66,11 +66,15 @@ std::string getFileName( const std::string& filePath, bool withExtension )
 #else
         const std::filesystem::path p( filePath );
 
-        // Check if file has stem i.e. filename without extension
+        // Check if path has a stem (i.e. filename without extension)
         if ( p.has_stem() )
         {
+            // Remove one more stem (e.g. in case the file name is like *.nii.gz)
+            const auto stem1 = p.stem();
+            const auto stem2 = ( stem1.has_stem() ) ? stem1.stem() : stem1;
+
             // Return the stem (file name without extension) from path
-            return p.stem().string();
+            return stem2.string();
         }
         else
         {

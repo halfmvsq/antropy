@@ -20,7 +20,7 @@ static constexpr float sk_defaultThickness = 1.5f;
 
 Annotation::Annotation(
         std::string name,
-        glm::vec3 color,
+        const glm::vec4& color,
         const glm::vec4& subjectPlaneEquation )
     :
       m_displayName( std::move( name ) ),
@@ -30,12 +30,11 @@ Annotation::Annotation(
       m_maxLayer( 0 ),
       m_visibility( true ),
 
-      m_lineOpacity( sk_defaultOpacity ),
-      m_lineColor{ std::move( color ) },
+      m_filled( false ),
+      m_opacity( sk_defaultOpacity ),
+      m_fillColor{ color },
+      m_lineColor{ color },
       m_lineThickness( sk_defaultThickness ),
-
-      m_fillOpacity( sk_defaultOpacity ),
-      m_fillColor{ std::move( color ) },
 
       m_subjectPlaneEquation{ 1.0f, 0.0f, 0.0f, 0.0f },
       m_subjectPlaneOrigin{ 0.0f, 0.0f, 0.0f },
@@ -159,25 +158,25 @@ bool Annotation::getVisibility() const
     return m_visibility;
 }
 
-void Annotation::setLineOpacity( float opacity )
+void Annotation::setOpacity( float opacity )
 {
     if ( 0.0f <= opacity && opacity <= 1.0f )
     {
-        m_lineOpacity = opacity;
+        m_opacity = opacity;
     }
 }
 
-float Annotation::getLineOpacity() const
+float Annotation::getOpacity() const
 {
-    return m_lineOpacity;
+    return m_opacity;
 }
 
-void Annotation::setLineColor( glm::vec3 color )
+void Annotation::setLineColor( glm::vec4 color )
 {
     m_lineColor = std::move( color );
 }
 
-const glm::vec3& Annotation::getLineColor() const
+const glm::vec4& Annotation::getLineColor() const
 {
     return m_lineColor;
 }
@@ -195,25 +194,22 @@ float Annotation::getLineThickness() const
     return m_lineThickness;
 }
 
-void Annotation::setFillOpacity( float opacity )
+void Annotation::setFilled( bool filled )
 {
-    if ( 0.0f <= opacity && opacity <= 1.0f )
-    {
-        m_fillOpacity = opacity;
-    }
+    m_filled = filled;
 }
 
-float Annotation::getFillOpacity() const
+bool Annotation::isFilled() const
 {
-    return m_fillOpacity;
+    return m_filled;
 }
 
-void Annotation::setFillColor( glm::vec3 color )
+void Annotation::setFillColor( glm::vec4 color )
 {
     m_fillColor = std::move( color );
 }
 
-const glm::vec3& Annotation::getFillColor() const
+const glm::vec4& Annotation::getFillColor() const
 {
     return m_fillColor;
 }

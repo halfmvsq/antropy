@@ -609,25 +609,25 @@ void renderImageHeader(
         // Visibility checkbox:
         bool visible = imgSettings.visibility();
 
-        if ( ImGui::Checkbox( "Image", &visible ) )
+        if ( ImGui::Checkbox( "Image visible", &visible ) )
         {
             imgSettings.setVisibility( visible );
             updateImageUniforms();
         }
+        ImGui::SameLine(); helpMarker( "Show/hide the image (W) on all views" );
 
         if ( activeSeg )
         {
             bool segVisible = activeSeg->settings().visibility();
 
-            ImGui::SameLine();
             if ( ImGui::Checkbox( "Segmentation visible", &segVisible ) )
             {
                 activeSeg->settings().setVisibility( segVisible );
                 updateImageUniforms();
             }
+            ImGui::SameLine(); helpMarker( "Show/hide the image segmentation (S) on all views" );
         }
 
-        ImGui::SameLine(); helpMarker( "Show/hide the image (W) or its segmentation (S) on all views" );
 
 //        if ( visible )
         {
@@ -789,6 +789,7 @@ void renderImageHeader(
             }
             ImGui::SameLine(); helpMarker( "Window level (center)" );
         }
+        ImGui::Spacing();
 
 
         // Interpolation radio buttons:
@@ -891,28 +892,6 @@ void renderImageHeader(
             ImGui::SameLine(); helpMarker( "Apply thresholding to edge gradient magnitude to get hard edges" );
 
 
-            // Edge magnitude (only shown if thresholding edges):
-            if ( thresholdEdges )
-            {
-                double edgeMag = imgSettings.edgeMagnitude();
-                if ( mySliderF64( "Magnitude", &edgeMag, 0.01, 1.00 ) )
-                {
-                    imgSettings.setEdgeMagnitude( edgeMag );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Magnitude of threshold above which hard edges are shown" );
-            }
-            else
-            {
-                double edgeMag = 1.0 - imgSettings.edgeMagnitude();
-                if ( mySliderF64( "Scale", &edgeMag, 0.01, 1.00 ) )
-                {
-                    imgSettings.setEdgeMagnitude( 1.0 - edgeMag );
-                    updateImageUniforms();
-                }
-                ImGui::SameLine(); helpMarker( "Scale applied to edge magnitude" );
-            }
-
 
             //                // Windowed edges:
             //                bool windowedEdges = imgSettings.windowedEdges();
@@ -995,6 +974,29 @@ void renderImageHeader(
                 // Cannot overlay edges with colormapping enabled
                 imgSettings.setOverlayEdges( false );
                 updateImageUniforms();
+            }
+
+
+            // Edge magnitude (only shown if thresholding edges):
+            if ( thresholdEdges )
+            {
+                double edgeMag = imgSettings.edgeMagnitude();
+                if ( mySliderF64( "Magnitude", &edgeMag, 0.01, 1.00 ) )
+                {
+                    imgSettings.setEdgeMagnitude( edgeMag );
+                    updateImageUniforms();
+                }
+                ImGui::SameLine(); helpMarker( "Magnitude of threshold above which hard edges are shown" );
+            }
+            else
+            {
+                double edgeMag = 1.0 - imgSettings.edgeMagnitude();
+                if ( mySliderF64( "Scale", &edgeMag, 0.01, 1.00 ) )
+                {
+                    imgSettings.setEdgeMagnitude( 1.0 - edgeMag );
+                    updateImageUniforms();
+                }
+                ImGui::SameLine(); helpMarker( "Scale applied to edge magnitude" );
             }
         }
 
@@ -1314,6 +1316,7 @@ void renderSegmentationHeader(
     ImGui::Separator();
     ImGui::Text( "Active segmentation:" );
 
+//    ImGui::PushItemWidth( -1 );
     if ( ImGui::BeginCombo( "", activeSeg->settings().displayName().c_str() ) )
     {
         size_t segIndex = 0;
@@ -1339,6 +1342,7 @@ void renderSegmentationHeader(
         }
         ImGui::EndCombo();
     }
+//    ImGui::PopItemWidth();
     ImGui::SameLine(); helpMarker( "Select the active segmentation for this image" );
 
 
@@ -1833,8 +1837,8 @@ void renderAnnotationsHeader(
             ImGuiColorEditFlags_PickerHueBar |
             ImGuiColorEditFlags_DisplayRGB |
             ImGuiColorEditFlags_DisplayHex |
-//            ImGuiColorEditFlags_AlphaBar |
-//            ImGuiColorEditFlags_AlphaPreviewHalf |
+            ImGuiColorEditFlags_AlphaBar |
+            ImGuiColorEditFlags_AlphaPreviewHalf |
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
 
@@ -1866,11 +1870,12 @@ void renderAnnotationsHeader(
     {
         if ( ! annot ) return;
 
-        const glm::mat3 world_T_subject_invTranspose =
-                glm::inverseTranspose( glm::mat3{ image->transformations().worldDef_T_subject() } );
+        const glm::mat3 world_T_subject_invTranspose = glm::inverseTranspose(
+                    glm::mat3{ image->transformations().worldDef_T_subject() } );
 
         const glm::vec3 worldAnnotNormal = glm::normalize(
-                    world_T_subject_invTranspose * glm::vec3{ annot->getSubjectPlaneEquation() } );
+                    world_T_subject_invTranspose *
+                    glm::vec3{ annot->getSubjectPlaneEquation() } );
 
         // Does the current layout have a view with this orientaion?
         const auto viewsWithNormal = appData.windowData().findCurrentViewsWithNormal( worldAnnotNormal );
@@ -2072,32 +2077,22 @@ void renderAnnotationsHeader(
     ImGui::SameLine(); helpMarker( "Show/hide the annotation" );
 
 
+    // Filled checkbox:
+    bool filled = activeAnnot->isFilled();
+    if ( ImGui::Checkbox( "Filled", &filled ) )
+    {
+        activeAnnot->setFilled( filled );
+    }
+    ImGui::SameLine(); helpMarker( "Fill the annotation interior" );
+
+
     // Opacity slider:
-    float annotOpacity = activeAnnot->getLineOpacity();
+    float annotOpacity = activeAnnot->getOpacity();
     if ( mySliderF32( "Opacity", &annotOpacity, 0.0f, 1.0f ) )
     {
-        activeAnnot->setFillOpacity( annotOpacity );
-        activeAnnot->setLineOpacity( annotOpacity );
+        activeAnnot->setOpacity( annotOpacity );
     }
-    ImGui::SameLine(); helpMarker( "Annotation opacity" );
-
-
-    // Fill color:
-    glm::vec3 annotFillColor = activeAnnot->getFillColor();
-    if ( ImGui::ColorEdit3( "Fill color", glm::value_ptr( annotFillColor ), sk_annotColorEditFlags ) )
-    {
-        activeAnnot->setFillColor( annotFillColor );
-    }
-    ImGui::SameLine(); helpMarker( "Set the annotation fill color" );
-
-
-    // Line color:
-    glm::vec3 annotLineColor = activeAnnot->getLineColor();
-    if ( ImGui::ColorEdit3( "Line color", glm::value_ptr( annotLineColor ), sk_annotColorEditFlags ) )
-    {
-        activeAnnot->setLineColor( annotLineColor );
-    }
-    ImGui::SameLine(); helpMarker( "Set the annotation line color" );
+    ImGui::SameLine(); helpMarker( "Overall annotation opacity" );
 
 
     // Line stroke thickness:
@@ -2110,7 +2105,28 @@ void renderAnnotationsHeader(
         }
     }
     ImGui::SameLine(); helpMarker( "Annotation line thickness" );
-    ImGui::Separator();
+
+
+    // Line color:
+    glm::vec4 annotLineColor = activeAnnot->getLineColor();
+    if ( ImGui::ColorEdit4( "Line color", glm::value_ptr( annotLineColor ), sk_annotColorEditFlags ) )
+    {
+        activeAnnot->setLineColor( annotLineColor );
+    }
+    ImGui::SameLine(); helpMarker( "Annotation line color" );
+
+
+    if ( activeAnnot->isFilled() )
+    {
+        // Fill color:
+        glm::vec4 annotFillColor = activeAnnot->getFillColor();
+        if ( ImGui::ColorEdit4( "Fill color", glm::value_ptr( annotFillColor ), sk_annotColorEditFlags ) )
+        {
+            activeAnnot->setFillColor( annotFillColor );
+        }
+        ImGui::SameLine(); helpMarker( "Annotation fill color" );
+    }
+    ImGui::Spacing();
 
 
     ImGui::Text( "Boundary:" );
@@ -2126,7 +2142,7 @@ void renderAnnotationsHeader(
     {
         activeAnnot->polygon().setClosed( true );
     }
-    ImGui::SameLine(); helpMarker( "Set whether the outer polygon boundary is open or closed" );
+    ImGui::SameLine(); helpMarker( "Set whether the annotation polygon boundary is open or closed" );
 
 
 

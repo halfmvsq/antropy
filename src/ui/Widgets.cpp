@@ -45,6 +45,9 @@ void renderActiveImageSelectionCombo(
             ? "Active image###imageSelectionCombo"
             : "###imageSelectionCombo";
 
+//    ImGui::Text( "Active image:" );
+
+//    ImGui::PushItemWidth( -1 );
     if ( ImGui::BeginCombo( nameString.c_str(), getImageDisplayAndFileName( activeIndex ).first ) )
     {
         for ( size_t i = 0; i < numImages; ++i )
@@ -67,9 +70,9 @@ void renderActiveImageSelectionCombo(
 
         ImGui::EndCombo();
     }
+//    ImGui::PopItemWidth();
 
-    ImGui::SameLine();
-    helpMarker( "Select the image that is being actively transformed, adjusted, or segmented" );
+    ImGui::SameLine(); helpMarker( "Select the image that is being actively transformed, adjusted, or segmented" );
 }
 
 
@@ -97,7 +100,7 @@ void renderSegLabelsChildWindow(
     }
 
     const bool childVisible = ImGui::BeginChild(
-                "##labelChild", ImVec2( 0, 250.0f ), true,
+                "##labelChild", ImVec2( 0.0f, 250.0f ), true,
                 ImGuiWindowFlags_MenuBar |
                 ImGuiWindowFlags_HorizontalScrollbar );
 
@@ -106,6 +109,8 @@ void renderSegLabelsChildWindow(
         ImGui::EndChild();
         return;
     }
+
+    bool scrollToBottomOfLmList = false;
 
     if ( ImGui::BeginMenuBar() )
     {
@@ -131,6 +136,9 @@ void renderSegLabelsChildWindow(
         {
             labelTable->addLabels( 1 );
             updateLabelColorTableTexture( tableIndex );
+
+            // Scroll child window to the end of the list of landmarks
+            scrollToBottomOfLmList = true;
         }
 
         ImGui::EndMenuBar();
@@ -167,10 +175,44 @@ void renderSegLabelsChildWindow(
             updateLabelColorTableTexture( tableIndex );
         }
 
+
         ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_HAND_O_UP ) )
+        {
+//            const glm::mat4 world_T_landmark = ( activeLmGroup->getInVoxelSpace() )
+//                    ? imageTransformations.worldDef_T_pixel()
+//                    : imageTransformations.worldDef_T_subject();
+
+//            const glm::vec4 worldPos = world_T_landmark * glm::vec4{ pointPos, 1.0f };
+//            setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
+
+//            // With second argument set to true, this function centers all views on the crosshairs.
+//            // That way, views show the crosshairs even if they were not in the original view bounds.
+//            recenterAllViews( false, true, false );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Move crosshairs to segmentation label centroid" );
+        }
+
+
+        ImGui::SameLine();
+
+        ImGui::PushItemWidth( 175.0f );
         if ( ImGui::InputText( "##labelName", &labelName ) )
         {
             labelTable->setName( i, labelName );
+        }
+        ImGui::PopItemWidth();
+
+
+        if ( scrollToBottomOfLmList )
+        {
+            if ( i == ( labelTable->numLabels() - 1 ) )
+            {
+                ImGui::SetScrollHereY( 1.0f );
+                scrollToBottomOfLmList = false;
+            }
         }
 
         ImGui::PopID(); /*** PopID i ***/

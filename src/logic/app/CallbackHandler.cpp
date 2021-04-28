@@ -518,10 +518,10 @@ void CallbackHandler::doAnnotate( const ViewHit& hit )
             const std::string name = std::string( "Annotation " ) +
                     std::to_string( m_appData.annotationsForImage( *activeImageUid ).size() );
 
+            const glm::vec4 color{ activeImage->settings().borderColor(), 1.0f };
+
             annotUid = m_appData.addAnnotation(
-                        *activeImageUid,
-                        Annotation( name, activeImage->settings().borderColor(),
-                                    subjectPlaneEquation ) );
+                        *activeImageUid, Annotation( name, color, subjectPlaneEquation ) );
 
             if ( ! annotUid )
             {

@@ -513,10 +513,6 @@ void renderViewOrientationToolWindow(
             static const glm::vec3 sk_min( -1, -1, -1 );
             static const glm::vec3 sk_max( 1, 1, 1 );
 
-            static const glm::vec3 X( 1.0f, 0.0f, 0.0f );
-            static const glm::vec3 Y( 0.0f, 1.0f, 0.0f );
-            static const glm::vec3 Z( 0.0f, 0.0f, 1.0f );
-
             const glm::vec3 worldOldFwdDir = -getViewNormal();
             glm::vec3 worldNewFwdDir = worldOldFwdDir;
 
@@ -526,8 +522,9 @@ void renderViewOrientationToolWindow(
 
             bool applyRotation = false;
 
+            ImGui::PushItemWidth( -1 );
             if ( ImGui::InputScalarN(
-                     "(x, y, z)", ImGuiDataType_Float, glm::value_ptr( worldNewFwdDir ),
+                     "##xyz", ImGuiDataType_Float, glm::value_ptr( worldNewFwdDir ),
                      3, nullptr, nullptr, "%0.3f" ) )
             {
                 worldNewFwdDir = glm::clamp( worldNewFwdDir, sk_min, sk_max );
@@ -539,6 +536,7 @@ void renderViewOrientationToolWindow(
                     applyRotation = true;
                 }
             }
+            ImGui::PopItemWidth();
 
 
             if ( ImGui::Button( "Flip" ) )
@@ -557,14 +555,14 @@ void renderViewOrientationToolWindow(
 
             if ( ImGui::Button( "+X (L)" ) )
             {
-                worldNewFwdDir = X;
+                worldNewFwdDir = Directions::get( Directions::Cartesian::X );
                 applyRotation = true;
             }
 
             ImGui::SameLine();
             if ( ImGui::Button( "-X (R)" ) )
             {
-                worldNewFwdDir = -X;
+                worldNewFwdDir = -Directions::get( Directions::Cartesian::X );
                 applyRotation = true;
             }
 
@@ -574,14 +572,14 @@ void renderViewOrientationToolWindow(
 
             if ( ImGui::Button( "+Y (P)" ) )
             {
-                worldNewFwdDir = Y;
+                worldNewFwdDir = Directions::get( Directions::Cartesian::Y );
                 applyRotation = true;
             }
 
             ImGui::SameLine();
             if ( ImGui::Button( "-Y (A)" ) )
             {
-                worldNewFwdDir = -Y;
+                worldNewFwdDir = -Directions::get( Directions::Cartesian::Y );
                 applyRotation = true;
             }
 
@@ -591,14 +589,14 @@ void renderViewOrientationToolWindow(
 
             if ( ImGui::Button( "+Z (S)" ) )
             {
-                worldNewFwdDir = Z;
+                worldNewFwdDir = Directions::get( Directions::Cartesian::Z );
                 applyRotation = true;
             }
 
             ImGui::SameLine();
             if ( ImGui::Button( "-Z (I)" ) )
             {
-                worldNewFwdDir = -Z;
+                worldNewFwdDir = -Directions::get( Directions::Cartesian::Z );
                 applyRotation = true;
             }
 
