@@ -66,6 +66,19 @@ enum class ViewRenderMode
 };
 
 
+/**
+ * @brief Intensity projection modes
+ */
+enum class IntensityProjectionMode : int
+{
+    None = 0, //!< No intensity projection
+    Maximum = 1, //!< Maximum intensity projection
+    Mean = 2, //!< Mean intensity projection
+    Minimum = 3, //!< Minimum intensity projection
+    NumElements
+};
+
+
 /// Array of all rendering modes in use by the application
 inline std::array<ViewRenderMode, 8> const AllViewRenderModes = {
     ViewRenderMode::Image,
@@ -86,6 +99,15 @@ inline std::array<ViewRenderMode, 2> const AllNonMetricRenderModes = {
 };
 
 
+/// Array of all intensity projection modes
+inline std::array<IntensityProjectionMode, 4> const AllIntensityProjectionModes = {
+    IntensityProjectionMode::None,
+    IntensityProjectionMode::Maximum,
+    IntensityProjectionMode::Mean,
+    IntensityProjectionMode::Minimum
+};
+
+
 /**
  * @brief Get the string of a camera type
  * @param cameraType
@@ -100,7 +122,10 @@ std::string typeString( const CameraType& cameraType, bool crosshairsRotated = f
  */
 std::string typeString( const ViewRenderMode& renderMode );
 
+std::string typeString( const IntensityProjectionMode& ipMode );
+
 std::string descriptionString( const ViewRenderMode& renderMode );
+std::string descriptionString( const IntensityProjectionMode& renderMode );
 
 } // namespace camera
 

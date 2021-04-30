@@ -49,6 +49,13 @@ uniform float flashlightRadius;
 // When false, the flashlight replaces the fixed image with the moving image.
 uniform bool flashlightOverlays;
 
+// MIP mode: 0 - none, 1 - max, 2 - mean, 3 - min
+uniform int mipMode;
+
+// Half the number of samples for MIP. Set to 0 when mipMode == 0.
+uniform int halfNumMipSamples;
+uniform vec3 texSamplingDirZ;
+
 
 float smoothThreshold( float value, vec2 thresholds )
 {
@@ -91,6 +98,19 @@ void main()
 
     // Look up the image value (after mapping to GL texture units) and label value:
     float img = texture( imgTex, fs_in.ImgTexCoords ).r;
+
+    for ( int i = 1; i <= halfNumMipSamples; ++i )
+    {
+        float a = texture( imgTex, fs_in.ImgTexCoords + i * texSamplingDirZ ).r;
+        float b = texture( imgTex, fs_in.ImgTexCoords - i * texSamplingDirZ ).r;
+
+        img = float( 1 == mipMode ) * max( max( img, a ), b ) +
+              float( 2 == mipMode ) * ( img + a + b ) +
+              float( 3 == mipMode ) * min( min( img, a ), b );
+    }
+
+    img /= float( 2 == mipMode ) * ( 2.0 * halfNumMipSamples + 1.0 ) + float( 2 != mipMode );
+
     uint seg = texture( segTex, fs_in.SegTexCoords ).r;
 
     // Apply window/level and normalize value in [0.0, 1.0]:
@@ -100,6 +120,7 @@ void main()
     float mask = float( imgMask && ( masking && ( seg > 0u ) || ! masking ) );
 
     // Apply opacity, mask, and thresholds for images:
+    // (Technically, thresholding should be done in the MIP loop.)
     float alpha = imgOpacity * mask * hardThreshold( img, imgThresholds );
 
     // Apply colors to the image and segmentation values. Multiply by alpha for images:

@@ -1481,6 +1481,11 @@ bool Rendering::createImageProgram( GLShaderProgram& program )
         fsUniforms.insertUniform( "flashlightRadius", UniformType::Float, 0.5f );
         fsUniforms.insertUniform( "flashlightOverlays", UniformType::Bool, true );
 
+        // For intensity projection:
+        fsUniforms.insertUniform( "mipMode", UniformType::Int, 0 ); // 0 - none, 1 - max, 2 - mean, 3 - min
+        fsUniforms.insertUniform( "halfNumMipSamples", UniformType::Int, 0 );
+        fsUniforms.insertUniform( "texSamplingDirZ", UniformType::Vec3, sk_zeroVec3 );
+
         auto fs = std::make_shared<GLShader>( "fsImage", ShaderType::Fragment, fsSource.c_str() );
         fs->setRegisteredUniforms( std::move( fsUniforms ) );
         program.attachShader( fs );

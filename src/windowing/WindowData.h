@@ -131,8 +131,8 @@ public:
     /// Apply a given view's image selection to all views of the current layout
     void applyImageSelectionToAllCurrentViews( const uuids::uuid& referenceViewUid );
 
-    /// Apply a given view's shader type to all views of the current layout
-    void applyViewShaderToAllCurrentViews( const uuids::uuid& referenceViewUid );
+    /// Apply a given view's render and intensity projection modes to all views of the current layout
+    void applyViewRenderModeAndProjectionToAllCurrentViews( const uuids::uuid& referenceViewUid );
 
     /// Find all views in the current layout with normal vector either parallel to or anti-parallel to
     /// the given normal direction

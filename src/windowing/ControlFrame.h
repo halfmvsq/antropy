@@ -25,6 +25,7 @@ public:
             glm::vec4 winClipViewport,
             camera::CameraType cameraType,
             camera::ViewRenderMode renderMode,
+            camera::IntensityProjectionMode ipMode,
             UiControls uiControls );
 
     virtual ~ControlFrame() = default;
@@ -39,7 +40,10 @@ public:
     virtual void setCameraType( const camera::CameraType& cameraType );
 
     camera::ViewRenderMode renderMode() const;
-    virtual void setRenderMode( const camera::ViewRenderMode& shaderType );
+    virtual void setRenderMode( const camera::ViewRenderMode& renderMode );
+
+    camera::IntensityProjectionMode intensityProjectionMode() const;
+    virtual void setIntensityProjectionMode( const camera::IntensityProjectionMode& ipMode );
 
     bool isImageRendered( const AppData& appData, size_t index );
     bool isImageRendered( const uuids::uuid& imageUid );
@@ -95,11 +99,14 @@ protected:
     /// What images does this view prefer to render by default?
     std::set<size_t> m_preferredDefaultRenderedImages;
 
+    /// Camera type
+    camera::CameraType m_cameraType;
+
     /// Rendering mode
     camera::ViewRenderMode m_renderMode;
 
-    /// Camera type
-    camera::CameraType m_cameraType;
+    /// Intensity projection mode
+    camera::IntensityProjectionMode m_intensityProjectionMode;
 
     /// What UI controls are show in the frame?
     UiControls m_uiControls;

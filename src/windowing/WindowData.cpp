@@ -52,6 +52,7 @@ Layout createFourUpLayout()
                     offsetSetting,
                     CameraType::Coronal,
                     ViewRenderMode::Image,
+                    IntensityProjectionMode::None,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -66,6 +67,7 @@ Layout createFourUpLayout()
                     offsetSetting,
                     CameraType::Sagittal,
                     ViewRenderMode::Image,
+                    IntensityProjectionMode::None,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -80,6 +82,7 @@ Layout createFourUpLayout()
                     offsetSetting,
                     CameraType::ThreeD,
                     ViewRenderMode::Disabled,
+                    IntensityProjectionMode::None,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
 
@@ -94,6 +97,7 @@ Layout createFourUpLayout()
                     offsetSetting,
                     CameraType::Axial,
                     ViewRenderMode::Image,
+                    IntensityProjectionMode::None,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -131,6 +135,7 @@ Layout createTriLayout()
                     offsetSetting,
                     CameraType::Axial,
                     ViewRenderMode::Image,
+                    IntensityProjectionMode::None,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, noZoomSyncGroup );
 
@@ -144,6 +149,7 @@ Layout createTriLayout()
                     offsetSetting,
                     CameraType::Coronal,
                     ViewRenderMode::Image,
+                    IntensityProjectionMode::None,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -158,6 +164,7 @@ Layout createTriLayout()
                     offsetSetting,
                     CameraType::Sagittal,
                     ViewRenderMode::Image,
+                    IntensityProjectionMode::None,
                     uiControls,
                     noRotationSyncGroup, noTranslationSyncGroup, zoomSyncGroupUid );
 
@@ -218,6 +225,7 @@ Layout createTriTopBottomLayout( size_t numRows )
                         offsetSetting,
                         CameraType::Axial,
                         ViewRenderMode::Image,
+                        IntensityProjectionMode::None,
                         uiControls,
                         axiRotationSyncGroupUid,
                         axiTranslationSyncGroupUid,
@@ -240,6 +248,7 @@ Layout createTriTopBottomLayout( size_t numRows )
                         offsetSetting,
                         CameraType::Coronal,
                         ViewRenderMode::Image,
+                        IntensityProjectionMode::None,
                         uiControls,
                         corRotationSyncGroupUid, corTranslationSyncGroupUid, corZoomSyncGroupUid );
 
@@ -259,6 +268,7 @@ Layout createTriTopBottomLayout( size_t numRows )
                         offsetSetting,
                         CameraType::Sagittal,
                         ViewRenderMode::Image,
+                        IntensityProjectionMode::None,
                         uiControls,
                         sagRotationSyncGroupUid, sagTranslationSyncGroupUid, sagZoomSyncGroupUid );
 
@@ -285,6 +295,7 @@ Layout createGridLayout(
         const camera::CameraType& cameraType )
 {
     static const camera::ViewRenderMode s_shaderType = camera::ViewRenderMode::Image;
+    static const camera::IntensityProjectionMode s_ipMode = camera::IntensityProjectionMode::None;
 
     Layout layout( isLightbox );
 
@@ -292,6 +303,7 @@ Layout createGridLayout(
     {
         layout.setCameraType( cameraType );
         layout.setRenderMode( s_shaderType );
+        layout.setIntensityProjectionMode( s_ipMode );
 
         // Lightbox layouts prefer to render reference image only by default:
         layout.setPreferredDefaultRenderedImages( { 0 } );
@@ -328,6 +340,7 @@ Layout createGridLayout(
                         offsetSetting,
                         cameraType,
                         s_shaderType,
+                        s_ipMode,
                         UiControls( ! isLightbox ),
                         rotationSyncGroupUid,
                         translationSyncGroupUid,
@@ -776,25 +789,27 @@ void WindowData::applyImageSelectionToAllCurrentViews(
     }
 }
 
-void WindowData::applyViewShaderToAllCurrentViews(
+void WindowData::applyViewRenderModeAndProjectionToAllCurrentViews(
         const uuids::uuid& referenceViewUid )
 {
     const View* referenceView = getCurrentView( referenceViewUid );
     if ( ! referenceView ) return;
 
-    const auto shaderType = referenceView->renderMode();
+    const auto renderMode = referenceView->renderMode();
+    const auto ipMode = referenceView->intensityProjectionMode();
 
     for ( auto& viewUid : currentViewUids() )
     {
         View* view = getCurrentView( viewUid );
         if ( ! view ) continue;
 
-        if ( camera::CameraType::ThreeD == view->cameraType() )
+        if ( camera::CameraType::ThreeD != view->cameraType() )
         {
-            continue; // Don't allow changing shader of 3D views
+            // Don't allow changing render mode of 3D views
+            view->setRenderMode( renderMode );
         }
 
-        view->setRenderMode( shaderType );
+        view->setIntensityProjectionMode( ipMode );
     }
 }
 

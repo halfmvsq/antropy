@@ -28,6 +28,7 @@ public:
 
     void setCameraType( const camera::CameraType& cameraType ) override;
     void setRenderMode( const camera::ViewRenderMode& renderMode ) override;
+    void setIntensityProjectionMode( const camera::IntensityProjectionMode& renderMode ) override;
 
     const uuids::uuid& uid() const;
     bool isLightbox() const;

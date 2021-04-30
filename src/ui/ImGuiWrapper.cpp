@@ -405,10 +405,10 @@ void ImGuiWrapper::render()
         return false;
     };
 
-    auto applyImageSelectionAndShaderToAllViews = [this] ( const uuids::uuid& viewUid )
+    auto applyImageSelectionAndRenderModesToAllViews = [this] ( const uuids::uuid& viewUid )
     {
         m_appData.windowData().applyImageSelectionToAllCurrentViews( viewUid );
-        m_appData.windowData().applyViewShaderToAllCurrentViews( viewUid );
+        m_appData.windowData().applyViewRenderModeAndProjectionToAllCurrentViews( viewUid );
     };
 
     auto getViewCameraRotation = [this] ( const uuids::uuid& viewUid ) -> glm::quat
@@ -652,8 +652,11 @@ void ImGuiWrapper::render()
 
                     currentLayout.cameraType(),
                     currentLayout.renderMode(),
+                    currentLayout.intensityProjectionMode(),
+
                     [&currentLayout] ( const camera::CameraType& cameraType ) { return currentLayout.setCameraType( cameraType ); },
-                    [&currentLayout] ( const camera::ViewRenderMode& shaderType ) { return currentLayout.setRenderMode( shaderType ); },
+                    [&currentLayout] ( const camera::ViewRenderMode& renderMode ) { return currentLayout.setRenderMode( renderMode ); },
+                    [&currentLayout] ( const camera::IntensityProjectionMode& ipMode ) { return currentLayout.setIntensityProjectionMode( ipMode ); },
 
                     [this]() { m_recenterAllViews( sk_recenterCrosshairs, sk_recenterOnCurrentCrosshairsPosition, sk_resetObliqueOrientation ); },
                     nullptr );
@@ -684,9 +687,14 @@ void ImGuiWrapper::render()
                 if ( view ) view->setCameraType( cameraType );
             };
 
-            auto setRenderMode = [view] ( const camera::ViewRenderMode& shaderType )
+            auto setRenderMode = [view] ( const camera::ViewRenderMode& renderMode )
             {
-                if ( view ) view->setRenderMode( shaderType );
+                if ( view ) view->setRenderMode( renderMode );
+            };
+
+            auto setIntensityProjectionMode = [view] ( const camera::IntensityProjectionMode& ipMode )
+            {
+                if ( view ) view->setIntensityProjectionMode( ipMode );
             };
 
             auto recenter = [this, &viewUid] ()
@@ -718,11 +726,14 @@ void ImGuiWrapper::render()
 
                         view->cameraType(),
                         view->renderMode(),
+                        view->intensityProjectionMode(),
+
                         setCameraType,
                         setRenderMode,
+                        setIntensityProjectionMode,
 
                         recenter,
-                        applyImageSelectionAndShaderToAllViews );
+                        applyImageSelectionAndRenderModesToAllViews );
 
             renderViewOrientationToolWindow(
                     viewUid,

@@ -64,10 +64,12 @@ void renderViewSettingsComboWindow(
         const std::function< bool( size_t imageIndex ) >& getImageVisibilitySetting,
 
         const camera::CameraType& cameraType,
-        const camera::ViewRenderMode& shaderType,
+        const camera::ViewRenderMode& renderMode,
+        const camera::IntensityProjectionMode& intensityProjMode,
 
         const std::function< void ( const camera::CameraType& cameraType ) >& setCameraType,
-        const std::function< void ( const camera::ViewRenderMode& shaderType ) >& setRenderMode,
+        const std::function< void ( const camera::ViewRenderMode& renderMode ) >& setRenderMode,
+        const std::function< void ( const camera::IntensityProjectionMode& projMode ) >& setIntensityProjectionMode,
         const std::function< void () >& recenter,
 
         const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews )
@@ -88,7 +90,7 @@ void renderViewSettingsComboWindow(
     {
         const char* label;
 
-        switch ( shaderType )
+        switch ( renderMode )
         {
         case camera::ViewRenderMode::Image:
         {
@@ -145,7 +147,7 @@ void renderViewSettingsComboWindow(
             // Popup window with images to be rendered and their visibility:
             if ( uiControls.m_hasImageComboBox )
             {
-                if ( camera::ViewRenderMode::Image == shaderType )
+                if ( camera::ViewRenderMode::Image == renderMode )
                 {
                     // Image visibility:
                     if ( ImGui::Button( label ) )
@@ -196,7 +198,7 @@ void renderViewSettingsComboWindow(
                         ImGui::EndPopup();
                     }
                 }
-                else if ( camera::ViewRenderMode::Disabled == shaderType )
+                else if ( camera::ViewRenderMode::Disabled == renderMode )
                 {
                     ImGui::Button( label );
                 }
@@ -268,7 +270,7 @@ void renderViewSettingsComboWindow(
                         // If there are two or more images, all shader types can be used:
                         for ( const auto& st : camera::AllViewRenderModes )
                         {
-                            const bool isSelected = ( st == shaderType );
+                            const bool isSelected = ( st == renderMode );
 
                             if ( ImGui::Selectable( camera::typeString( st ).c_str(), isSelected ) )
                             {
@@ -286,7 +288,7 @@ void renderViewSettingsComboWindow(
                         // If there is only one image, then only non-metric shader types can be used:
                         for ( const auto& st : camera::AllNonMetricRenderModes )
                         {
-                            const bool isSelected = ( st == shaderType );
+                            const bool isSelected = ( st == renderMode );
 
                             if ( ImGui::Selectable( camera::typeString( st ).c_str(), isSelected ) )
                             {
@@ -307,7 +309,42 @@ void renderViewSettingsComboWindow(
                 if ( ImGui::IsItemHovered() )
                 {
                     static const std::string sk_viewTypeString( "View type: " );
-                    ImGui::SetTooltip( "%s", ( sk_viewTypeString + camera::descriptionString( shaderType ) ).c_str() );
+                    ImGui::SetTooltip( "%s", ( sk_viewTypeString + camera::descriptionString( renderMode ) ).c_str() );
+                }
+            }
+
+
+            // Shader type combo box:
+            if ( uiControls.m_hasMipTypeComboBox )
+            {
+                ImGui::SameLine();
+                ImGui::PushItemWidth( 36.0f + 2.0f * ImGui::GetStyle().FramePadding.x );
+
+                if ( ImGui::BeginCombo( "##mipTypeCombo", ICON_FK_FILM ) )
+                {
+                    for ( const auto& ip : camera::AllIntensityProjectionModes )
+                    {
+                        const bool isSelected = ( ip == intensityProjMode );
+
+                        if ( ImGui::Selectable( camera::typeString( ip ).c_str(), isSelected ) )
+                        {
+                            setIntensityProjectionMode( ip );
+                        }
+
+                        if ( isSelected )
+                        {
+                            ImGui::SetItemDefaultFocus();
+                        }
+                    }
+
+                    ImGui::EndCombo();
+                }
+                ImGui::PopItemWidth();
+
+                if ( ImGui::IsItemHovered() )
+                {
+                    static const std::string sk_ipString( "" );
+                    ImGui::SetTooltip( "%s", ( sk_ipString + camera::descriptionString( intensityProjMode ) ).c_str() );
                 }
             }
 
@@ -363,7 +400,7 @@ void renderViewSettingsComboWindow(
 
                 bool first = true; // The first image gets no comma in front of it
 
-                if ( camera::ViewRenderMode::Image == shaderType )
+                if ( camera::ViewRenderMode::Image == renderMode )
                 {
                     for ( size_t i = 0; i < numImages; ++i )
                     {
@@ -375,7 +412,7 @@ void renderViewSettingsComboWindow(
                         }
                     }
                 }
-                else if ( camera::ViewRenderMode::Disabled == shaderType )
+                else if ( camera::ViewRenderMode::Disabled == renderMode )
                 {
                     // render no text
                     imageNamesText = "";

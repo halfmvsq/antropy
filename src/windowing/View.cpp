@@ -79,12 +79,13 @@ View::View( glm::vec4 winClipViewport,
             ViewOffsetSetting offsetSetting,
             camera::CameraType cameraType,
             camera::ViewRenderMode renderMode,
+            camera::IntensityProjectionMode ipMode,
             UiControls uiControls,
             std::optional<uuids::uuid> cameraRotationSyncGroupUid,
             std::optional<uuids::uuid> cameraTranslationSyncGroup,
             std::optional<uuids::uuid> cameraZoomSyncGroup )
     :
-      ControlFrame( winClipViewport, cameraType, renderMode, uiControls ),
+      ControlFrame( winClipViewport, cameraType, renderMode, ipMode, uiControls ),
 
       m_offset( std::move( offsetSetting ) ),
 

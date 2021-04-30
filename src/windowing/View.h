@@ -47,6 +47,7 @@ public:
           ViewOffsetSetting offsetSetting,
           camera::CameraType cameraType,
           camera::ViewRenderMode renderMode,
+          camera::IntensityProjectionMode ipMode,
           UiControls uiControls,
           std::optional<uuids::uuid> cameraRotationSyncGroupUid,
           std::optional<uuids::uuid> translationSyncGroup,

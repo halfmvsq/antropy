@@ -49,6 +49,19 @@ std::string typeString( const ViewRenderMode& mode )
     return s_modeToStringMap.at( mode );
 }
 
+std::string typeString( const IntensityProjectionMode& mode )
+{
+    static const std::unordered_map< IntensityProjectionMode, std::string > s_modeToStringMap
+    {
+        { IntensityProjectionMode::None, "None" },
+        { IntensityProjectionMode::Maximum, "MaxIP" },
+        { IntensityProjectionMode::Mean, "MeanIP" },
+        { IntensityProjectionMode::Minimum, "MinIP" }
+    };
+
+    return s_modeToStringMap.at( mode );
+}
+
 std::string descriptionString( const ViewRenderMode& mode )
 {
     static const std::unordered_map< ViewRenderMode, std::string > s_modeToStringMap
@@ -62,6 +75,19 @@ std::string descriptionString( const ViewRenderMode& mode )
         { ViewRenderMode::CrossCorrelation, "Correlation metric" },
         { ViewRenderMode::JointHistogram, "Joint histogram metric" },
         { ViewRenderMode::Disabled, "Disabled" }
+    };
+
+    return s_modeToStringMap.at( mode );
+}
+
+std::string descriptionString( const IntensityProjectionMode& mode )
+{
+    static const std::unordered_map< IntensityProjectionMode, std::string > s_modeToStringMap
+    {
+        { IntensityProjectionMode::None, "No intensity projection" },
+        { IntensityProjectionMode::Maximum, "Maximum intensity projection" },
+        { IntensityProjectionMode::Mean, "Mean intensity projection" },
+        { IntensityProjectionMode::Minimum, "Minimum intensity projection" }
     };
 
     return s_modeToStringMap.at( mode );

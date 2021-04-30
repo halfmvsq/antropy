@@ -12,12 +12,14 @@ struct UiControls
         :
           m_hasImageComboBox( visible ),
           m_hasCameraTypeComboBox( visible ),
-          m_hasShaderTypeComboBox( visible )
+          m_hasShaderTypeComboBox( visible ),
+          m_hasMipTypeComboBox( visible )
     {}
 
     bool m_hasImageComboBox = false;
     bool m_hasCameraTypeComboBox = false;
     bool m_hasShaderTypeComboBox = false;
+    bool m_hasMipTypeComboBox = false;
 };
 
 #endif // UI_CONTROLS

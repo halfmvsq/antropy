@@ -60,10 +60,12 @@ void renderViewSettingsComboWindow(
         const std::function< bool( size_t imageIndex ) >& getImageVisibilitySetting,
 
         const camera::CameraType& cameraType,
-        const camera::ViewRenderMode& shaderType,
+        const camera::ViewRenderMode& renderMode,
+        const camera::IntensityProjectionMode& intensityProjMode,
 
         const std::function< void ( const camera::CameraType& cameraType ) >& setCameraType,
-        const std::function< void ( const camera::ViewRenderMode& shaderType ) >& setRenderMode,
+        const std::function< void ( const camera::ViewRenderMode& renderMode ) >& setRenderMode,
+        const std::function< void ( const camera::IntensityProjectionMode& projMode ) >& setIntensityProjectionMode,
         const std::function< void () >& recenter,
 
         const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews );

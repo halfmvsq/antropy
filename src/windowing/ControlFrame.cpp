@@ -10,6 +10,7 @@ ControlFrame::ControlFrame(
         glm::vec4 winClipViewport,
         camera::CameraType cameraType,
         camera::ViewRenderMode renderMode,
+        camera::IntensityProjectionMode ipMode,
         UiControls uiControls )
     :
       m_winClipViewport( std::move( winClipViewport ) ),
@@ -23,8 +24,9 @@ ControlFrame::ControlFrame(
       // Render the first two images by default:
       m_preferredDefaultRenderedImages( { 0, 1 } ),
 
-      m_renderMode( renderMode ),
       m_cameraType( cameraType ),
+      m_renderMode( renderMode ),
+      m_intensityProjectionMode( ipMode ),
 
       m_uiControls( std::move( uiControls ) )
 {
@@ -274,5 +276,8 @@ void ControlFrame::setCameraType( const camera::CameraType& cameraType ) { m_cam
 
 camera::ViewRenderMode ControlFrame::renderMode() const { return m_renderMode; }
 void ControlFrame::setRenderMode( const camera::ViewRenderMode& shaderType ) { m_renderMode = shaderType; }
+
+camera::IntensityProjectionMode ControlFrame::intensityProjectionMode() const { return m_intensityProjectionMode; }
+void ControlFrame::setIntensityProjectionMode( const camera::IntensityProjectionMode& ipMode ) { m_intensityProjectionMode = ipMode; }
 
 const UiControls& ControlFrame::uiControls() const { return m_uiControls; }
