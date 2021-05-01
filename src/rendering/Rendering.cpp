@@ -65,7 +65,7 @@ static const glm::mat4 sk_identMat4{ 1.0f };
 static const glm::vec2 sk_zeroVec2{ 0.0f, 0.0f };
 static const glm::vec3 sk_zeroVec3{ 0.0f, 0.0f, 0.0f };
 static const glm::vec4 sk_zeroVec4{ 0.0f, 0.0f, 0.0f, 0.0f };
-static const glm::bvec2 sk_zeroBVec2{ false, false };
+static const glm::ivec2 sk_zeroIVec2{ 0, 0 };
 
 static const std::string ROBOTO_LIGHT( "robotoLight" );
 
@@ -1071,6 +1071,8 @@ void Rendering::renderAllImages(
 
                 P.setUniform( "imgTexture_T_world", std::vector<glm::mat4>{ U0.imgTexture_T_world, U1.imgTexture_T_world } );
                 P.setUniform( "segTexture_T_world", std::vector<glm::mat4>{ U0.segTexture_T_world, U1.segTexture_T_world } );
+                P.setUniform( "img1Tex_T_img0Tex", U1.imgTexture_T_world * glm::inverse( U0.imgTexture_T_world ) );
+
                 P.setUniform( "imgSlopeIntercept", std::vector<glm::vec2>{ U0.largestSlopeIntercept, U1.largestSlopeIntercept } );
                 P.setUniform( "segOpacity", std::vector<float>{ U0.segOpacity, U1.segOpacity } );
 
@@ -1483,7 +1485,7 @@ bool Rendering::createImageProgram( GLShaderProgram& program )
 
         fsUniforms.insertUniform( "masking", UniformType::Bool, false );
 
-        fsUniforms.insertUniform( "quadrants", UniformType::BVec2, sk_zeroBVec2 ); // For quadrants
+        fsUniforms.insertUniform( "quadrants", UniformType::IVec2, sk_zeroIVec2 ); // For quadrants
         fsUniforms.insertUniform( "showFix", UniformType::Bool, true ); // For checkerboarding
         fsUniforms.insertUniform( "renderMode", UniformType::Int, 0 ); // 0: image, 1: checkerboard, 2: quadrants, 3: flashlight
 
@@ -1573,7 +1575,7 @@ bool Rendering::createEdgeProgram( GLShaderProgram& program )
 
         fsUniforms.insertUniform( "masking", UniformType::Bool, false );
 
-        fsUniforms.insertUniform( "quadrants", UniformType::BVec2, sk_zeroBVec2 );
+        fsUniforms.insertUniform( "quadrants", UniformType::IVec2, sk_zeroIVec2 );
         fsUniforms.insertUniform( "showFix", UniformType::Bool, true );
         fsUniforms.insertUniform( "renderMode", UniformType::Int, 0 );
 
@@ -1736,6 +1738,12 @@ bool Rendering::createDifferenceProgram( GLShaderProgram& program )
         fsUniforms.insertUniform( "metricMasking", UniformType::Bool, false );
 
         fsUniforms.insertUniform( "useSquare", UniformType::Bool, true );
+
+        // For intensity projection:
+        fsUniforms.insertUniform( "mipMode", UniformType::Int, 0 ); // 0 - none, 1 - max, 2 - mean, 3 - min
+        fsUniforms.insertUniform( "halfNumMipSamples", UniformType::Int, 0 );
+        fsUniforms.insertUniform( "texSamplingDirZ", UniformType::Vec3, sk_zeroVec3 );
+        fsUniforms.insertUniform( "img1Tex_T_img0Tex", UniformType::Mat4, sk_identMat4 );
 
         auto fs = std::make_shared<GLShader>( "fsDiff", ShaderType::Fragment, fsSource.c_str() );
         fs->setRegisteredUniforms( std::move( fsUniforms ) );

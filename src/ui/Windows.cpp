@@ -1309,23 +1309,23 @@ void renderSettingsWindow(
                     // Quadrants style:
                     ImGui::Text( "Quadrants:" );
 
-                    const glm::bvec2 Q = appData.renderData().m_quadrants;
+                    const glm::ivec2 Q = appData.renderData().m_quadrants;
 
                     if ( ImGui::RadioButton( "X", true == ( Q.x && ! Q.y ) ) )
                     {
-                        appData.renderData().m_quadrants = glm::bvec2{ true, false };
+                        appData.renderData().m_quadrants = glm::ivec2{ true, false };
                     }
 
                     ImGui::SameLine();
                     if ( ImGui::RadioButton( "Y", true == ( ! Q.x && Q.y ) ) )
                     {
-                        appData.renderData().m_quadrants = glm::bvec2{ false, true };
+                        appData.renderData().m_quadrants = glm::ivec2{ false, true };
                     }
 
                     ImGui::SameLine();
                     if ( ImGui::RadioButton( "X and Y comparison", true == ( Q.x && Q.y ) ) )
                     {
-                        appData.renderData().m_quadrants = glm::bvec2{ true, true };
+                        appData.renderData().m_quadrants = glm::ivec2{ true, true };
                     }
 
                     ImGui::SameLine();

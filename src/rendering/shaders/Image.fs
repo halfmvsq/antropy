@@ -54,6 +54,8 @@ uniform int mipMode;
 
 // Half the number of samples for MIP. Set to 0 when mipMode == 0.
 uniform int halfNumMipSamples;
+
+// Z view camera direction, represented in texture sampling space
 uniform vec3 texSamplingDirZ;
 
 
@@ -68,6 +70,7 @@ float hardThreshold( float value, vec2 thresholds )
     return float( thresholds[0] <= value && value <= thresholds[1] );
 }
 
+// Check if inside texture coordinates
 bool isInsideTexture( vec3 a )
 {
     return ( all( greaterThanEqual( a, MIN_IMAGE_TEXCOORD ) ) &&
@@ -77,25 +80,28 @@ bool isInsideTexture( vec3 a )
 
 void main()
 {
-    bvec2 Q = bvec2( fs_in.ClipPos.x <= clipCrosshairs.x, fs_in.ClipPos.y > clipCrosshairs.y );
+    bvec2 Q = bvec2( fs_in.ClipPos.x <= clipCrosshairs.x,
+                     fs_in.ClipPos.y > clipCrosshairs.y );
 
-    float flashlightDist = sqrt( pow( aspectRatio * ( fs_in.ClipPos.x - clipCrosshairs.x ), 2.0 ) +
-                                 pow( fs_in.ClipPos.y - clipCrosshairs.y, 2.0 ) );
+    float flashlightDist = sqrt(
+        pow( aspectRatio * ( fs_in.ClipPos.x - clipCrosshairs.x ), 2.0 ) +
+        pow( fs_in.ClipPos.y - clipCrosshairs.y, 2.0 ) );
 
     bool doRender = ( 0 == renderMode );
 
     doRender = doRender || ( ( 1 == renderMode ) &&
-        ( showFix == bool( mod( floor( fs_in.CheckerCoord.x ) + floor( fs_in.CheckerCoord.y ), 2.0 ) > 0.5 ) ) );
+        ( showFix == bool( mod( floor( fs_in.CheckerCoord.x ) +
+                                floor( fs_in.CheckerCoord.y ), 2.0 ) > 0.5 ) ) );
 
     doRender = doRender || ( ( 2 == renderMode ) &&
         ( showFix == ( ( ! quadrants.x || Q.x ) == ( ! quadrants.y || Q.y ) ) ) );
 
     doRender = doRender || ( ( 3 == renderMode ) &&
-        ( ( showFix == ( flashlightDist > flashlightRadius ) ) || ( flashlightOverlays && showFix ) ) );
+        ( ( showFix == ( flashlightDist > flashlightRadius ) ) ||
+                       ( flashlightOverlays && showFix ) ) );
 
     if ( ! doRender ) discard;
 
-    // Foreground masks, based on whether texture coordinates are in range [0.0, 1.0]^3:
     bool imgMask = isInsideTexture( fs_in.ImgTexCoords );
     bool segMask = isInsideTexture( fs_in.SegTexCoords );
 
@@ -146,7 +152,6 @@ void main()
     float mask = float( imgMask && ( masking && ( seg > 0u ) || ! masking ) );
 
     // Apply opacity, mask, and thresholds for images:
-    // (Technically, thresholding should be done in the MIP loop.)
     float alpha = imgOpacity * mask * hardThreshold( img, imgThresholds );
 
     // Apply colors to the image and segmentation values. Multiply by alpha for images:

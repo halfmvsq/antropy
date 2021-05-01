@@ -12,7 +12,7 @@ enum class UniformType : uint32_t
     UInt = GL_UNSIGNED_INT,
     Float = GL_FLOAT,
     Double = GL_DOUBLE,
-    BVec2 = GL_BOOL_VEC2,
+    IVec2 = GL_INT_VEC2,
     Vec2 = GL_FLOAT_VEC2,
     Vec3 = GL_FLOAT_VEC3,
     Vec4 = GL_FLOAT_VEC4,
@@ -27,14 +27,6 @@ enum class UniformType : uint32_t
     Vec2Vector = 4,
     Mat4Vector = 5,
     Vec3Vector = 6,
-
-
-    //    FloatArray2 = 2,
-    //    FloatArray3 = 3,
-    //    FloatArray4 = 4,
-    //    FloatArray5 = 5,
-    //    UIntArray5 = 6,
-    //    Vec3Array8 = 8,
 
     Undefined = 0
 };

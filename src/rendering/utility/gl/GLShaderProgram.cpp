@@ -268,6 +268,20 @@ bool GLShaderProgram::setUniform( const std::string& name, GLfloat x, GLfloat y,
 }
 
 
+bool GLShaderProgram::setUniform( const std::string& name, const glm::ivec2& v )
+{
+    const GLint loc = getUniformLocation( name );
+
+    if ( loc < 0 )
+    {
+        return false;
+    }
+
+    glUniform2iv( loc, 1, glm::value_ptr(v) );
+    return true;
+}
+
+
 bool GLShaderProgram::setUniform( const std::string& name, const glm::vec2& v )
 {
     const GLint loc = getUniformLocation( name );
@@ -430,7 +444,6 @@ bool GLShaderProgram::setUniform( const std::string& name, const std::vector<flo
     glUniform1fv( loc, static_cast<GLint>( floats.size() ), floats.data() );
     return true;
 }
-
 
 
 void GLShaderProgram::applyUniforms( Uniforms& uniforms )

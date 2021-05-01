@@ -53,6 +53,7 @@ public:
     bool setUniform( const std::string& name, GLuint val );
     bool setUniform( const std::string& name, GLfloat val );
     bool setUniform( const std::string& name, GLfloat x, GLfloat y, GLfloat z );
+    bool setUniform( const std::string& name, const glm::ivec2& vec );
     bool setUniform( const std::string& name, const glm::vec2& vec );
     bool setUniform( const std::string& name, const glm::vec3& vec );
     bool setUniform( const std::string& name, const glm::vec4& vec );

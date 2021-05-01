@@ -16,6 +16,70 @@
 #include <spdlog/fmt/ostr.h>
 
 
+namespace
+{
+
+/**
+ * @brief Compute Texture-space direction to sample direction along a camera view axis
+ * @param[in] pixel_T_clip Clip-to-Pixel transformation matrix for the view camera and image
+ * @param[in] invPixelDims
+ * @param[in] axis View axis
+ * @return Sampling direction in Texture space
+ */
+glm::vec3 computeTexSamplingDir(
+        const glm::mat4& pixel_T_clip,
+        const glm::vec3& invPixelDims,
+        const Directions::View& axis )
+{
+    static const glm::vec4 clipOrigin{ 0.0f, 0.0f, -1.0f, 1.0 };
+    const glm::vec4 clipPos = clipOrigin + glm::vec4{ Directions::get( axis ), 0.0f };
+
+    const glm::vec4 pixelPos = pixel_T_clip * clipPos;
+    const glm::vec4 pixelOrigin = pixel_T_clip * clipOrigin;
+
+    const glm::vec3 pixelDir = glm::normalize( pixelPos / pixelPos.w - pixelOrigin / pixelOrigin.w );
+
+    return glm::dot( glm::abs( pixelDir ), invPixelDims ) * pixelDir;
+}
+
+
+/**
+ * @brief Compute half the number of samples for MIPs
+ * @param camera
+ * @param image
+ * @param doMaxExtentMip
+ * @return
+ */
+int computeHalfNumMipSamples(
+        const camera::Camera& camera,
+        const Image& image,
+        float mipSlabThickness_mm,
+        bool doMaxExtentMip )
+{
+    int halfNumMipSamples = 0;
+
+    if ( ! doMaxExtentMip )
+    {
+        const float mmPerStep = data::sliceScrollDistance(
+                    camera::worldDirection( camera, Directions::View::Front ), image );
+
+        halfNumMipSamples = static_cast<int>(
+                    std::floor( 0.5f * mipSlabThickness_mm / mmPerStep ) );
+    }
+    else
+    {
+        // To achieve maximum extent, use the number of samples along the image diagonal.
+        // That way, the MIP will hit all voxels.
+        halfNumMipSamples = static_cast<int>(
+                    std::ceil( glm::length( glm::vec3{ image.header().pixelDimensions() } ) ) );
+    }
+
+    return halfNumMipSamples;
+}
+
+}
+
+
 void drawImageQuad(
         GLShaderProgram& program,
         const camera::ViewRenderMode& renderMode,
@@ -40,51 +104,33 @@ void drawImageQuad(
         return;
     }
 
-    const Image* image = getImage( I[0].first );
+    const Image* image0 = getImage( I[0].first );
 
-    if ( ! image )
+    if ( ! image0 )
     {
         spdlog::error( "Null image when rendering textured quad" );
         return;
     }
 
-    const glm::mat4 imagePixel_T_clip =
-            image->transformations().pixel_T_worldDef() *
-            camera::world_T_clip( view.camera() );
+    const glm::mat4 world_T_clip = camera::world_T_clip( view.camera() );
 
-    const glm::vec3 invDims = image->transformations().invPixelDimensions();
-
-
-    // Direction to sample direction along the camera view's Z axis:
+    // Direction to sample direction along the camera view's Z axis for image 0:
     glm::vec3 texSamplingDirZ( 0.0f );
 
-    // Half the number of samples for MIPs:
+    // Half the number of samples for MIPs (for image 0):
     int halfNumMipSamples = 0;
 
     // Only compute these if doing a MIP:
     if ( camera::IntensityProjectionMode::None != view.intensityProjectionMode() )
     {
-        const glm::vec4 pO = imagePixel_T_clip * glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0 };
-        const glm::vec4 pZ = imagePixel_T_clip * glm::vec4{ 0.0f, 0.0f, -1.0f, 1.0 };
+        const glm::mat4 pixel_T_clip = world_T_clip * image0->transformations().pixel_T_worldDef();
 
-        const glm::vec3 pixelDirZ = glm::normalize( pZ / pZ.w - pO / pO.w );
-        texSamplingDirZ = glm::dot( glm::abs( pixelDirZ ), invDims ) * pixelDirZ;
+        texSamplingDirZ = computeTexSamplingDir(
+                    pixel_T_clip, image0->transformations().invPixelDimensions(),
+                    Directions::View::Back );
 
-        if ( ! doMaxExtentMip )
-        {
-            const float mmPerStep = data::sliceScrollDistance(
-                        camera::worldDirection( view.camera(), Directions::View::Front ), *image );
-
-            halfNumMipSamples = static_cast<int>(
-                        std::floor( 0.5f * mipSlabThickness_mm / mmPerStep ) );
-        }
-        else
-        {
-            // To achieve maximum extent, use the number of samples along the image diagonal.
-            // That way, the MIP will hit all voxels.
-            halfNumMipSamples = static_cast<int>(
-                        std::ceil( glm::length( glm::vec3{ image->header().pixelDimensions() } ) ) );
-        }
+        halfNumMipSamples = computeHalfNumMipSamples(
+                    view.camera(), *image0, mipSlabThickness_mm, doMaxExtentMip );
     }
 
 
@@ -103,31 +149,38 @@ void drawImageQuad(
         program.setUniform( "flashlightRadius", flashlightRadius );
         program.setUniform( "flashlightOverlays", flashlightOverlays );
 
-        const glm::vec4 clipCrosshairs = camera::clip_T_world( view.camera() ) * glm::vec4{ worldCrosshairs, 1.0f };
+        const glm::vec4 clipCrosshairs =
+                camera::clip_T_world( view.camera() ) * glm::vec4{ worldCrosshairs, 1.0f };
+
         program.setUniform( "clipCrosshairs", glm::vec2{ clipCrosshairs / clipCrosshairs.w } );
 
         if ( showEdges )
         {
-            const glm::vec4 p1 = imagePixel_T_clip * glm::vec4{ 0.0f, 0.0f, -1.0f, 1.0 };
-            const glm::vec4 pX = imagePixel_T_clip * glm::vec4{ 1.0f, 0.0f, -1.0f, 1.0 };
-            const glm::vec4 pY = imagePixel_T_clip * glm::vec4{ 0.0f, 1.0f, -1.0f, 1.0 };
+            const glm::mat4 pixel_T_clip = world_T_clip * image0->transformations().pixel_T_worldDef();
 
-            const glm::vec3 pixelDirX = glm::normalize( pX / pX.w - p1 / p1.w );
-            const glm::vec3 pixelDirY = glm::normalize( pY / pY.w - p1 / p1.w );
+            const glm::vec3 texSamplingDirX = computeTexSamplingDir(
+                        pixel_T_clip, image0->transformations().invPixelDimensions(),
+                        Directions::View::Right );
 
-            const glm::vec3 texSamplingDirX = glm::dot( glm::abs( pixelDirX ), invDims ) * pixelDirX;
-            const glm::vec3 texSamplingDirY = glm::dot( glm::abs( pixelDirY ), invDims ) * pixelDirY;
+            const glm::vec3 texSamplingDirY = computeTexSamplingDir(
+                        pixel_T_clip, image0->transformations().invPixelDimensions(),
+                        Directions::View::Up );
 
             program.setUniform( "texSamplingDirX", texSamplingDirX );
             program.setUniform( "texSamplingDirY", texSamplingDirY );
         }
         else
         {
-            /// @todo Add this to metric shaders, too, but only allow MaxIP or MeanIP.
             program.setUniform( "mipMode", underlyingType_asInt32( view.intensityProjectionMode() ) );
             program.setUniform( "halfNumMipSamples", halfNumMipSamples );
             program.setUniform( "texSamplingDirZ", texSamplingDirZ );
         }
+    }
+    else if ( camera::ViewRenderMode::Difference == renderMode )
+    {
+        program.setUniform( "mipMode", underlyingType_asInt32( view.intensityProjectionMode() ) );
+        program.setUniform( "halfNumMipSamples", halfNumMipSamples );
+        program.setUniform( "texSamplingDirZ", texSamplingDirZ );
     }
     else if ( camera::ViewRenderMode::CrossCorrelation == renderMode )
     {

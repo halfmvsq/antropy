@@ -161,7 +161,7 @@ struct RenderData
     bool m_overlayMagentaCyan;
 
     // Should comparison be done in x,y directions?
-    glm::bvec2 m_quadrants;
+    glm::ivec2 m_quadrants;
 
     // Should the difference metric use squared difference (true) or absolute difference (false)?
     bool m_useSquare;

@@ -174,7 +174,7 @@ std::string Uniforms::getUniformTypeString( const GLenum type )
     case GL_FLOAT: return "float";
     case GL_DOUBLE: return "double";
     case GL_FLOAT_VEC2: return "vec2";
-    case GL_BOOL_VEC2: return "bvec2";
+    case GL_INT_VEC2: return "ivec2";
     case GL_FLOAT_VEC3: return "vec3";
     case GL_FLOAT_VEC4: return "vec4";
     case GL_FLOAT_MAT2: return "mat2";
