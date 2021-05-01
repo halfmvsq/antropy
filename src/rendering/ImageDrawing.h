@@ -26,6 +26,8 @@ void drawImageQuad(
         const glm::vec3& worldOrigin,
         float flashlightRadius,
         bool flashlightOverlays,
+        float mipSlabThickness_mm,
+        bool doMaxExtentMip,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I,
         const std::function< const Image* ( const std::optional<uuids::uuid>& imageUid ) > getImage,
         bool showEdges );

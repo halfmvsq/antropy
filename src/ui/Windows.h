@@ -68,7 +68,13 @@ void renderViewSettingsComboWindow(
         const std::function< void ( const camera::IntensityProjectionMode& projMode ) >& setIntensityProjectionMode,
         const std::function< void () >& recenter,
 
-        const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews );
+        const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews,
+
+        const std::function< float () >& getIntensityProjectionSlabThickness,
+        const std::function< void ( float thickness ) >& setIntensityProjectionSlabThickness,
+
+        const std::function< bool () >& getDoMaxExtentIntensityProjection,
+        const std::function< void ( bool set ) >& setDoMaxExtentIntensityProjection );
 
 
 void renderViewOrientationToolWindow(

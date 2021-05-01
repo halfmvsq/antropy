@@ -907,8 +907,18 @@ void Rendering::renderOneImage(
 
     auto& renderData = m_appData.renderData();
 
-    drawImageQuad( program, view.renderMode(), renderData.m_quad, view, worldOffsetXhairs,
-                   renderData.m_flashlightRadius, renderData.m_flashlightOverlays, I, getImage, showEdges );
+    drawImageQuad( program,
+                   view.renderMode(),
+                   renderData.m_quad,
+                   view,
+                   worldOffsetXhairs,
+                   renderData.m_flashlightRadius,
+                   renderData.m_flashlightOverlays,
+                   renderData.m_intensityProjectionSlabThickness,
+                   renderData.m_doMaxExtentIntensityProjection,
+                   I,
+                   getImage,
+                   showEdges );
 
     if ( ! renderData.m_globalLandmarkParams.renderOnTopOfAllImagePlanes )
     {

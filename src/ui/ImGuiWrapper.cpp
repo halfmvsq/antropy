@@ -659,7 +659,12 @@ void ImGuiWrapper::render()
                     [&currentLayout] ( const camera::IntensityProjectionMode& ipMode ) { return currentLayout.setIntensityProjectionMode( ipMode ); },
 
                     [this]() { m_recenterAllViews( sk_recenterCrosshairs, sk_recenterOnCurrentCrosshairsPosition, sk_resetObliqueOrientation ); },
-                    nullptr );
+                    nullptr,
+
+                    [this]() { return m_appData.renderData().m_intensityProjectionSlabThickness; },
+                    [this]( float thickness ) { m_appData.renderData().m_intensityProjectionSlabThickness = thickness; },
+                    [this]() { return m_appData.renderData().m_doMaxExtentIntensityProjection; },
+                    [this]( bool set ) { m_appData.renderData().m_doMaxExtentIntensityProjection = set; } );
 
         renderViewOrientationToolWindow(
                     currentLayout.uid(),
@@ -733,7 +738,12 @@ void ImGuiWrapper::render()
                         setIntensityProjectionMode,
 
                         recenter,
-                        applyImageSelectionAndRenderModesToAllViews );
+                        applyImageSelectionAndRenderModesToAllViews,
+
+                        [this]() { return m_appData.renderData().m_intensityProjectionSlabThickness; },
+                        [this]( float thickness ) { m_appData.renderData().m_intensityProjectionSlabThickness = thickness; },
+                        [this]() { return m_appData.renderData().m_doMaxExtentIntensityProjection; },
+                        [this]( bool set ) { m_appData.renderData().m_doMaxExtentIntensityProjection = set; } );
 
             renderViewOrientationToolWindow(
                     viewUid,

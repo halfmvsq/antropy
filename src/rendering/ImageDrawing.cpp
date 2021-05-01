@@ -24,6 +24,8 @@ void drawImageQuad(
         const glm::vec3& worldCrosshairs,
         float flashlightRadius,
         bool flashlightOverlays,
+        float mipSlabThickness_mm,
+        bool doMaxExtentMip,
         const std::vector< std::pair< std::optional<uuids::uuid>, std::optional<uuids::uuid> > >& I,
         const std::function< const Image* ( const std::optional<uuids::uuid>& imageUid ) > getImage,
         bool showEdges )
@@ -62,20 +64,27 @@ void drawImageQuad(
     // Only compute these if doing a MIP:
     if ( camera::IntensityProjectionMode::None != view.intensityProjectionMode() )
     {
-        /// @todo put into function
         const glm::vec4 pO = imagePixel_T_clip * glm::vec4{ 0.0f, 0.0f, 1.0f, 1.0 };
         const glm::vec4 pZ = imagePixel_T_clip * glm::vec4{ 0.0f, 0.0f, -1.0f, 1.0 };
 
         const glm::vec3 pixelDirZ = glm::normalize( pZ / pZ.w - pO / pO.w );
         texSamplingDirZ = glm::dot( glm::abs( pixelDirZ ), invDims ) * pixelDirZ;
 
-        const float mmPerStep = data::sliceScrollDistance(
-                    camera::worldDirection( view.camera(), Directions::View::Front ), *image );
+        if ( ! doMaxExtentMip )
+        {
+            const float mmPerStep = data::sliceScrollDistance(
+                        camera::worldDirection( view.camera(), Directions::View::Front ), *image );
 
-        /// @todo Slider for this variable:
-        const float mipSlabDepth_mm = 256.0f;
-
-        halfNumMipSamples = static_cast<int>( std::floor( 0.5f * mipSlabDepth_mm / mmPerStep ) );
+            halfNumMipSamples = static_cast<int>(
+                        std::floor( 0.5f * mipSlabThickness_mm / mmPerStep ) );
+        }
+        else
+        {
+            // To achieve maximum extent, use the number of samples along the image diagonal.
+            // That way, the MIP will hit all voxels.
+            halfNumMipSamples = static_cast<int>(
+                        std::ceil( glm::length( glm::vec3{ image->header().pixelDimensions() } ) ) );
+        }
     }
 
 

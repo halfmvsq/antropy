@@ -72,7 +72,13 @@ void renderViewSettingsComboWindow(
         const std::function< void ( const camera::IntensityProjectionMode& projMode ) >& setIntensityProjectionMode,
         const std::function< void () >& recenter,
 
-        const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews )
+        const std::function< void ( const uuids::uuid& viewUid ) >& applyImageSelectionAndShaderToAllViews,
+
+        const std::function< float () >& getIntensityProjectionSlabThickness,
+        const std::function< void ( float thickness ) >& setIntensityProjectionSlabThickness,
+
+        const std::function< bool () >& getDoMaxExtentIntensityProjection,
+        const std::function< void ( bool set ) >& setDoMaxExtentIntensityProjection )
 {
     static const glm::vec2 sk_framePad{ 4.0f, 4.0f };
     static const ImVec2 sk_windowPadding( 0.0f, 0.0f );
@@ -308,20 +314,22 @@ void renderViewSettingsComboWindow(
 
                 if ( ImGui::IsItemHovered() )
                 {
-                    static const std::string sk_viewTypeString( "View type: " );
+                    static const std::string sk_viewTypeString( "Render mode: " );
                     ImGui::SetTooltip( "%s", ( sk_viewTypeString + camera::descriptionString( renderMode ) ).c_str() );
                 }
             }
 
 
-            // Shader type combo box:
+            // Popup window with intensity projection mode:
             if ( uiControls.m_hasMipTypeComboBox )
             {
                 ImGui::SameLine();
                 ImGui::PushItemWidth( 36.0f + 2.0f * ImGui::GetStyle().FramePadding.x );
 
-                if ( ImGui::BeginCombo( "##mipTypeCombo", ICON_FK_FILM ) )
+                if ( ImGui::BeginCombo( "##mipModeCombo", ICON_FK_FILM, ImGuiComboFlags_HeightLargest ) )
                 {
+                    ImGui::Text( "Intensity projection mode:" );
+
                     for ( const auto& ip : camera::AllIntensityProjectionModes )
                     {
                         const bool isSelected = ( ip == intensityProjMode );
@@ -334,6 +342,39 @@ void renderViewSettingsComboWindow(
                         if ( isSelected )
                         {
                             ImGui::SetItemDefaultFocus();
+                        }
+                    }
+
+                    if ( camera::IntensityProjectionMode::None != intensityProjMode )
+                    {
+                        ImGui::Spacing();
+                        ImGui::Separator();
+                        ImGui::Spacing();
+
+                        bool doMaxExtent = getDoMaxExtentIntensityProjection();
+                        if ( ImGui::Checkbox( "Use maximum image extent", &doMaxExtent ) )
+                        {
+                            setDoMaxExtentIntensityProjection( doMaxExtent );
+                        }
+                        ImGui::SameLine(); helpMarker( "Compute intensity projection over the full image extent" );
+
+                        if ( ! doMaxExtent )
+                        {
+                            float thickness = getIntensityProjectionSlabThickness();
+
+                            ImGui::Spacing();
+                            ImGui::Text( "Slab thickness (mm):" );
+                            ImGui::SameLine(); helpMarker( "Intensity projection slab thickness" );
+
+                            ImGui::PushItemWidth( 150.0f );
+                            if ( ImGui::InputFloat( "##slabThickness", &thickness, 0.1f, 1.0f, "%0.2f" ) )
+                            {
+                                if ( thickness >= 0.0f )
+                                {
+                                    setIntensityProjectionSlabThickness( thickness );
+                                }
+                            }
+                            ImGui::PopItemWidth();
                         }
                     }
 
@@ -360,7 +401,7 @@ void renderViewSettingsComboWindow(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Apply this view's image selection and view type to the entire layout" );
+                    ImGui::SetTooltip( "%s", "Apply this view's image selection and render mode to all views in the layout" );
                 }
             }
 

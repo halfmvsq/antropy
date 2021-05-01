@@ -28,6 +28,13 @@ uniform bool metricMasking; // Whether to mask based on segmentation
 uniform bool useSquare; // Whether to use squared difference (true) or absolute difference (false)
 
 
+bool isInsideTexture( vec3 a )
+{
+    return ( all( greaterThanEqual( a, MIN_IMAGE_TEXCOORD ) ) &&
+             all( lessThanEqual( a, MAX_IMAGE_TEXCOORD ) ) );
+}
+
+
 void main()
 {
     float imgNorm[N];
@@ -37,11 +44,8 @@ void main()
     for ( int i = 0; i < N; ++i )
     {
         // Foreground masks, based on whether texture coordinates are in range [0.0, 1.0]^3:
-        bool imgMask = ! ( any( lessThan( fs_in.ImgTexCoords[i], MIN_IMAGE_TEXCOORD ) ) ||
-                           any( greaterThan( fs_in.ImgTexCoords[i], MAX_IMAGE_TEXCOORD ) ) );
-
-        bool segMask = ! ( any( lessThan( fs_in.SegTexCoords[i], MIN_IMAGE_TEXCOORD ) ) ||
-                           any( greaterThan( fs_in.SegTexCoords[i], MAX_IMAGE_TEXCOORD ) ) );
+        bool imgMask = isInsideTexture( fs_in.ImgTexCoords[i] );
+        bool segMask = isInsideTexture( fs_in.SegTexCoords[i] );
 
         float val = texture( imgTex[i], fs_in.ImgTexCoords[i] ).r; // Image value
         uint label = texture( segTex[i], fs_in.SegTexCoords[i] ).r; // Label value
@@ -64,6 +68,7 @@ void main()
     metric *= mix( 1.0, metric, float(useSquare) );
 
     metric = clamp( metricSlopeIntercept[0] * metric + metricSlopeIntercept[1], 0.0, 1.0 );
+
 
     // Index into colormap:
     float cmapValue = metricCmapSlopeIntercept[0] * metric + metricCmapSlopeIntercept[1];

@@ -68,6 +68,12 @@ float hardThreshold( float value, vec2 thresholds )
     return float( thresholds[0] <= value && value <= thresholds[1] );
 }
 
+bool isInsideTexture( vec3 a )
+{
+    return ( all( greaterThanEqual( a, MIN_IMAGE_TEXCOORD ) ) &&
+             all( lessThanEqual( a, MAX_IMAGE_TEXCOORD ) ) );
+}
+
 
 void main()
 {
@@ -90,26 +96,46 @@ void main()
     if ( ! doRender ) discard;
 
     // Foreground masks, based on whether texture coordinates are in range [0.0, 1.0]^3:
-    bool imgMask = ! ( any( lessThan( fs_in.ImgTexCoords, MIN_IMAGE_TEXCOORD ) ) ||
-                       any( greaterThan( fs_in.ImgTexCoords, MAX_IMAGE_TEXCOORD ) ) );
-
-    bool segMask = ! ( any( lessThan( fs_in.SegTexCoords, MIN_IMAGE_TEXCOORD ) ) ||
-                       any( greaterThan( fs_in.SegTexCoords, MAX_IMAGE_TEXCOORD ) ) );
+    bool imgMask = isInsideTexture( fs_in.ImgTexCoords );
+    bool segMask = isInsideTexture( fs_in.SegTexCoords );
 
     // Look up the image value (after mapping to GL texture units) and label value:
     float img = texture( imgTex, fs_in.ImgTexCoords ).r;
+    int numSamples = 1;
 
+    // Intensity projection in forwards (+Z) direction:
     for ( int i = 1; i <= halfNumMipSamples; ++i )
     {
-        float a = texture( imgTex, fs_in.ImgTexCoords + i * texSamplingDirZ ).r;
-        float b = texture( imgTex, fs_in.ImgTexCoords - i * texSamplingDirZ ).r;
+        vec3 tc = fs_in.ImgTexCoords + i * texSamplingDirZ;
+        if ( ! isInsideTexture( tc ) ) break;
 
-        img = float( 1 == mipMode ) * max( max( img, a ), b ) +
-              float( 2 == mipMode ) * ( img + a + b ) +
-              float( 3 == mipMode ) * min( min( img, a ), b );
+        float a = texture( imgTex, tc ).r;
+
+        img = float( 1 == mipMode ) * max( img, a ) +
+              float( 2 == mipMode ) * ( img + a ) +
+              float( 3 == mipMode ) * min( img, a );
+
+        ++numSamples;
     }
 
-    img /= float( 2 == mipMode ) * ( 2.0 * halfNumMipSamples + 1.0 ) + float( 2 != mipMode );
+    // Intensity projection in backwards (-Z) direction:
+    for ( int i = 1; i <= halfNumMipSamples; ++i )
+    {
+        vec3 tc = fs_in.ImgTexCoords - i * texSamplingDirZ;
+        if ( ! isInsideTexture( tc ) ) break;
+
+        float a = texture( imgTex, tc ).r;
+
+        img = float( 1 == mipMode ) * max( img, a ) +
+              float( 2 == mipMode ) * ( img + a ) +
+              float( 3 == mipMode ) * min( img, a );
+
+        ++numSamples;
+    }
+
+    // If using Mean Intensity Projection mode, then normalize by number of samples:
+    img /= mix( 1.0, float( numSamples ), float( 2 == mipMode ) );
+
 
     uint seg = texture( segTex, fs_in.SegTexCoords ).r;
 

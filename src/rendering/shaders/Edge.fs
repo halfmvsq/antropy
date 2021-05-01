@@ -98,6 +98,12 @@ float hardThreshold( float value, vec2 thresholds )
     return float( thresholds[0] <= value && value <= thresholds[1] );
 }
 
+bool isInsideTexture( vec3 a )
+{
+    return ( all( greaterThanEqual( a, MIN_IMAGE_TEXCOORD ) ) &&
+             all( lessThanEqual( a, MAX_IMAGE_TEXCOORD ) ) );
+}
+
 
 void main()
 {
@@ -120,11 +126,8 @@ void main()
     if ( ! doRender ) discard;
 
     // Foreground masks, based on whether texture coordinates are in range [0.0, 1.0]^3:
-    bool imgMask = ! ( any( lessThan( fs_in.ImgTexCoords, MIN_IMAGE_TEXCOORD ) ) ||
-                       any( greaterThan( fs_in.ImgTexCoords, MAX_IMAGE_TEXCOORD ) ) );
-
-    bool segMask = ! ( any( lessThan( fs_in.SegTexCoords, MIN_IMAGE_TEXCOORD ) ) ||
-                       any( greaterThan( fs_in.SegTexCoords, MAX_IMAGE_TEXCOORD ) ) );
+    bool imgMask = isInsideTexture( fs_in.ImgTexCoords );
+    bool segMask = isInsideTexture( fs_in.SegTexCoords );
 
     // Image values in a 3x3 neighborhood:
     mat3 V;

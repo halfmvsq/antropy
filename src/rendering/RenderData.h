@@ -111,6 +111,12 @@ struct RenderData
     // blending between a pair of images
     bool m_opacityMixMode;
 
+    // Intensity projection slab thickness (in mm)
+    float m_intensityProjectionSlabThickness;
+
+    // Flag to compute intensity projection over the maximum image extent
+    bool m_doMaxExtentIntensityProjection;
+
     glm::vec3 m_backgroundColor; // View background (clear) color
     glm::vec4 m_crosshairsColor; // Crosshairs color (non-premultiplied by alpha)
     glm::vec4 m_anatomicalLabelColor; // Anatomical label text color (non-premultiplied by alpha)

@@ -54,9 +54,9 @@ std::string typeString( const IntensityProjectionMode& mode )
     static const std::unordered_map< IntensityProjectionMode, std::string > s_modeToStringMap
     {
         { IntensityProjectionMode::None, "None" },
-        { IntensityProjectionMode::Maximum, "MaxIP" },
-        { IntensityProjectionMode::Mean, "MeanIP" },
-        { IntensityProjectionMode::Minimum, "MinIP" }
+        { IntensityProjectionMode::Maximum, "Max IP" },
+        { IntensityProjectionMode::Mean, "Mean IP" },
+        { IntensityProjectionMode::Minimum, "Min IP" }
     };
 
     return s_modeToStringMap.at( mode );
