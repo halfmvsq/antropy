@@ -79,7 +79,8 @@ void renderActiveImageSelectionCombo(
 void renderSegLabelsChildWindow(
         size_t tableIndex,
         ParcellationLabelTable* labelTable,
-        const std::function< void ( size_t tableIndex ) >& updateLabelColorTableTexture )
+        const std::function< void ( size_t tableIndex ) >& updateLabelColorTableTexture,
+        const std::function< void ( size_t labelIndex ) >& moveCrosshairsToSegLabelCentroid )
 {
     static const std::string sk_showAll = std::string( ICON_FK_EYE ) + " Show all";
     static const std::string sk_hideAll = std::string( ICON_FK_EYE_SLASH ) + " Hide all";
@@ -179,15 +180,12 @@ void renderSegLabelsChildWindow(
         ImGui::SameLine();
         if ( ImGui::Button( ICON_FK_HAND_O_UP ) )
         {
-//            const glm::mat4 world_T_landmark = ( activeLmGroup->getInVoxelSpace() )
-//                    ? imageTransformations.worldDef_T_pixel()
-//                    : imageTransformations.worldDef_T_subject();
+            moveCrosshairsToSegLabelCentroid( i );
 
-//            const glm::vec4 worldPos = world_T_landmark * glm::vec4{ pointPos, 1.0f };
-//            setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
+            /// @todo Should the views recenter? This done when moving crosshairs to a landmark.
 
-//            // With second argument set to true, this function centers all views on the crosshairs.
-//            // That way, views show the crosshairs even if they were not in the original view bounds.
+            // With second argument set to true, this function centers all views on the crosshairs.
+            // That way, views show the crosshairs even if they were not in the original view bounds.
 //            recenterAllViews( false, true, false );
         }
         if ( ImGui::IsItemHovered() )

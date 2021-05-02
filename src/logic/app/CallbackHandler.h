@@ -223,6 +223,8 @@ public:
      */
     void moveCrosshairsOnViewSlice( const ViewHit& hit, int stepX, int stepY );
 
+    void moveCrosshairsToSegLabelCentroid( const uuids::uuid& imageUid, size_t labelIndex );
+
     /**
      * @brief Recenter all views on the selected images. Optionally recenter crosshairs there too.
      * @param recenterCrosshairs

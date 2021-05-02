@@ -1194,6 +1194,7 @@ void renderSegmentationHeader(
         const std::function< void( void ) >& updateImageUniforms,
         const std::function< ParcellationLabelTable* ( size_t tableIndex ) >& getLabelTable,
         const std::function< void ( size_t tableIndex ) >& updateLabelColorTableTexture,
+        const std::function< void ( size_t labelIndex ) >& moveCrosshairsToSegLabelCentroid,
         const std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) >& createBlankSeg,
         const std::function< bool( const uuids::uuid& segUid ) >& clearSeg,
         const std::function< bool( const uuids::uuid& segUid ) >& removeSeg )
@@ -1486,7 +1487,8 @@ void renderSegmentationHeader(
         renderSegLabelsChildWindow(
                     segSettings.labelTableIndex(),
                     getLabelTable( segSettings.labelTableIndex() ),
-                    updateLabelColorTableTexture );
+                    updateLabelColorTableTexture,
+                    moveCrosshairsToSegLabelCentroid );
 
         ImGui::Separator();
         ImGui::TreePop();

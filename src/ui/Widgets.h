@@ -33,7 +33,8 @@ void renderActiveImageSelectionCombo(
 void renderSegLabelsChildWindow(
         size_t tableIndex,
         ParcellationLabelTable* labelTable,
-        const std::function< void ( size_t tableIndex ) >& updateLabelColorTableTexture );
+        const std::function< void ( size_t tableIndex ) >& updateLabelColorTableTexture,
+        const std::function< void ( size_t labelIndex ) >& moveCrosshairsToSegLabelCentroid );
 
 
 /**

@@ -30,6 +30,7 @@ public:
             std::function< void ( const uuids::uuid& viewUid ) > updateImageUniforms,
             std::function< void ( const uuids::uuid& viewUid ) > updateImageInterpolationMode,
             std::function< void ( size_t tableIndex ) > updateLabelColorTableTexture,
+            std::function< void ( const uuids::uuid& imageUid, size_t labelIndex ) > moveCrosshairsToSegLabelCentroid,
             std::function< void ()> updateMetricUniforms,
             std::function< glm::vec3 () > getWorldDeformedPos,
             std::function< std::optional<glm::vec3> ( size_t imageIndex ) > getSubjectPos,
@@ -55,26 +56,27 @@ private:
     CallbackHandler& m_callbackHandler;
 
     // Callbacks:
-    std::function< void ( const uuids::uuid& viewUid ) > m_recenterView;
-    AllViewsRecenterType m_recenterAllViews;
-    std::function< bool ( void ) > m_getOverlayVisibility;
-    std::function< void ( bool ) > m_setOverlayVisibility;
-    std::function< void ( const uuids::uuid& viewUid ) > m_updateImageUniforms;
-    std::function< void ( const uuids::uuid& viewUid ) > m_updateImageInterpolationMode;
-    std::function< void ( size_t tableIndex ) > m_updateLabelColorTableTexture;
-    std::function< void ( void ) > m_updateMetricUniforms;
-    std::function< glm::vec3 () > m_getWorldDeformedPos;
-    std::function< std::optional<glm::vec3> ( size_t imageIndex ) > m_getSubjectPos;
-    std::function< std::optional<glm::ivec3> ( size_t imageIndex ) > m_getVoxelPos;
-    std::function< void ( size_t imageIndex, const glm::vec3& subjectPos ) > m_setSubjectPos;
-    std::function< void ( size_t imageIndex, const glm::ivec3& voxelPos ) > m_setVoxelPos;
-    std::function< std::optional<double> ( size_t imageIndex ) > m_getImageValue;
-    std::function< std::optional<int64_t> ( size_t imageIndex ) > m_getSegLabel;
-    std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) > m_createBlankSeg;
-    std::function< bool ( const uuids::uuid& segUid ) > m_clearSeg;
-    std::function< bool ( const uuids::uuid& segUid ) > m_removeSeg;
-    std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) > m_executeGridCutsSeg;
-    std::function< bool ( const uuids::uuid& imageUid, bool locked ) > m_setLockManualImageTransformation;
+    std::function< void ( const uuids::uuid& viewUid ) > m_recenterView = nullptr;
+    AllViewsRecenterType m_recenterAllViews = nullptr;
+    std::function< bool ( void ) > m_getOverlayVisibility = nullptr;
+    std::function< void ( bool ) > m_setOverlayVisibility = nullptr;
+    std::function< void ( const uuids::uuid& viewUid ) > m_updateImageUniforms = nullptr;
+    std::function< void ( const uuids::uuid& viewUid ) > m_updateImageInterpolationMode = nullptr;
+    std::function< void ( size_t tableIndex ) > m_updateLabelColorTableTexture = nullptr;
+    std::function< void ( const uuids::uuid& imageUid, size_t labelIndex ) > m_moveCrosshairsToSegLabelCentroid = nullptr;
+    std::function< void ( void ) > m_updateMetricUniforms = nullptr;
+    std::function< glm::vec3 () > m_getWorldDeformedPos = nullptr;
+    std::function< std::optional<glm::vec3> ( size_t imageIndex ) > m_getSubjectPos = nullptr;
+    std::function< std::optional<glm::ivec3> ( size_t imageIndex ) > m_getVoxelPos = nullptr;
+    std::function< void ( size_t imageIndex, const glm::vec3& subjectPos ) > m_setSubjectPos = nullptr;
+    std::function< void ( size_t imageIndex, const glm::ivec3& voxelPos ) > m_setVoxelPos = nullptr;
+    std::function< std::optional<double> ( size_t imageIndex ) > m_getImageValue = nullptr;
+    std::function< std::optional<int64_t> ( size_t imageIndex ) > m_getSegLabel = nullptr;
+    std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) > m_createBlankSeg = nullptr;
+    std::function< bool ( const uuids::uuid& segUid ) > m_clearSeg = nullptr;
+    std::function< bool ( const uuids::uuid& segUid ) > m_removeSeg = nullptr;
+    std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) > m_executeGridCutsSeg = nullptr;
+    std::function< bool ( const uuids::uuid& imageUid, bool locked ) > m_setLockManualImageTransformation = nullptr;
 };
 
 #endif // IMGUI_WRAPPER_H

@@ -485,14 +485,10 @@ void CallbackHandler::doAnnotate( const ViewHit& hit )
 
     // Compute the plane equation in Subjet space. Use the offset World position,
     // so that the user can annotate in any offset view of a lightbox layout.
-    glm::vec4 subjectPlaneEquation;
-    glm::vec3 subjectPlanePoint;
-
-    std::tie( subjectPlaneEquation, subjectPlanePoint ) =
+    const auto [subjectPlaneEquation, subjectPlanePoint] =
             math::computeSubjectPlaneEquation(
                 activeImage->transformations().subject_T_worldDef(),
-                -hit.worldFrontAxis,
-                glm::vec3{ hit.worldPos_offsetApplied } );
+                -hit.worldFrontAxis, glm::vec3{ hit.worldPos_offsetApplied } );
 
     // Use the image slice scroll distance as the threshold for plane distances:
     const float planeDistanceThresh = 0.5f * data::sliceScrollDistance(
@@ -1537,6 +1533,69 @@ void CallbackHandler::moveCrosshairsOnViewSlice(
                 worldCrosshairs +
                 static_cast<float>( stepX ) * moveDistances.x * worldRightAxis +
                 static_cast<float>( stepY ) * moveDistances.y * worldUpAxis );
+}
+
+void CallbackHandler::moveCrosshairsToSegLabelCentroid(
+        const uuids::uuid& imageUid, size_t labelIndex )
+{
+    /// @todo This computation can take some time.
+    /// Put it into a thread.
+
+    static constexpr uint32_t sk_comp0 = 0;
+
+    const auto activeSegUid = m_appData.imageToActiveSegUid( imageUid );
+    if ( ! activeSegUid ) return;
+
+    Image* seg = m_appData.seg( *activeSegUid );
+    if ( ! seg ) return;
+
+    const glm::ivec3 dataSizeInt{ seg->header().pixelDimensions() };
+    const int64_t label = static_cast<int64_t>( labelIndex );
+
+    glm::vec3 coordSum{ 0.0f, 0.0f, 0.0f };
+    size_t count = 0;
+
+    for ( int k = 0; k < dataSizeInt.z; ++k )
+    {
+        for ( int j = 0; j < dataSizeInt.y; ++j )
+        {
+            for ( int i = 0; i < dataSizeInt.x; ++i )
+            {
+                if ( std::optional<int64_t> value = seg->valueAsInt64( sk_comp0, i, j, k ) )
+                {
+                    if ( label == *value )
+                    {
+                        coordSum += glm::vec3{ i, j, k };
+                        ++count;
+                    }
+                }
+            }
+        }
+    }
+
+    if ( 0 == count )
+    {
+        // No voxels found with this segmentation label. Return so that we don't
+        // divide by zero and move crosshiars to an invalid location.
+        return;
+    }
+
+    glm::vec4 worldCentroid = seg->transformations().worldDef_T_pixel() *
+            glm::vec4{ coordSum / static_cast<float>( count ), 1.0f };
+
+    glm::vec3 worldPos{ worldCentroid / worldCentroid.w };
+
+    if ( m_appData.renderData().m_snapCrosshairsToReferenceVoxels )
+    {
+        if ( const Image* refImg = m_appData.refImage() )
+        {
+            /// @todo Put in one place
+            worldPos = glm::vec4{ data::roundPointToNearestImageVoxelCenter(
+                        *refImg, worldPos ), 1.0f };
+        }
+    }
+
+    m_appData.state().setWorldCrosshairsPos( worldPos );
 }
 
 void CallbackHandler::setMouseMode( MouseMode mode )

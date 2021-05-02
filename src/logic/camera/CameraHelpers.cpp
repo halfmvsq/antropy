@@ -718,9 +718,8 @@ void positionCameraForWorldTargetAndFov(
         const glm::vec3& worldBoxSize,
         const glm::vec3& worldTarget )
 {
-    float pullBackDistance = 0.0f;
-    float farDistance = 0.0f;
-    std::tie( pullBackDistance, farDistance ) = computePullbackAndFarDistances( camera, worldBoxSize );
+    const auto [pullBackDistance, farDistance] =
+            computePullbackAndFarDistances( camera, worldBoxSize );
 
     if ( camera.isOrthographic() )
     {
@@ -738,10 +737,8 @@ void positionCameraForWorldTarget(
         const glm::vec3& worldBoxSize,
         const glm::vec3& worldTarget )
 {
-    float pullBackDistance = 0.0f;
-    float farDistance = 0.0f;
-    std::tie( pullBackDistance, farDistance ) = computePullbackAndFarDistances( camera, worldBoxSize );
-
+    const auto [pullBackDistance, farDistance] =
+            computePullbackAndFarDistances( camera, worldBoxSize );
     camera.setFarDistance( farDistance );
     setWorldTarget( camera, worldTarget, pullBackDistance );
 }

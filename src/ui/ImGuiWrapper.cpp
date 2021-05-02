@@ -110,6 +110,7 @@ void ImGuiWrapper::setCallbacks(
         std::function< void ( const uuids::uuid& viewUid )> updateImageUniforms,
         std::function< void ( const uuids::uuid& viewUid )> updateImageInterpolationMode,
         std::function< void ( size_t tableIndex ) > updateLabelColorTableTexture,
+        std::function< void ( const uuids::uuid& imageUid, size_t labelIndex ) > moveCrosshairsToSegLabelCentroid,
         std::function< void ()> updateMetricUniforms,
         std::function< glm::vec3 () > getWorldDeformedPos,
         std::function< std::optional<glm::vec3> ( size_t imageIndex ) > getSubjectPos,
@@ -131,6 +132,7 @@ void ImGuiWrapper::setCallbacks(
     m_updateImageUniforms = updateImageUniforms;
     m_updateImageInterpolationMode = updateImageInterpolationMode;
     m_updateLabelColorTableTexture = updateLabelColorTableTexture;
+    m_moveCrosshairsToSegLabelCentroid = moveCrosshairsToSegLabelCentroid;
     m_updateMetricUniforms = updateMetricUniforms;
     m_getWorldDeformedPos = getWorldDeformedPos;
     m_getSubjectPos = getSubjectPos;
@@ -563,6 +565,7 @@ void ImGuiWrapper::render()
                         getLabelTable,
                         m_updateImageUniforms,
                         m_updateLabelColorTableTexture,
+                        m_moveCrosshairsToSegLabelCentroid,
                         m_createBlankSeg,
                         m_clearSeg,
                         m_removeSeg );

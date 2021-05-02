@@ -740,16 +740,18 @@ void drawAnnotations(
         const View& view,
         const ImageSegPairs& I )
 {
-    nvgLineCap( nvg, NVG_ROUND ); // NVG_BUTT (default), NVG_ROUND, NVG_SQUARE
-    nvgLineJoin( nvg, NVG_MITER ); // NVG_MITER (default), NVG_ROUND, NVG_BEVEL
-
     startNvgFrame( nvg, appData.windowData().viewport() ); /*** START FRAME ***/
+
+    // Other line cap options: NVG_BUTT, NVG_SQUARE
+    nvgLineCap( nvg, NVG_ROUND );
+
+    // Other line join options: NVG_ROUND, NVG_BEVEL
+    nvgLineJoin( nvg, NVG_MITER );
 
     nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
             miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
 
-    const glm::vec3 worldViewNormal = camera::worldDirection(
-                view.camera(), Directions::View::Back );
+    const glm::vec3 worldViewNormal = camera::worldDirection( view.camera(), Directions::View::Back );
 
     // Render annotations for each image
     for ( const auto& imgSegPair : I )
@@ -768,37 +770,23 @@ void drawAnnotations(
             continue;
         }
 
-        // Don't render landmarks for invisible image:
+        // Don't render annotations for invisible image:
         /// @todo Need to properly manage global visibility vs. visibility for just one component
         if ( ! img->settings().globalVisibility() ||
-             ( 1 == img->header().numComponentsPerPixel() &&
-               ! img->settings().visibility() ) )
+             ( 1 == img->header().numComponentsPerPixel() && ! img->settings().visibility() ) )
         {
             continue;
         }
 
-//        spdlog::trace( "Rendering annotations for image {}", imgUid );
-
-        // Compute plane equation in image Subject space:
-        /// @todo Pull this out into a MathHelper function
-        const glm::mat4& subject_T_world = img->transformations().subject_T_worldDef();
-        const glm::mat4& world_T_subject = img->transformations().worldDef_T_subject();
-        const glm::mat3& subject_T_world_IT = img->transformations().subject_T_worldDef_invTransp();
-
-        const glm::vec3 subjectPlaneNormal{ subject_T_world_IT * worldViewNormal };
-
-        glm::vec4 subjectPlanePoint = subject_T_world * glm::vec4{ worldCrosshairs, 1.0f };
-        subjectPlanePoint /= subjectPlanePoint.w;
-
-        const glm::vec4 subjectPlaneEquation = math::makePlane(
-                    subjectPlaneNormal, glm::vec3{ subjectPlanePoint } );
+        // Annotation plane equation in image Subject space:
+        const auto [subjectPlaneEquation, subjectPlanePoint] =
+                math::computeSubjectPlaneEquation(
+                    img->transformations().subject_T_worldDef(),
+                    worldViewNormal, worldCrosshairs );
 
         // Slice spacing of the image along the view normal is the plane distance threshold
         // for annotation searching:
         const float sliceSpacing = 0.5f * data::sliceScrollDistance( -worldViewNormal, *img );
-
-//        spdlog::trace( "Finding annotations for plane {} with distance threshold {}",
-//                       glm::to_string( subjectPlaneEquation ), sliceSpacing );
 
         const auto annotUids = data::findAnnotationsForImage(
                     appData, imgUid, subjectPlaneEquation, sliceSpacing );
@@ -811,46 +799,39 @@ void drawAnnotations(
         const bool visible = ( img->settings().visibility() && annot->getVisibility() );
         if ( ! visible ) continue;
 
-//        spdlog::trace( "Found annotation {}", *annotUid );
+        // Annotation vertices in 2D annotation plane coordinates:
+        const std::vector<glm::vec2>& annotPlaneVertices = annot->getBoundaryVertices( 0 );
 
-        // Annotation vertices in Subject space:
-        const std::vector<glm::vec2>& subjectPlaneVertices = annot->getBoundaryVertices( 0 );
+        if ( annotPlaneVertices.empty() ) continue;
 
-        if ( subjectPlaneVertices.empty() ) continue;
-
-        /// @todo Should annotation opacity be modulated with image opacity?
-        /// Landmarks opacity is not.
+        /// @todo Should annotation opacity be modulated with image opacity? Landmarks opacity is not.
         const glm::vec4 color = annot->getLineColor();
-        const float opacity = annot->getOpacity() * color.a * static_cast<float>( img->settings().opacity() );
+        const float opacity = annot->getOpacity() * color.a; // * static_cast<float>( img->settings().opacity() );
 
         nvgStrokeColor( nvg, nvgRGBAf( color.r, color.g, color.b, opacity ) );
         nvgStrokeWidth( nvg, annot->getLineThickness() );
 
         nvgBeginPath( nvg );
 
-        for ( size_t i = 0; i < subjectPlaneVertices.size(); ++i )
+        for ( size_t i = 0; i < annotPlaneVertices.size(); ++i )
         {
-            const glm::vec3 subjectPos = annot->unprojectFromAnnotationPlaneToSubjectPoint( subjectPlaneVertices[i] );
-            const glm::vec4 worldPos = world_T_subject * glm::vec4{ subjectPos, 1.0f };
+            const glm::vec3 subjectPos = annot->unprojectFromAnnotationPlaneToSubjectPoint( annotPlaneVertices[i] );
+            const glm::vec4 worldPos = img->transformations().worldDef_T_subject() * glm::vec4{ subjectPos, 1.0f };
 
             const glm::vec2 miewportPos = camera::miewport_T_world(
                         appData.windowData().viewport(),
-                        view.camera(),
-                        view.windowClip_T_viewClip(),
+                        view.camera(), view.windowClip_T_viewClip(),
                         glm::vec3{ worldPos / worldPos.w } );
 
             if ( 0 == i )
             {
                 // Move pen to the first point:
                 nvgMoveTo( nvg, miewportPos.x, miewportPos.y );
-                continue;
             }
             else
             {
                 nvgLineTo( nvg, miewportPos.x, miewportPos.y );
             }
-
-//            spdlog::trace( "Point i = {}: {}", i, glm::to_string( mousePos ) );
         }
 
         nvgStroke( nvg );

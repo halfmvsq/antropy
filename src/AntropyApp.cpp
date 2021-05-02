@@ -1132,6 +1132,13 @@ void AntropyApp::setCallbacks()
             [this] ( const uuids::uuid& imageUid ) { m_rendering.updateImageUniforms( imageUid ); },
             [this] ( const uuids::uuid& imageUid ) { m_rendering.updateImageInterpolation( imageUid ); },
             [this] ( size_t labelColorTableIndex ) { m_rendering.updateLabelColorTableTexture( labelColorTableIndex ); },
+
+            // moveCrosshairsToSegLabelCentroid
+            [this] ( const uuids::uuid& imageUid, size_t labelIndex )
+            {
+                m_callbackHandler.moveCrosshairsToSegLabelCentroid( imageUid, labelIndex );
+            },
+
             [this] () { m_rendering.updateMetricUniforms(); },
             [this] () { return m_data.state().worldCrosshairs().worldOrigin(); },
 
@@ -1146,7 +1153,8 @@ void AntropyApp::setCallbacks()
                 return glm::vec3{ subjectPos / subjectPos.w };
             },
 
-            [this] ( size_t imageIndex ) {
+            [this] ( size_t imageIndex )
+            {
                 return data::getImageVoxelCoordsAtCrosshairs( m_data, imageIndex );
             },
 

@@ -329,6 +329,7 @@ void renderViewSettingsComboWindow(
                 if ( ImGui::BeginCombo( "##mipModeCombo", ICON_FK_FILM, ImGuiComboFlags_HeightLargest ) )
                 {
                     ImGui::Text( "Intensity projection mode:" );
+                    ImGui::Spacing();
 
                     for ( const auto& ip : camera::AllIntensityProjectionModes )
                     {
@@ -337,6 +338,11 @@ void renderViewSettingsComboWindow(
                         if ( ImGui::Selectable( camera::typeString( ip ).c_str(), isSelected ) )
                         {
                             setIntensityProjectionMode( ip );
+                        }
+
+                        if ( ImGui::IsItemHovered() )
+                        {
+                            ImGui::SetTooltip( "%s", camera::descriptionString( ip ).c_str() );
                         }
 
                         if ( isSelected )
@@ -352,11 +358,6 @@ void renderViewSettingsComboWindow(
                         ImGui::Spacing();
 
                         bool doMaxExtent = getDoMaxExtentIntensityProjection();
-                        if ( ImGui::Checkbox( "Use maximum image extent", &doMaxExtent ) )
-                        {
-                            setDoMaxExtentIntensityProjection( doMaxExtent );
-                        }
-                        ImGui::SameLine(); helpMarker( "Compute intensity projection over the full image extent" );
 
                         if ( ! doMaxExtent )
                         {
@@ -376,6 +377,13 @@ void renderViewSettingsComboWindow(
                             }
                             ImGui::PopItemWidth();
                         }
+
+                        ImGui::Spacing();
+                        if ( ImGui::Checkbox( "Use maximum image extent", &doMaxExtent ) )
+                        {
+                            setDoMaxExtentIntensityProjection( doMaxExtent );
+                        }
+                        ImGui::SameLine(); helpMarker( "Compute intensity projection over the full image extent" );
                     }
 
                     ImGui::EndCombo();
@@ -384,8 +392,7 @@ void renderViewSettingsComboWindow(
 
                 if ( ImGui::IsItemHovered() )
                 {
-                    static const std::string sk_ipString( "" );
-                    ImGui::SetTooltip( "%s", ( sk_ipString + camera::descriptionString( intensityProjMode ) ).c_str() );
+                    ImGui::SetTooltip( "%s", camera::descriptionString( intensityProjMode ).c_str() );
                 }
             }
 
@@ -818,6 +825,7 @@ void renderSegmentationPropertiesWindow(
         const std::function< ParcellationLabelTable* ( size_t tableIndex ) >& getLabelTable,
         const std::function< void ( const uuids::uuid& imageUid ) >& updateImageUniforms,
         const std::function< void ( size_t labelColorTableIndex ) >& updateLabelColorTableTexture,
+        const std::function< void ( const uuids::uuid& imageUid, size_t labelIndex ) >& moveCrosshairsToSegLabelCentroid,
         const std::function< std::optional<uuids::uuid> ( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) >& createBlankSeg,
         const std::function< bool ( const uuids::uuid& segUid ) >& clearSeg,
         const std::function< bool( const uuids::uuid& segUid ) >& removeSeg )
@@ -844,6 +852,7 @@ void renderSegmentationPropertiesWindow(
                             [&imageUid, updateImageUniforms] () { updateImageUniforms( imageUid ); },
                             getLabelTable,
                             updateLabelColorTableTexture,
+                            [&imageUid, moveCrosshairsToSegLabelCentroid] ( size_t labelIndex ) { moveCrosshairsToSegLabelCentroid( imageUid, labelIndex ); },
                             createBlankSeg,
                             clearSeg,
                             removeSeg );
