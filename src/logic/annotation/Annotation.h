@@ -1,7 +1,7 @@
 #ifndef ANNOTATION_H
 #define ANNOTATION_H
 
-#include "logic/annotation/Polygon.tpp"
+#include "logic/annotation/AnnotPolygon.tpp"
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -16,10 +16,6 @@
 
 class AppData;
 //enum class LayerChangeType;
-
-//template<typename TComp, uint32_t Dim>
-//class Polygon;
-
 
 
 /**
@@ -147,11 +143,8 @@ private:
     /// @note Set using the function \c changeSlideAnnotationLayering
     void setMaxLayer( uint32_t maxLayer );
 
-    /// Annotation display name
-    std::string m_displayName;
-
-    /// Annotation file name
-    std::string m_fileName;
+    std::string m_displayName; //!< Annotation display name
+    std::string m_fileName; //!< Annotation file name
 
     /// Annotation polygon, which can include holes
     AnnotPolygon<float, 2> m_polygon;
@@ -162,24 +155,17 @@ private:
     /// The maximum layer among all annotations in the same plane as this annotation
     uint32_t m_maxLayer;
 
-    /// Visibility
-    bool m_visibility;
 
-    /// Is the annotation filled?
-    bool m_filled;
+    bool m_visibility; //!< Visibility
+    bool m_filled; //!< Is the annotation filled?
 
     /// Overally annotation opacity in [0.0, 1.0] range. All other color opacities are modulated
     /// by this opacity value.
     float m_opacity;
 
-    /// Fill color (NON-premultiplied RGBA)
-    glm::vec4 m_fillColor;
-
-    /// Line color (NON-premultiplied RGBA)
-    glm::vec4 m_lineColor;
-
-    /// Line thickness
-    float m_lineThickness;
+    glm::vec4 m_fillColor; //!< Fill color (NON-premultiplied RGBA)
+    glm::vec4 m_lineColor; //!< Line color (NON-premultiplied RGBA)
+    float m_lineThickness; //!< Line thickness
 
 
     /// Equation of the 3D plane containing this annotation. The plane is defined by the

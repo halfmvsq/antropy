@@ -8,14 +8,6 @@
 #include <string>
 
 
-namespace
-{
-
-static const glm::vec3 sk_defaultColor{ 0.5f, 0.5f, 0.5f };
-
-}
-
-
 /**
  * @brief Record for a point that represents a position in space.
  * The point has a unique ID.
@@ -35,7 +27,7 @@ public:
           m_name( std::move( name ) ),
           m_description( "" ),
           m_visibility( true ),
-          m_color( sk_defaultColor )
+          m_color( glm::vec3{ 0.5f, 0.5f, 0.5f } )
     {}
 
     ~PointRecord() = default;

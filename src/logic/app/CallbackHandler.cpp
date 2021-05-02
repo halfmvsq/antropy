@@ -6,13 +6,14 @@
 
 #include "image/SegUtil.h"
 
+#include "logic/annotation/AnnotPolygon.tpp"
 #include "logic/app/Data.h"
-#include "logic/annotation/Polygon.tpp"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
 #include "logic/states/FsmList.hpp"
 
 #include "rendering/Rendering.h"
+
 #include "windowing/GlfwWrapper.h"
 
 #include <GridCut/GridGraph_3D_6C.h>

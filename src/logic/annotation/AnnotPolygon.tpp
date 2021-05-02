@@ -49,6 +49,8 @@ public:
     explicit AnnotPolygon()
         :
           m_vertices(),
+          m_selectedVertex( std::nullopt ),
+          m_selectedEdge( std::nullopt ),
           m_triangulation(),
           m_closed( false ),
           m_currentUid(),
@@ -233,7 +235,6 @@ public:
         return m_vertices.size();
     }
 
-
     /// Get the total number of vertices among all boundaries, including the outer boundary and holes.
     size_t numVertices() const
     {
@@ -367,6 +368,92 @@ public:
     }
 
 
+    /// Get the selected vertex: { boundary index, vertex index },
+    /// where the vertex index is for the given boundary
+    std::optional< std::pair<size_t, size_t> > selectedVertex() const
+    {
+        return m_selectedVertex;
+    }
+
+    /// Set the selected vertex: { boundary index, vertex index },
+    /// where the vertex index is for the given boundary.
+    /// Null optional turns off the vertex selection.
+    void setSelectedVertex( const std::optional< std::pair<size_t, size_t> >& vertex )
+    {
+        if ( vertex )
+        {
+            // Is this a valid boundary and vertex index for that boundary?
+            const size_t boundary = vertex->first;
+            const size_t vertexIndex = vertex->second;
+
+            if ( getBoundaryVertex( boundary, vertexIndex ) )
+            {
+                m_selectedVertex = *vertex;
+            }
+            else
+            {
+                spdlog::warn( "Unable to select invalid polygon vertex {} for boundary {}.",
+                              vertexIndex, boundary );
+            }
+        }
+        else
+        {
+            // Turn off the selection
+            m_selectedVertex = std::nullopt;
+        }
+    }
+
+
+    /// Get the selected edge: { boundary index, {first edge vertex index, second edge vertex index} },
+    /// where the vertex indices are for the given boundary.
+    std::optional< std::pair<size_t, std::pair<size_t, size_t> > > selectedEdge() const
+    {
+        return m_selectedEdge;
+    }
+
+    /// Set the selected edge: { boundary index, {first edge vertex index, second edge vertex index} },
+    /// where the vertex indices are for the given boundary.
+    /// Null optional turns off the edge selection.
+    void setSelectedEdge( const std::optional< std::pair<size_t, std::pair<size_t, size_t> > >& edge )
+    {
+        if ( edge )
+        {
+            // Is this a valid boundary and pair of vertices (defining an edge) for that boundary?
+            const size_t boundary = edge->first;
+            const size_t vertexIndex1 = edge->second.first;
+            const size_t vertexIndex2 = edge->second.second;
+
+            if ( getBoundaryVertex( boundary, vertexIndex1 ) &&
+                 getBoundaryVertex( boundary, vertexIndex2 ) )
+            {
+                // Check that the vertices are neighbors and form an edge.
+                // This happens if they are either separated by 1 or N-1,
+                // the latter if the edge connects vertices 0 and N-1.
+
+                const size_t N = m_vertices.at( boundary ).size();
+                const int v1 = static_cast<int>( vertexIndex1 );
+                const int v2 = static_cast<int>( vertexIndex2 );
+                const int dist = std::abs( v1 - v2 );
+
+                if ( 1 == dist || (N - 1) == dist )
+                {
+                    m_selectedEdge = *edge;
+                }
+            }
+            else
+            {
+                spdlog::warn( "Unable to select invalid polygon edge ({}, {}) for boundary {}.",
+                              vertexIndex1, vertexIndex2, boundary );
+            }
+        }
+        else
+        {
+            // Turn off the selection
+            m_selectedEdge = std::nullopt;
+        }
+    }
+
+
     /// Return true iff this polygon equals (in terms of both vertices and triangulation)
     /// another polygon. The comparison is done based on unique IDs of the polygons.
     bool equals( const AnnotPolygon& otherPolygon ) const
@@ -460,6 +547,12 @@ private:
     /// boundary; subsequent vectors define holes in the main polygon. Any winding order for the
     /// outer boundary and holes is valid.
     std::vector< std::vector<PointType> > m_vertices;
+
+    /// Selected vertex: { boundary index, vertex index }
+    std::optional< std::pair<size_t, size_t> > m_selectedVertex;
+
+    /// Selected edge: { boundary index, {vertex index 1, vertex index 2} }
+    std::optional< std::pair<size_t, std::pair<size_t, size_t> > > m_selectedEdge;
 
     /// Vector of indices that refer to the vertices of the input polygon. Three consecutive indices
     /// form a clockwise triangle.
