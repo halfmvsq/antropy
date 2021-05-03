@@ -319,6 +319,7 @@ private:
     std::unordered_map< uuids::uuid, uuids::uuid > m_imageToActiveAnnotation;
 
     /// Is an image being segmented (in addition to the active image)?
+    /// @todo Move to AppState
     std::unordered_set< uuids::uuid > m_imagesBeingSegmented;
 };
 

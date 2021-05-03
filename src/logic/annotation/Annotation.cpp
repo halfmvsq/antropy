@@ -28,11 +28,16 @@ Annotation::Annotation(
       m_polygon(),
       m_layer( 0 ),
       m_maxLayer( 0 ),
-      m_visibility( true ),
 
+      m_selected( false ),
+      m_closed( false ),
+      m_visible( true ),
       m_filled( false ),
+      m_vertexVisibility( true ),
+
       m_opacity( sk_defaultOpacity ),
-      m_fillColor{ color },
+      m_vertexColor{ color },
+      m_fillColor{ color.r, color.g, color.b, 0.5f * color.a },
       m_lineColor{ color },
       m_lineThickness( sk_defaultThickness ),
 
@@ -125,6 +130,11 @@ std::optional<glm::vec2> Annotation::addSubjectPointToBoundary(
                 m_subjectPlaneAxes );
 
     m_polygon.addVertexToBoundary( boundary, projectedPoint );
+
+    // select the vertex:
+    auto a = std::make_pair( boundary, m_polygon.getBoundaryVertices( boundary ).size() - 1 );
+    m_polygon.setSelectedVertex( a );
+
     return projectedPoint;
 }
 
@@ -148,14 +158,44 @@ uint32_t Annotation::getMaxLayer() const
     return m_maxLayer;
 }
 
-void Annotation::setVisibility( bool visibility )
+void Annotation::setSelected( bool selected )
 {
-    m_visibility = visibility;
+    m_selected = selected;
 }
 
-bool Annotation::getVisibility() const
+bool Annotation::isSelected() const
 {
-    return m_visibility;
+    return m_selected;
+}
+
+void Annotation::setClosed( bool closed )
+{
+    m_closed = closed;
+}
+
+bool Annotation::isClosed() const
+{
+    return m_closed;
+}
+
+void Annotation::setVisible( bool visibility )
+{
+    m_visible = visibility;
+}
+
+bool Annotation::isVisible() const
+{
+    return m_visible;
+}
+
+void Annotation::setVertexVisibility( bool visibility )
+{
+    m_vertexVisibility = visibility;
+}
+
+bool Annotation::getVertexVisibility() const
+{
+    return m_vertexVisibility;
 }
 
 void Annotation::setOpacity( float opacity )
@@ -169,6 +209,16 @@ void Annotation::setOpacity( float opacity )
 float Annotation::getOpacity() const
 {
     return m_opacity;
+}
+
+void Annotation::setVertexColor( glm::vec4 color )
+{
+    m_vertexColor = std::move( color );
+}
+
+const glm::vec4& Annotation::getVertexColor() const
+{
+    return m_vertexColor;
 }
 
 void Annotation::setLineColor( glm::vec4 color )

@@ -2067,25 +2067,81 @@ void renderAnnotationsHeader(
     std::string fileName = activeAnnot->getFileName();
     ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Scalar Vector Graphics (SVG) file storing the annotation" );
+
+
+    // Save annotation SVG and save settings to project file:
+
+    const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
+                sk_saveAnnotButtonText, sk_saveAnnotDialogTitle, sk_saveAnnotDialogFilters );
+
+    ImGui::SameLine(); helpMarker( "Save the annotation to an SVG file" );
+
+//    if ( selectedFile )
+//    {
+//        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
+//        {
+//            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
+
+//            /// @todo How to handle changing the file name?
+//            activeAnnot->setFileName( *selectedFile );
+//        }
+//        else
+//        {
+//            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
+//        }
+//    }
+
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+
+    ImGui::Text( "Boundary:" );
+
+    bool isClosed = activeAnnot->isClosed();
+    if ( ImGui::RadioButton( "Open", ! isClosed ) )
+    {
+        activeAnnot->setClosed( false );
+    }
+
+    ImGui::SameLine();
+    if ( ImGui::RadioButton( "Closed", isClosed ) )
+    {
+        activeAnnot->setClosed( true );
+    }
+    ImGui::SameLine(); helpMarker( "Set whether the annotation polygon boundary is open or closed" );
+
     ImGui::Spacing();
 
 
     // Visibility checkbox:
-    bool annotVisible = activeAnnot->getVisibility();
+    bool annotVisible = activeAnnot->isVisible();
     if ( ImGui::Checkbox( "Visible", &annotVisible ) )
     {
-        activeAnnot->setVisibility( annotVisible );
+        activeAnnot->setVisible( annotVisible );
     }
     ImGui::SameLine(); helpMarker( "Show/hide the annotation" );
 
 
     // Filled checkbox:
-    bool filled = activeAnnot->isFilled();
-    if ( ImGui::Checkbox( "Filled", &filled ) )
+    if ( activeAnnot->isClosed() )
     {
-        activeAnnot->setFilled( filled );
+        bool filled = activeAnnot->isFilled();
+        if ( ImGui::Checkbox( "Filled", &filled ) )
+        {
+            activeAnnot->setFilled( filled );
+        }
+        ImGui::SameLine(); helpMarker( "Fill the annotation interior" );
     }
-    ImGui::SameLine(); helpMarker( "Fill the annotation interior" );
+
+
+    // Show vertices checkbox:
+    bool showVertices = activeAnnot->getVertexVisibility();
+    if ( ImGui::Checkbox( "Show vertices", &showVertices ) )
+    {
+        activeAnnot->setVertexVisibility( showVertices );
+    }
+    ImGui::SameLine(); helpMarker( "Show/hide the annotation vertices" );
 
 
     // Opacity slider:
@@ -2114,11 +2170,12 @@ void renderAnnotationsHeader(
     if ( ImGui::ColorEdit4( "Line color", glm::value_ptr( annotLineColor ), sk_annotColorEditFlags ) )
     {
         activeAnnot->setLineColor( annotLineColor );
+        activeAnnot->setVertexColor( annotLineColor );
     }
     ImGui::SameLine(); helpMarker( "Annotation line color" );
 
 
-    if ( activeAnnot->isFilled() )
+    if ( activeAnnot->isClosed() && activeAnnot->isFilled() )
     {
         // Fill color:
         glm::vec4 annotFillColor = activeAnnot->getFillColor();
@@ -2131,24 +2188,8 @@ void renderAnnotationsHeader(
     ImGui::Spacing();
 
 
-    ImGui::Text( "Boundary:" );
-
-    bool isClosed = activeAnnot->polygon().isClosed();
-    if ( ImGui::RadioButton( "Open", ! isClosed ) )
-    {
-        activeAnnot->polygon().setClosed( false );
-    }
-
-    ImGui::SameLine();
-    if ( ImGui::RadioButton( "Closed", isClosed ) )
-    {
-        activeAnnot->polygon().setClosed( true );
-    }
-    ImGui::SameLine(); helpMarker( "Set whether the annotation polygon boundary is open or closed" );
-
-
-
     ImGui::Separator();
+    ImGui::Spacing();
 
     // Plane normal vector and offset:
     ImGui::Text( "Annotation plane (Subject space):" );
@@ -2161,34 +2202,6 @@ void renderAnnotationsHeader(
 
     ImGui::InputFloat( "Offset (mm)", &annotPlaneEq[3], 0.0f, 0.0f, coordFormat );
     ImGui::SameLine(); helpMarker( "Offset distance (mm) of annotation plane from the image Subject space origin" );
-    ImGui::Spacing();
-
-    ImGui::Separator();
-
-
-    // Save annotation SVG and save settings to project file:
-
-    const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
-                sk_saveAnnotButtonText, sk_saveAnnotDialogTitle, sk_saveAnnotDialogFilters );
-
-    ImGui::SameLine(); helpMarker( "Save the annotation to an SVG file" );
-
-//    if ( selectedFile )
-//    {
-//        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
-//        {
-//            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
-
-//            /// @todo How to handle changing the file name?
-//            activeAnnot->setFileName( *selectedFile );
-//        }
-//        else
-//        {
-//            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
-//        }
-//    }
-
-    ImGui::Separator();
     ImGui::Spacing();
 
     ImGui::PopID(); /** PopID imageUid **/

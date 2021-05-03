@@ -458,6 +458,9 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
 
 void CallbackHandler::doAnnotate( const ViewHit& hit )
 {
+    // Add points to the outer boundary for now:
+    static constexpr size_t OUTER_BOUNDARY = 0;
+
     if ( ASM::is_in_state<state::AnnotationOffState>() ) return;
     if ( ! ASM::current_state_ptr ) return;
 
@@ -543,25 +546,14 @@ void CallbackHandler::doAnnotate( const ViewHit& hit )
     Annotation* annot = m_appData.annotation( *annotUid );
     if ( ! annot ) return;
 
-//    spdlog::trace( "Got annotation uid: {}" , *annotUid );
-
-    // Add points to the outer boundary (0) for now:
-    /// @todo Ability to select boundary
-    static constexpr uint32_t k_outerBoundary = 0;
-
     const auto projectedPoint = annot->addSubjectPointToBoundary(
-                k_outerBoundary, glm::vec3{ subjectPlanePoint } );
+                OUTER_BOUNDARY, glm::vec3{ subjectPlanePoint } );
 
     if ( ! projectedPoint )
     {
         spdlog::error( "Unable to add point {} to boundary {}",
-                       glm::to_string( hit.worldPos_offsetApplied ), k_outerBoundary );
+                       glm::to_string( hit.worldPos_offsetApplied ), OUTER_BOUNDARY );
     }
-//    else
-//    {
-//        spdlog::trace( "Projected annotation point {} to plane {}",
-//                       glm::to_string( worldPos ), glm::to_string( *projectedPoint ) );
-//    }
 }
 
 void CallbackHandler::doWindowLevel( const ViewHit& prevHit, const ViewHit& currHit )

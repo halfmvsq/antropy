@@ -22,13 +22,12 @@
 /**
  * @brief A polygon of any winding order that can have multiple holes inside of an outer boundary.
  * The planarity of the polygon is not enforced: that is the reponsibility of the user.
- * The polygon's outer boundary can be either open or closed. By definition, all holes
- * must be closed boundaries. If a polygon boundary is specified as closed, then it is assumed
- * that its last vertex is connected by an edge to the first vertex. The user need NOT specify
- * a final vertex that is identical to the first vertex. For example, a closed triangular polygon
- * can be defined with exactly three vertices.
  *
- * The polygon can have a triangulation that uses only its original vertices.
+ * @note The polygon's outer boundary can be either open or closed. This property is not specified
+ * in this class: It is left up to the user of this class to decide whether the boundary is closed or open.
+ * By definition, all holes must be closed boundaries.
+ *
+ * @note The polygon can have a triangulation that uses only its original vertices.
  *
  * @tparam TComp Vertex component type
  * @tparam Dim Vertex dimension
@@ -52,26 +51,12 @@ public:
           m_selectedVertex( std::nullopt ),
           m_selectedEdge( std::nullopt ),
           m_triangulation(),
-          m_closed( false ),
           m_currentUid(),
           m_aabb( std::nullopt ),
           m_centroid( 0 )
     {}
 
     ~AnnotPolygon() = default;
-
-
-    /// Set whether the polygon's outer boundary is open or closed. If closed, then it is assumed
-    /// that the last vertex conntects to the first vertex.
-    void setClosed( bool closed )
-    {
-        m_closed = closed;
-    }
-
-    bool isClosed() const
-    {
-        return m_closed;
-    }
 
 
     /// Set all vertices of the polygon. The first vector defines the main (outer) polygon boundary;
@@ -84,6 +69,7 @@ public:
 
         computeAABBox();
         computeCentroid();
+        removeSelections();
     }
 
 
@@ -114,6 +100,8 @@ public:
             computeAABBox();
             computeCentroid();
         }
+
+        removeSelections();
 
         return true;
     }
@@ -152,6 +140,8 @@ public:
             updateCentroid();
         }
 
+        removeSelections();
+
         return true;
     }
 
@@ -173,6 +163,7 @@ public:
 
         computeAABBox();
         computeCentroid();
+        removeSelections();
     }
 
 
@@ -193,6 +184,7 @@ public:
 
         computeAABBox();
         updateCentroid();
+        removeSelections();
     }
 
 
@@ -205,6 +197,7 @@ public:
             m_vertices.emplace_back( std::move( vertices ) );
             m_triangulation.clear();
             m_currentUid = generateRandomUuid();
+            removeSelections();
             return true;
         }
 
@@ -543,6 +536,14 @@ private:
     }
 
 
+    /// Remove the vertex and edge selections
+    void removeSelections()
+    {
+        m_selectedVertex = std::nullopt;
+        m_selectedEdge = std::nullopt;
+    }
+
+
     /// Polygon stored as vector of vectors of points. The first vector defines the outer polygon
     /// boundary; subsequent vectors define holes in the main polygon. Any winding order for the
     /// outer boundary and holes is valid.
@@ -554,12 +555,9 @@ private:
     /// Selected edge: { boundary index, {vertex index 1, vertex index 2} }
     std::optional< std::pair<size_t, std::pair<size_t, size_t> > > m_selectedEdge;
 
-    /// Vector of indices that refer to the vertices of the input polygon. Three consecutive indices
-    /// form a clockwise triangle.
+    /// Vector of indices that refer to the vertices of the input polygon.
+    /// Three consecutive indices form a clockwise triangle.
     std::vector<size_t> m_triangulation;
-
-    /// Flag indicating whether the outer boundary of the polygon is closed or open.
-    bool m_closed;
 
     /// A unique ID that is re-generated every time anything changes for this polygon,
     /// including vertices and triangulation.

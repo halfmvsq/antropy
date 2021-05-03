@@ -19,7 +19,7 @@ class AppData;
 
 
 /**
- * @brief An image annotation, which (for now) is a closed, planar polygon with vertices
+ * @brief An image annotation, which (for now) is a planar polygon with vertices
  * defined with 2D coordinates. Note: Each polygon vertex is parameterized in 2D,
  * but it may represent a point in 3D.
  *
@@ -83,14 +83,35 @@ public:
     uint32_t getMaxLayer() const;
 
 
+    /// @brief Set/get the annotation selected state
+    void setSelected( bool selected );
+    bool isSelected() const;
+
+    /// @brief Set/get whether the annotation's outer boundary is closed.
+    /// If closed, then it is assumed that the last vertex conntects to the first vertex.
+    /// If a polygon boundary is specified as closed,  then it is assumed that its last vertex is
+    /// connected by an edge to the first vertex. The user need NOT specify a final vertex that is
+    /// identical to the first vertex. For example, a closed triangular polygon can be defined with
+    /// exactly three vertices.
+    void setClosed( bool closed );
+    bool isClosed() const;
+
     /// @brief Set/get the annotation visibility
-    void setVisibility( bool visibility );
-    bool getVisibility() const;
+    void setVisible( bool visibility );
+    bool isVisible() const;
+
+    /// @brief Set/get the vertex visibility
+    void setVertexVisibility( bool visibility );
+    bool getVertexVisibility() const;
 
     /// @brief Set/get the overall annotation opacity in range [0.0, 1.0], which gets modulated
     /// with the color opacities
     void setOpacity( float opacity );
     float getOpacity() const;
+
+    /// @brief Set/get the annotation vertex color (non-premultiplied RGBA)
+    void setVertexColor( glm::vec4 color );
+    const glm::vec4& getVertexColor() const;
 
     /// @brief Set/get the annotation line color (non-premultiplied RGBA)
     void setLineColor( glm::vec4 color );
@@ -155,16 +176,19 @@ private:
     /// The maximum layer among all annotations in the same plane as this annotation
     uint32_t m_maxLayer;
 
-
-    bool m_visibility; //!< Visibility
+    bool m_selected; //!< Is the annotation selected?
+    bool m_closed; //!< Is the annotation's outer boundary closed?
+    bool m_visible; //!< Is the annotation visible?
     bool m_filled; //!< Is the annotation filled?
+    bool m_vertexVisibility; //!< Are the annotation boundary vertices visible?
 
-    /// Overally annotation opacity in [0.0, 1.0] range. All other color opacities are modulated
-    /// by this opacity value.
+    /// Overall annotation opacity in [0.0, 1.0] range.
+    /// The annotation fill and line colors opacities are modulated by this value.
     float m_opacity;
 
-    glm::vec4 m_fillColor; //!< Fill color (NON-premultiplied RGBA)
-    glm::vec4 m_lineColor; //!< Line color (NON-premultiplied RGBA)
+    glm::vec4 m_vertexColor; //!< Vertex color (non-premultiplied RGBA)
+    glm::vec4 m_fillColor; //!< Fill color (non-premultiplied RGBA)
+    glm::vec4 m_lineColor; //!< Line color (non-premultiplied RGBA)
     float m_lineThickness; //!< Line thickness
 
 
