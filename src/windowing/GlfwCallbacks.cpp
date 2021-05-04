@@ -240,7 +240,8 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
         }
         else if ( s_mouseButtonState.middle )
         {
-            handler.doCameraTranslate2d( *s_startHit, *s_prevHit, *currHit_withOverride );
+            handler.doCameraTranslate2d(
+                        *s_startHit, *s_prevHit, *currHit_withOverride );
         }
         break;
     }
@@ -250,7 +251,8 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
 
         if ( s_mouseButtonState.left )
         {
-            handler.doCameraTranslate2d( *s_startHit, *s_prevHit, *currHit_withOverride );
+            handler.doCameraTranslate2d(
+                        *s_startHit, *s_prevHit, *currHit_withOverride );
         }
         else if ( s_mouseButtonState.right )
         {
@@ -361,6 +363,7 @@ void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
                 static_cast<float>( app->windowData().getWindowSize().y ),
                 { mindowCursorPosX, mindowCursorPosY } );
 
+    // Get a hit that will be invalid (null) if the cursor is not in any view:
     const auto hit_invalidOutsideView = getViewHit( app->appData(), windowCursorPos );
     if ( ! hit_invalidOutsideView ) return;
 
@@ -426,29 +429,29 @@ void scrollCallback( GLFWwindow* window, double scrollOffsetX, double scrollOffs
     case MouseMode::ImageScale:
     case MouseMode::WindowLevel:
     {
-        handler.doCrosshairsScroll( *hit_invalidOutsideView,
-                                    { scrollOffsetX, scrollOffsetY } );
+        handler.doCrosshairsScroll(
+                    *hit_invalidOutsideView,
+                    { scrollOffsetX, scrollOffsetY } );
         break;
     }
     case MouseMode::CameraZoom:
     {
-        handler.doCameraZoomScroll( *hit_invalidOutsideView,
-                                    { scrollOffsetX, scrollOffsetY },
-                                    ZoomBehavior::ToCrosshairs,
-                                    syncZoomsForAllViews( s_modifierState ) );
+        handler.doCameraZoomScroll(
+                    *hit_invalidOutsideView,
+                    { scrollOffsetX, scrollOffsetY },
+                    ZoomBehavior::ToCrosshairs,
+                    syncZoomsForAllViews( s_modifierState ) );
         break;
     }
     case MouseMode::Annotate:
     {
-        // Disable scrolling while annotating:
-        /// @todo Make this specific to when the user is actually doing annotation!
-        if ( ! ASM::is_in_state<state::AnnotationOffState>() )
+        if ( state::isInStateWhereViewsCanScroll() )
         {
-            break;
+            handler.doCrosshairsScroll(
+                        *hit_invalidOutsideView,
+                        { scrollOffsetX, scrollOffsetY } );
         }
 
-        handler.doCrosshairsScroll( *hit_invalidOutsideView,
-                                    { scrollOffsetX, scrollOffsetY } );
         break;
     }
     }

@@ -5,6 +5,7 @@
 #include "ui/Widgets.h"
 
 #include "logic/app/Data.h"
+#include "logic/states/AnnotationStateMachine.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -27,6 +28,15 @@ static constexpr float sk_pad = 10.0f;
 
 static const ImVec4 sk_darkTextColor( 0.0f, 0.0f, 0.0f, 1.0f );
 static const ImVec4 sk_lightTextColor( 1.0f, 1.0f, 1.0f, 1.0f );
+
+static const ImGuiWindowFlags sk_toolbarWindowFlags = 0
+        | ImGuiWindowFlags_AlwaysAutoResize
+        | ImGuiWindowFlags_NoFocusOnAppearing
+        | ImGuiWindowFlags_NoResize
+        | ImGuiWindowFlags_NoScrollbar
+        | ImGuiWindowFlags_NoBackground
+        | ImGuiWindowFlags_NoNav
+        ;
 
 
 void renderContextMenu( int& corner, bool& isHoriz )
@@ -78,15 +88,6 @@ void renderToolbar(
     static int corner = 1;
     static bool isHoriz = false;
 
-    static const ImGuiWindowFlags toolbarWindowFlags = 0
-            | ImGuiWindowFlags_AlwaysAutoResize
-            | ImGuiWindowFlags_NoFocusOnAppearing
-            | ImGuiWindowFlags_NoResize
-            | ImGuiWindowFlags_NoScrollbar
-            | ImGuiWindowFlags_NoBackground
-            | ImGuiWindowFlags_NoNav
-            ;
-
     const ImVec2 buttonSpace = ( isHoriz ? ImVec2( 2.0f, 0.0f ) : ImVec2( 0.0f, 2.0f ) );
 
     bool openAddLayoutPopup = false;
@@ -102,7 +103,7 @@ void renderToolbar(
 
     GuiData& guiData = appData.guiData();
     ImGuiIO& io = ImGui::GetIO();
-    ImGuiWindowFlags windowFlags = toolbarWindowFlags;
+    ImGuiWindowFlags windowFlags = sk_toolbarWindowFlags;
 
     if ( corner != -1 )
     {
@@ -137,7 +138,7 @@ void renderToolbar(
 
     ImGui::PushID( "toolbar" );
 
-    if ( ImGui::Begin( title, toolbarWindowOpen, toolbarWindowFlags ) )
+    if ( ImGui::Begin( title, toolbarWindowOpen, sk_toolbarWindowFlags ) )
     {
         //        isCollapsed = false;
 
@@ -564,16 +565,6 @@ void renderSegToolbar(
     static int corner = 3;
     static bool isHoriz = false;
 
-    static const ImGuiWindowFlags toolbarWindowFlags = 0
-            | ImGuiWindowFlags_AlwaysAutoResize
-            | ImGuiWindowFlags_NoFocusOnAppearing
-            | ImGuiWindowFlags_NoResize
-            | ImGuiWindowFlags_NoScrollbar
-            | ImGuiWindowFlags_NoBackground
-            | ImGuiWindowFlags_NoNav
-            ;
-
-
     const auto activeImageUid = appData.activeImageUid();
     if ( ! activeImageUid )
     {
@@ -624,7 +615,7 @@ void renderSegToolbar(
 
     ImGuiIO& io = ImGui::GetIO();
 
-    ImGuiWindowFlags windowFlags = toolbarWindowFlags;
+    ImGuiWindowFlags windowFlags = sk_toolbarWindowFlags;
 
     if ( corner != -1 )
     {
@@ -653,7 +644,7 @@ void renderSegToolbar(
                           ? "Segmentation###SegToolbarWindow"
                           : "###SegToolbarWindow" );
 
-    if ( ImGui::Begin( title, toolbarWindowOpen, toolbarWindowFlags ) )
+    if ( ImGui::Begin( title, toolbarWindowOpen, sk_toolbarWindowFlags ) )
     {
         int id = 0;
 
@@ -1233,6 +1224,129 @@ void renderSegToolbar(
         ImGui::PopStyleVar( 6 );
 
         ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+
+
+        if ( ImGui::BeginPopupContextWindow() )
+        {
+            renderContextMenu( corner, isHoriz );
+        }
+
+        ImGui::End(); // End toolbar
+    }
+
+    // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
+    // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding,
+    // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
+    ImGui::PopStyleVar( 6 );
+
+    // ImGuiCol_TitleBgCollapsed
+    ImGui::PopStyleColor( 1 );
+
+    ImGui::PopID();
+}
+
+
+void renderAnnotationToolbar(
+        AppData& appData,
+        const camera::FrameBounds& mindowFrameBounds )
+{
+    // Always keep the toolbar open by setting this to null
+    static bool* toolbarWindowOpen = nullptr;
+
+    static int corner = 3;
+    static bool isHoriz = true;
+
+    const ImVec2 buttonSpace = ( isHoriz ? ImVec2( 2.0f, 0.0f ) : ImVec2( 0.0f, 2.0f ) );
+
+    const ImVec4* colors = ImGui::GetStyle().Colors;
+    ImVec4 activeColor = colors[ImGuiCol_ButtonActive];
+    ImVec4 inactiveColor = colors[ImGuiCol_Button];
+    ImVec4 highlightColor( 0.64f, 0.44f, 0.64f, 0.40f );
+
+    activeColor.w = 0.94f;
+    inactiveColor.w = 0.7f;
+
+    ImGui::PushID( "annotToolbar" );
+
+    ImGuiWindowFlags windowFlags = sk_toolbarWindowFlags;
+
+    if ( corner != -1 )
+    {
+        windowFlags |= ImGuiWindowFlags_NoMove;
+
+       const ImVec2 windowPos(
+                ( corner & 1 ) ? mindowFrameBounds.bounds.xoffset + mindowFrameBounds.bounds.width - sk_pad
+                               : mindowFrameBounds.bounds.xoffset + sk_pad,
+                ( corner & 2 ) ? mindowFrameBounds.bounds.yoffset + mindowFrameBounds.bounds.height - sk_pad
+                               : mindowFrameBounds.bounds.yoffset + sk_pad );
+
+        const ImVec2 windowPosPivot(
+                    ( corner & 1 ) ? 1.0f : 0.0f,
+                    ( corner & 2 ) ? 1.0f : 0.0f );
+
+        ImGui::SetNextWindowPos( windowPos, ImGuiCond_Always, windowPosPivot );
+    }
+
+
+    ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0.0f );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
+
+    ImGui::PushStyleColor( ImGuiCol_TitleBgCollapsed, activeColor );
+
+    const char* title = ( ( isHoriz /*| isCollapsed*/ )
+                          ? "Annotations###AnnotToolbarWindow"
+                          : "###AnnotToolbarWindow" );
+
+    if ( ImGui::Begin( title, toolbarWindowOpen, sk_toolbarWindowFlags ) )
+    {
+        int id = 0;
+
+        ImGui::PushStyleColor( ImGuiCol_Button, inactiveColor ); // PUSH color
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+            if ( ImGui::Button( "New", sk_toolbarButtonSize ) )
+            {
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "%s", "Create new annotation" );
+            }
+            ++id;
+        }
+        ImGui::PopID();
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::Dummy( buttonSpace );
+
+
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+            bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
+            ImGui::PushStyleColor( ImGuiCol_Button, ( replaceBgWithFg ? activeColor : inactiveColor ) );
+            {
+                if ( ImGui::Button( "Edit", sk_toolbarButtonSize ) )
+                {
+                    replaceBgWithFg = ! replaceBgWithFg;
+                    appData.settings().setReplaceBackgroundWithForeground( replaceBgWithFg );
+                }
+
+                if ( ImGui::IsItemHovered() ) {
+                    ImGui::SetTooltip( "%s", "Edit annotation" );
+                }
+            }
+            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+
+            ++id;
+        }
+        ImGui::PopID();
 
 
         if ( ImGui::BeginPopupContextWindow() )

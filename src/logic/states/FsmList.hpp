@@ -9,11 +9,12 @@
 namespace state
 {
 
-// If we have multiple state machines, then the FsmList can be used.
-// This allows us to dispatch events to multiple machines.
-//using fsm_list = tinyfsm::FsmList< AnnotationStateMachine >;
-
-// We have only one state machine:
+/**
+ * @brief The list of all state machines. So far we have only one.
+ * If we have multiple state machines, then the FsmList can be used
+ * to dispatch events to them all, e.g.:
+ * using fsm_list = tinyfsm::FsmList< AnnotationStateMachine >;
+ */
 using fsm_list = AnnotationStateMachine;
 
 

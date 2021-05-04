@@ -52,8 +52,8 @@ ImageSettings::ImageSettings(
         setting.m_window = quantileHigh - quantileLow;
         setting.m_level = 0.5 * ( quantileLow + quantileHigh );
 
-        // Default to maximum opacity and nearest neighbor interpolation
-        setting.m_opacity = 1.0;
+        // Default to max opacity and nearest neighbor interpolation
+        setting.m_opacity = 1.0f;
         setting.m_visible = true;
 
         setting.m_showEdges = false;

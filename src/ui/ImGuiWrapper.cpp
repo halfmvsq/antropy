@@ -9,6 +9,7 @@
 #include "logic/app/CallbackHandler.h"
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
+#include "logic/states/AnnotationStateMachine.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -484,36 +485,7 @@ void ImGuiWrapper::render()
             ImGui::ShowDemoWindow( &m_appData.guiData().m_showDemoWindow );
         }
 
-        /*
-        if ( true )
-        {
-            if ( ImGui::BeginMainMenuBar() )
-            {
-                const auto s = ImGui::GetWindowSize();
-                const std::string sizeString = std::to_string(s.x) + ", " + std::to_string(s.y);
-
-                if ( ImGui::BeginMenu( "File" ) )
-                {
-                    if ( ImGui::MenuItem( sizeString.c_str() ) )
-                    {
-
-                    }
-                    ImGui::EndMenu();
-                }
-
-                if ( ImGui::BeginMenu( "Edit" ) )
-                {
-                    if ( ImGui::MenuItem( "Item" ) )
-                    {
-
-                    }
-                    ImGui::EndMenu();
-                }
-
-                ImGui::EndMainMenuBar();
-            }
-        }
-        */
+//        menuBar();
 
         if ( m_appData.guiData().m_showSettingsWindow )
         {
@@ -616,6 +588,8 @@ void ImGuiWrapper::render()
                     m_updateImageUniforms,
                     m_createBlankSeg,
                     m_executeGridCutsSeg );
+
+        annotationToolbar();
     }
 
 
@@ -764,4 +738,77 @@ void ImGuiWrapper::render()
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData( ImGui::GetDrawData() );
+}
+
+
+void ImGuiWrapper::annotationToolbar()
+{
+    bool showAnnotationToolbar = true;
+    std::optional<uuids::uuid> annotationViewUid = std::nullopt;
+
+    if ( ! state::isInStateWhereToolbarVisible() )
+    {
+        showAnnotationToolbar = false;
+    }
+
+    if ( ASM::current_state_ptr )
+    {
+        annotationViewUid = ASM::current_state_ptr->m_selectedViewUid;
+
+        if ( ! annotationViewUid )
+        {
+            showAnnotationToolbar = false;
+        }
+    }
+    else
+    {
+        showAnnotationToolbar = false;
+    }
+
+    if ( showAnnotationToolbar )
+    {
+        // Position the annotation toolbar at the bottom of this view:
+        const View* annotationView = m_appData.windowData().getView( *annotationViewUid );
+
+        const float wholeWindowHeight = static_cast<float>( m_appData.windowData().getWindowSize().y );
+
+        const auto mindowAnnotViewFrameBounds = camera::computeMindowFrameBounds(
+                    annotationView->windowClipViewport(),
+                    m_appData.windowData().viewport().getAsVec4(),
+                    wholeWindowHeight );
+
+        renderAnnotationToolbar(
+                    m_appData,
+                    mindowAnnotViewFrameBounds );
+    }
+}
+
+
+void ImGuiWrapper::menuBar()
+{
+    if ( ImGui::BeginMainMenuBar() )
+    {
+        const auto s = ImGui::GetWindowSize();
+        const std::string sizeString = std::to_string(s.x) + ", " + std::to_string(s.y);
+
+        if ( ImGui::BeginMenu( "File" ) )
+        {
+            if ( ImGui::MenuItem( sizeString.c_str() ) )
+            {
+
+            }
+            ImGui::EndMenu();
+        }
+
+        if ( ImGui::BeginMenu( "Edit" ) )
+        {
+            if ( ImGui::MenuItem( "Item" ) )
+            {
+
+            }
+            ImGui::EndMenu();
+        }
+
+        ImGui::EndMainMenuBar();
+    }
 }

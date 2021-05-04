@@ -52,6 +52,9 @@ private:
 
     void initializeData();
 
+    void annotationToolbar();
+    void menuBar();
+
     AppData& m_appData;
     CallbackHandler& m_callbackHandler;
 

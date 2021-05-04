@@ -60,9 +60,9 @@ public:
     AnnotPolygon<float, 2>& polygon();
     const AnnotPolygon<float, 2>& polygon() const;
 
-    const std::vector< std::vector<glm::vec2> >& getAllVertices() const;
+    const std::vector< std::list<glm::vec2> >& getAllVertices() const;
 
-    const std::vector<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
+    const std::list<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
 
 
     /**

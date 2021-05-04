@@ -458,51 +458,68 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
 
 void CallbackHandler::doAnnotate( const ViewHit& hit )
 {
-    // Add points to the outer boundary for now:
+    // Only create/edit points on the outer polygon boundary for now
     static constexpr size_t OUTER_BOUNDARY = 0;
 
-    if ( ASM::is_in_state<state::AnnotationOffState>() ) return;
+    if ( ASM::is_in_state<state::AnnotationOffState>() )
+    {
+        // Annotation mode is turned off
+        return;
+    }
+
     if ( ! ASM::current_state_ptr ) return;
 
     const auto selectedViewUid = ASM::current_state_ptr->m_selectedViewUid;
-    if ( ! selectedViewUid ) return;
+    if ( ! selectedViewUid )
+    {
+        // No view is selected for annotating
+        return;
+    }
 
     if ( ! checkAndSetActiveView( hit.viewUid ) ) return;
 
-    // If the user is not in the view selected for annotating, then return
-    if ( *selectedViewUid != hit.viewUid ) return;
+    if ( *selectedViewUid != hit.viewUid )
+    {
+        // Mouse pointer is not in the view selected for annotating
+        return;
+    }
 
     // Annotate on the active image
     const auto activeImageUid = m_appData.activeImageUid();
     const Image* activeImage = ( activeImageUid ? m_appData.image( *activeImageUid ) : nullptr );
-    if ( ! activeImage ) return;
+
+    if ( ! activeImage )
+    {
+        spdlog::warn( "There is no active image when attempting to annotate" );
+        return;
+    }
 
     if ( 0 == std::count( std::begin( hit.view->visibleImages() ),
                           std::end( hit.view->visibleImages() ),
                           *activeImageUid ) )
     {
-        return; // The active image is not visible
+        // The active image is not visible
+        return;
     }
 
-    // Ok: the pointer is in the view bounds and we're good to go. Make this the active view:
+    // Ok: the pointer is in the view bounds and we're good to go. Make this the active view.
     m_appData.windowData().setActiveViewUid( hit.viewUid );
 
-    // Compute the plane equation in Subjet space. Use the offset World position,
-    // so that the user can annotate in any offset view of a lightbox layout.
+
+    // Compute the plane equation in Subject space. Use the World position after the view
+    // offset has been applied, so that the user can annotate in any view of a lightbox layout.
     const auto [subjectPlaneEquation, subjectPlanePoint] =
             math::computeSubjectPlaneEquation(
                 activeImage->transformations().subject_T_worldDef(),
                 -hit.worldFrontAxis, glm::vec3{ hit.worldPos_offsetApplied } );
 
-    // Use the image slice scroll distance as the threshold for plane distances:
+    // Use the image slice scroll distance as the threshold for plane distances
     const float planeDistanceThresh = 0.5f * data::sliceScrollDistance(
                 hit.worldFrontAxis, *activeImage );
 
-    /// @todo Create AnnotationGroup, which consists of all annotations for an image that fall
-    /// on one of the slices.
+    // Find all annotations for the active image that match this plane
     const auto annotUids = data::findAnnotationsForImage(
-                m_appData, *activeImageUid,
-                subjectPlaneEquation, planeDistanceThresh );
+                m_appData, *activeImageUid, subjectPlaneEquation, planeDistanceThresh );
 
     std::optional<uuids::uuid> annotUid;
 
@@ -544,15 +561,19 @@ void CallbackHandler::doAnnotate( const ViewHit& hit )
     }
 
     Annotation* annot = m_appData.annotation( *annotUid );
-    if ( ! annot ) return;
+    if ( ! annot )
+    {
+        spdlog::error( "Null annotation {}", *annotUid );
+        return;
+    }
 
     const auto projectedPoint = annot->addSubjectPointToBoundary(
-                OUTER_BOUNDARY, glm::vec3{ subjectPlanePoint } );
+                OUTER_BOUNDARY, subjectPlanePoint );
 
     if ( ! projectedPoint )
     {
-        spdlog::error( "Unable to add point {} to boundary {}",
-                       glm::to_string( hit.worldPos_offsetApplied ), OUTER_BOUNDARY );
+        spdlog::error( "Unable to add point {} to annotation {}",
+                       glm::to_string( hit.worldPos_offsetApplied ), *annotUid );
     }
 }
 

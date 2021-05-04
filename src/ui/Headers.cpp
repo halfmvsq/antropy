@@ -2123,6 +2123,15 @@ void renderAnnotationsHeader(
     ImGui::SameLine(); helpMarker( "Show/hide the annotation" );
 
 
+    // Show vertices checkbox:
+    bool showVertices = activeAnnot->getVertexVisibility();
+    if ( ImGui::Checkbox( "Show vertices", &showVertices ) )
+    {
+        activeAnnot->setVertexVisibility( showVertices );
+    }
+    ImGui::SameLine(); helpMarker( "Show/hide the annotation vertices" );
+
+
     // Filled checkbox:
     if ( activeAnnot->isClosed() )
     {
@@ -2133,15 +2142,6 @@ void renderAnnotationsHeader(
         }
         ImGui::SameLine(); helpMarker( "Fill the annotation interior" );
     }
-
-
-    // Show vertices checkbox:
-    bool showVertices = activeAnnot->getVertexVisibility();
-    if ( ImGui::Checkbox( "Show vertices", &showVertices ) )
-    {
-        activeAnnot->setVertexVisibility( showVertices );
-    }
-    ImGui::SameLine(); helpMarker( "Show/hide the annotation vertices" );
 
 
     // Opacity slider:

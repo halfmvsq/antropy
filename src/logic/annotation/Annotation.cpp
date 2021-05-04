@@ -107,13 +107,13 @@ const AnnotPolygon<float, 2>& Annotation::polygon() const
     return m_polygon;
 }
 
-const std::vector< std::vector< glm::vec2 > >&
+const std::vector< std::list< glm::vec2 > >&
 Annotation::getAllVertices() const
 {
     return m_polygon.getAllVertices();
 }
 
-const std::vector<glm::vec2>&
+const std::list<glm::vec2>&
 Annotation::getBoundaryVertices( size_t boundary ) const
 {
     return m_polygon.getBoundaryVertices( boundary );

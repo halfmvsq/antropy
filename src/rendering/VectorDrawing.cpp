@@ -751,6 +751,12 @@ void drawAnnotations(
     // Stroke width of selected vertices, edges, and the selection bounding box:
     static constexpr float sk_selectionStrokeWidth = 1.5f;
 
+    // Radius of polygon vertices
+    static constexpr float sk_vertexRadius = 3.0f;
+
+    // Radius of polygon vertex selection circle
+    static constexpr float sk_vertexSelectionRadius = sk_vertexRadius + 1.0f;
+
 
     // Convert vertex coordinates from local annotation plane space to Miewport space:
     auto convertAnnotationPlaneVertexToMiewport = [&appData, &view]
@@ -828,7 +834,7 @@ void drawAnnotations(
 
 
         // Annotation vertices in 2D annotation plane coordinates:
-        const std::vector<glm::vec2>& annotPlaneVertices =
+        const std::list<glm::vec2>& annotPlaneVertices =
                 annot->getBoundaryVertices( OUTER_BOUNDARY );
 
         if ( annotPlaneVertices.empty() ) continue;
@@ -845,18 +851,21 @@ void drawAnnotations(
         // Set the annotation outer boundary:
         nvgBeginPath( nvg );
 
-        for ( size_t i = 0; i < annotPlaneVertices.size(); ++i )
+        bool isFirst = true;
+
+        for ( const glm::vec2& vertex : annotPlaneVertices )
         {
             const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                        *img, *annot, annotPlaneVertices[i] );
+                        *img, *annot, vertex );
 
             miewportMinPos = glm::min( miewportMinPos, miewportPos );
             miewportMaxPos = glm::max( miewportMaxPos, miewportPos );
 
-            if ( 0 == i )
+            if ( isFirst )
             {
                 // Move pen to the first point:
                 nvgMoveTo( nvg, miewportPos.x, miewportPos.y );
+                isFirst = false;
             }
             else
             {
@@ -869,7 +878,7 @@ void drawAnnotations(
         if ( annot->isClosed() )
         {
             const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                        *img, *annot, annotPlaneVertices[0] );
+                        *img, *annot, annotPlaneVertices.front() );
 
             nvgLineTo( nvg, miewportPos.x, miewportPos.y );
         }
@@ -896,12 +905,12 @@ void drawAnnotations(
         // Draw the annotation outer boundary vertices:
         if ( annot->getVertexVisibility() )
         {
-            for ( size_t i = 0; i < annotPlaneVertices.size(); ++i )
+            for ( const glm::vec2& vertex : annotPlaneVertices )
             {
                 const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                            *img, *annot, annotPlaneVertices[i] );
+                            *img, *annot, vertex );
 
-                const float radius = std::max( 5.0f, annot->getLineThickness() );
+                const float radius = std::max( sk_vertexRadius, annot->getLineThickness() );
                 const glm::vec4& vertColor = annot->getVertexColor();
 
                 nvgFillColor( nvg, nvgRGBAf( vertColor.r, vertColor.g, vertColor.b,
@@ -929,7 +938,7 @@ void drawAnnotations(
                     const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
                                 *img, *annot, *selectedVertexCoords );
 
-                    const float radius = std::max( 6.0f, annot->getLineThickness() );
+                    const float radius = std::max( sk_vertexSelectionRadius, annot->getLineThickness() );
 
                     nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
                     nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );

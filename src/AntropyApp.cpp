@@ -84,7 +84,8 @@ serialize::AntropyProject createProjectFromInputParams( const InputParams& param
         const bool valid = serialize::open( project, *params.projectFile );
         if ( ! valid )
         {
-            spdlog::critical( "No images were provided in the project {}", *params.projectFile );
+            spdlog::critical( "No images were provided in the project {}",
+                              *params.projectFile );
             exit( EXIT_FAILURE );
         }
     }
@@ -141,7 +142,7 @@ void AntropyApp::init()
 {
     spdlog::debug( "Begin initializing application" );
 
-    // Start annotation state machine
+    // Start the annotation state machine
     state::fsm_list::start();
 
     if ( auto* state = state::fsm_list::current_state_ptr )
@@ -151,6 +152,7 @@ void AntropyApp::init()
     else
     {
         spdlog::error( "Null annotation state machine" );
+        throw_debug( "Null annotation state machine" );
     }
 
     // Initialize rendering
@@ -202,7 +204,8 @@ void AntropyApp::run()
         {
             static constexpr bool k_offsetViews = false;
             static constexpr bool k_isLightbox = false;
-            m_data.windowData().addGridLayout( m_data.numImages(), 1, k_offsetViews, k_isLightbox );
+            m_data.windowData().addGridLayout(
+                        m_data.numImages(), 1, k_offsetViews, k_isLightbox );
         }
 
         m_data.windowData().addAxCorSagLayout( m_data.numImages() );
@@ -328,7 +331,8 @@ AntropyApp::loadSegmentation(
     static constexpr float EPS = glm::epsilon<float>();
 
     // Return value indicating that segmentation was not loaded:
-    static const std::pair< std::optional<uuids::uuid>, bool > sk_noSegLoaded{ std::nullopt, false };
+    static const std::pair< std::optional<uuids::uuid>, bool >
+            sk_noSegLoaded{ std::nullopt, false };
 
     // Has this segmentation already been loaded? Search for its file name:
     for ( const auto& segUid : m_data.segUidsOrdered() )
@@ -336,7 +340,8 @@ AntropyApp::loadSegmentation(
         const Image* seg = m_data.seg( segUid );
         if ( seg && seg->header().fileName() == fileName )
         {
-            spdlog::info( "Segmentation from file {} has already been loaded as {}", fileName, segUid );
+            spdlog::info( "Segmentation from file {} has already been loaded as {}",
+                          fileName, segUid );
             return { segUid, false };
         }
     }
@@ -359,7 +364,8 @@ AntropyApp::loadSegmentation(
     spdlog::info( "Header:\n{}", seg.header() );
     spdlog::info( "Transformation:\n{}", seg.transformations() );
 
-    const Image* matchImg = ( matchingImageUid ) ? m_data.image( *matchingImageUid ) : nullptr;
+    const Image* matchImg = ( matchingImageUid )
+            ? m_data.image( *matchingImageUid ) : nullptr;
 
     if ( ! matchImg )
     {
@@ -382,7 +388,8 @@ AntropyApp::loadSegmentation(
     if ( ! math::areMatricesEqual( imgTx.subject_T_texture(), segTx.subject_T_texture() ) )
     {
         spdlog::warn( "The subject_T_texture transformations for image {} "
-                      "and segmentation from file {} do not match", *matchingImageUid, fileName );
+                      "and segmentation from file {} do not match",
+                      *matchingImageUid, fileName );
 
         const auto& imgHdr = matchImg->header();
         const auto& segHdr = seg.header();
@@ -447,7 +454,8 @@ std::pair< std::optional<uuids::uuid>, bool >
 AntropyApp::loadDeformationField( const std::string& fileName )
 {
     // Return value indicating that deformation field was not loaded:
-    static const std::pair< std::optional<uuids::uuid>, bool > sk_noDefLoaded{ std::nullopt, false };
+    static const std::pair< std::optional<uuids::uuid>, bool >
+            sk_noDefLoaded{ std::nullopt, false };
 
     // Has this deformation field already been loaded? Search for its file name:
     for ( const auto& defUid : m_data.defUidsOrdered() )
@@ -456,7 +464,8 @@ AntropyApp::loadDeformationField( const std::string& fileName )
         {
             if ( def->header().fileName() == fileName )
             {
-                spdlog::info( "Deformation field {} has already been loaded as {}", fileName, defUid );
+                spdlog::info( "Deformation field {} has already been loaded as {}",
+                              fileName, defUid );
                 return { defUid, false };
             }
         }
@@ -487,7 +496,8 @@ AntropyApp::loadDeformationField( const std::string& fileName )
 
     if ( const auto defUid = m_data.addDef( std::move(def) ) )
     {
-        spdlog::info( "Loaded deformation field image from file {} as {}", fileName, *defUid );
+        spdlog::info( "Loaded deformation field image from file {} as {}",
+                      fileName, *defUid );
         return { *defUid, true };
     }
 
@@ -503,7 +513,8 @@ std::optional<uuids::uuid> AntropyApp::createBlankSeg(
 
     if ( ! matchImg )
     {
-        spdlog::debug( "Cannot create blank segmentation for invalid matching image {}", matchImageUid );
+        spdlog::debug( "Cannot create blank segmentation for invalid matching image {}",
+                       matchImageUid );
         return std::nullopt; // Invalid image provided
     }
 
@@ -544,7 +555,8 @@ std::optional<uuids::uuid> AntropyApp::createBlankSegWithColorTable(
     const Image* matchImage = m_data.image( matchImageUid );
     if ( ! matchImage )
     {
-        spdlog::error( "Cannot create blank segmentation for invalid image {}", matchImageUid );
+        spdlog::error( "Cannot create blank segmentation for invalid image {}",
+                       matchImageUid );
         return std::nullopt;
     }
 
@@ -590,7 +602,8 @@ std::optional<uuids::uuid> AntropyApp::createBlankSegWithColorTable(
     }
     else
     {
-        spdlog::error( "Unable to assign segmentation {} to image {}", *segUid, matchImageUid );
+        spdlog::error( "Unable to assign segmentation {} to image {}",
+                       *segUid, matchImageUid );
         m_data.removeSeg( *segUid );
         return std::nullopt;
     }
@@ -1150,6 +1163,7 @@ void AntropyApp::setCallbacks()
 
                 const glm::vec4 subjectPos = image->transformations().subject_T_worldDef() *
                         glm::vec4{ m_data.state().worldCrosshairs().worldOrigin(), 1.0f };
+
                 return glm::vec3{ subjectPos / subjectPos.w };
             },
 
@@ -1165,7 +1179,9 @@ void AntropyApp::setCallbacks()
                 const Image* image = imageUid ? m_data.image( *imageUid ) : nullptr;
                 if ( ! image ) return;
 
-                const glm::vec4 worldPos = image->transformations().worldDef_T_subject() * glm::vec4{ subjectPos, 1.0f };
+                const glm::vec4 worldPos = image->transformations().worldDef_T_subject() *
+                        glm::vec4{ subjectPos, 1.0f };
+
                 m_data.state().setWorldCrosshairsPos( glm::vec3{ worldPos / worldPos.w } );
             },
 
@@ -1179,9 +1195,12 @@ void AntropyApp::setCallbacks()
                 /// @todo Put this in CallbackHandler as separate function, because it is used frequently
                 /// @todo All logic related to rounding crosshairs positions should be in one place!
 
-                const glm::vec4 worldPos = image->transformations().worldDef_T_pixel() * glm::vec4{ voxelPos, 1.0f };
+                const glm::vec4 worldPos = image->transformations().worldDef_T_pixel() *
+                        glm::vec4{ voxelPos, 1.0f };
+
                 const glm::vec3 worldPosRounded = data::roundPointToNearestImageVoxelCenter(
                             *image, glm::vec3{ worldPos / worldPos.w } );
+
                 m_data.state().setWorldCrosshairsPos( worldPosRounded );
             },
 
@@ -1221,11 +1240,13 @@ void AntropyApp::setCallbacks()
                 return std::nullopt;
             },
 
-            [this] ( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) {
+            [this] ( const uuids::uuid& matchingImageUid, const std::string& segDisplayName )
+            {
                 return createBlankSegWithColorTable( matchingImageUid, segDisplayName );
             },
 
-            [this] ( const uuids::uuid& segUid ) -> bool {
+            [this] ( const uuids::uuid& segUid ) -> bool
+            {
                 return m_callbackHandler.clearSegVoxels( segUid );
             },
 
@@ -1237,11 +1258,13 @@ void AntropyApp::setCallbacks()
                 return success;
             },
 
-            [this] ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) -> bool {
+            [this] ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) -> bool
+            {
                 return m_callbackHandler.executeGridCutSegmentation( imageUid, seedSegUid, resultSegUid );
             },
 
-            [this] ( const uuids::uuid& imageUid, bool locked ) -> bool {
+            [this] ( const uuids::uuid& imageUid, bool locked ) -> bool
+            {
                 return m_callbackHandler.setLockManualImageTransformation( imageUid, locked );
             }
     );

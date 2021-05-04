@@ -138,6 +138,30 @@ void VertexSelectedState::react( const TurnOffAnnotationMode& )
     transit<AnnotationOffState>();
 }
 
+
+bool isInStateWhereViewsCanScroll()
+{
+    if ( ASM::is_in_state<AnnotationOffState>() ||
+         ASM::is_in_state<ViewBeingSelectedState>() ||
+         ASM::is_in_state<ReadyState>() )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool isInStateWhereToolbarVisible()
+{
+    if ( ASM::is_in_state<AnnotationOffState>() ||
+         ASM::is_in_state<ViewBeingSelectedState>() )
+    {
+        return false;
+    }
+
+    return true;
+}
+
 } // namespace state
 
 

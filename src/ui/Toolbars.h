@@ -4,6 +4,8 @@
 #include "common/PublicTypes.h"
 #include "common/Types.h"
 
+#include "logic/camera/CameraHelpers.h"
+
 #include <uuid.h>
 #include <functional>
 
@@ -36,5 +38,10 @@ void renderSegToolbar(
         const std::function< void( const uuids::uuid& imageUid ) >& updateImageUniforms,
         const std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) >& createBlankSeg,
         const std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) >& executeGridCutsSeg );
+
+
+void renderAnnotationToolbar(
+        AppData& appData,
+        const camera::FrameBounds& mindowFrameBounds );
 
 #endif // UI_TOOLBARS_H
