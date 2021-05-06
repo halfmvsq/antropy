@@ -5,7 +5,7 @@
 #include "ui/Widgets.h"
 
 #include "logic/app/Data.h"
-#include "logic/states/AnnotationStateMachine.h"
+#include "logic/states/FsmList.hpp"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -860,16 +860,13 @@ void renderSegToolbar(
         if ( isHoriz ) ImGui::SameLine();
         ImGui::Dummy( buttonSpace );
 
-        static constexpr uint32_t minBrushVox = 1;
-        static constexpr uint32_t maxBrushVox = 511;
-
 
         if ( isHoriz ) ImGui::SameLine();
         if ( ImGui::Button( ICON_FK_PLUS_CIRCLE, sk_toolbarButtonSize) )
         {
             /// @todo replace with AntropyApp::cycleBrushSize
             uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-            brushSizeVox = glm::clamp( brushSizeVox + 1, minBrushVox, maxBrushVox );
+            brushSizeVox = std::max( brushSizeVox + 1, 1u );
             appData.settings().setBrushSizeInVoxels( brushSizeVox );
         }
         if ( ImGui::IsItemHovered() )
@@ -914,7 +911,7 @@ void renderSegToolbar(
         {
             /// @todo replace with AntropyApp::cycleBrushSize
             uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-            brushSizeVox = glm::clamp( brushSizeVox - 1, minBrushVox, maxBrushVox );
+            brushSizeVox = std::max( brushSizeVox - 1, 1u );
             appData.settings().setBrushSizeInVoxels( brushSizeVox );
         }
         if ( ImGui::IsItemHovered() )
@@ -955,6 +952,9 @@ void renderSegToolbar(
                 ImGui::PushItemWidth( 120 );
                 if ( ImGui::InputScalar( " width (vox)##brushSizeVox", ImGuiDataType_U32, &brushSizeVox, &stepSmall, &stepBig ) )
                 {
+                    static constexpr uint32_t minBrushVox = 1;
+                    static constexpr uint32_t maxBrushVox = 511;
+
                     brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
                     appData.settings().setBrushSizeInVoxels( brushSizeVox );
                 }
@@ -1247,7 +1247,7 @@ void renderSegToolbar(
 
 
 void renderAnnotationToolbar(
-        AppData& appData,
+        AppData& /*appData*/,
         const camera::FrameBounds& mindowFrameBounds )
 {
     // Always keep the toolbar open by setting this to null
@@ -1256,7 +1256,7 @@ void renderAnnotationToolbar(
     static int corner = 3;
     static bool isHoriz = true;
 
-    const ImVec2 buttonSpace = ( isHoriz ? ImVec2( 2.0f, 0.0f ) : ImVec2( 0.0f, 2.0f ) );
+//    const ImVec2 buttonSpace = ( isHoriz ? ImVec2( 2.0f, 0.0f ) : ImVec2( 0.0f, 2.0f ) );
 
     const ImVec4* colors = ImGui::GetStyle().Colors;
     ImVec4 activeColor = colors[ImGuiCol_ButtonActive];
@@ -1289,8 +1289,8 @@ void renderAnnotationToolbar(
 
 
     ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
-    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
-    ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
+//    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+//    ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
@@ -1307,46 +1307,105 @@ void renderAnnotationToolbar(
 
         ImGui::PushStyleColor( ImGuiCol_Button, inactiveColor ); // PUSH color
 
-        if ( isHoriz ) ImGui::SameLine();
-        ImGui::PushID( id );
+
+        if ( state::showToolbarCreateButton() )
         {
-            if ( ImGui::Button( "New", sk_toolbarButtonSize ) )
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
             {
-            }
-            if ( ImGui::IsItemHovered() )
-            {
-                ImGui::SetTooltip( "%s", "Create new annotation" );
-            }
-            ++id;
-        }
-        ImGui::PopID();
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        ImGui::Dummy( buttonSpace );
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        ImGui::PushID( id );
-        {
-            bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
-            ImGui::PushStyleColor( ImGuiCol_Button, ( replaceBgWithFg ? activeColor : inactiveColor ) );
-            {
-                if ( ImGui::Button( "Edit", sk_toolbarButtonSize ) )
+                static const std::string sk_addNew = std::string( ICON_FK_PLUS ) + " New";
+                if ( ImGui::Button( sk_addNew.c_str() ) )
                 {
-                    replaceBgWithFg = ! replaceBgWithFg;
-                    appData.settings().setReplaceBackgroundWithForeground( replaceBgWithFg );
+                    send_event( state::CreateNewAnnotationEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Create new annotation" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+
+//            if ( isHoriz ) ImGui::SameLine();
+    //        ImGui::Dummy( buttonSpace );
+        }
+
+
+        if ( state::showToolbarCompleteButton() )
+        {
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_complete = std::string( ICON_FK_CHECK ) + " Complete";
+
+                if ( ImGui::Button( sk_complete.c_str() ) )
+                {
+                    send_event( state::CompleteNewAnnotationEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Complete the annotation" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+
+//            if ( isHoriz ) ImGui::SameLine();
+    //        ImGui::Dummy( buttonSpace );
+        }
+
+
+#if 0
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+//            bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
+//            ImGui::PushStyleColor( ImGuiCol_Button, ( replaceBgWithFg ? activeColor : inactiveColor ) );
+            {
+                if ( ImGui::Button( "Edit" ) )
+                {
+//                    replaceBgWithFg = ! replaceBgWithFg;
+//                    appData.settings().setReplaceBackgroundWithForeground( replaceBgWithFg );
                 }
 
                 if ( ImGui::IsItemHovered() ) {
                     ImGui::SetTooltip( "%s", "Edit annotation" );
                 }
             }
-            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+//            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
 
             ++id;
         }
         ImGui::PopID();
+//        ImGui::Dummy( buttonSpace );
+#endif
+
+
+#if 0
+        if ( isHoriz ) ImGui::SameLine();
+        ImGui::PushID( id );
+        {
+            if ( ImGui::Button( "Undo" ) )
+            {
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "%s", "Undo vertex" );
+            }
+            ++id;
+        }
+        ImGui::PopID();
+
+
+        if ( isHoriz ) ImGui::SameLine();
+//        ImGui::Dummy( buttonSpace );
+#endif
+
+
+
+        ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
 
 
         if ( ImGui::BeginPopupContextWindow() )
@@ -1357,10 +1416,12 @@ void renderAnnotationToolbar(
         ImGui::End(); // End toolbar
     }
 
-    // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
-    // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding,
+    // ImGuiStyleVar_FramePadding,
+    // // ImGuiStyleVar_ItemSpacing,
+    // //ImGuiStyleVar_WindowBorderSize,
+    // ImGuiStyleVar_WindowPadding,
     // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
-    ImGui::PopStyleVar( 6 );
+    ImGui::PopStyleVar( 4 );
 
     // ImGuiCol_TitleBgCollapsed
     ImGui::PopStyleColor( 1 );

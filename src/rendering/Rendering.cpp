@@ -1354,7 +1354,7 @@ void Rendering::renderVectorOverlays()
 
             if ( ASM::current_state_ptr )
             {
-                if ( const auto hoveredViewUid = ASM::current_state_ptr->m_hoveredViewUid )
+                if ( const auto hoveredViewUid = ASM::current_state_ptr->hoveredViewUid() )
                 {
                     if ( ( viewUid == *hoveredViewUid ) )
                     {
@@ -1362,7 +1362,7 @@ void Rendering::renderVectorOverlays()
                     }
                 }
 
-                if ( const auto selectedViewUid = ASM::current_state_ptr->m_selectedViewUid )
+                if ( const auto selectedViewUid = ASM::current_state_ptr->selectedViewUid() )
                 {
                     if ( ( viewUid == *selectedViewUid ) )
                     {

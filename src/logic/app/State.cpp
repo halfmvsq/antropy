@@ -48,11 +48,11 @@ void AppState::setMouseMode( MouseMode mode )
 
     if ( MouseMode::Annotate == oldMode && MouseMode::Annotate != mode )
     {
-        send_event( state::TurnOffAnnotationMode() );
+        send_event( state::TurnOffAnnotationModeEvent() );
     }
     else if ( MouseMode::Annotate != oldMode && MouseMode::Annotate == mode )
     {
-        send_event( state::TurnOnAnnotationMode() );
+        send_event( state::TurnOnAnnotationModeEvent() );
     }
 }
 

@@ -132,8 +132,8 @@ std::optional<glm::vec2> Annotation::addSubjectPointToBoundary(
     m_polygon.addVertexToBoundary( boundary, projectedPoint );
 
     // select the vertex:
-    auto a = std::make_pair( boundary, m_polygon.getBoundaryVertices( boundary ).size() - 1 );
-    m_polygon.setSelectedVertex( a );
+//    auto a = std::make_pair( boundary, m_polygon.getBoundaryVertices( boundary ).size() - 1 );
+//    m_polygon.setSelectedVertex( a );
 
     return projectedPoint;
 }

@@ -59,10 +59,16 @@ struct MouseMoveEvent : public MouseEvent
 
 
 /// User has turned on annotation mode: they want to create/modify annotations
-struct TurnOnAnnotationMode : public tinyfsm::Event {};
+struct TurnOnAnnotationModeEvent : public tinyfsm::Event {};
 
 /// User has turned off annotation mode: they do not want to annotate
-struct TurnOffAnnotationMode : public tinyfsm::Event {};
+struct TurnOffAnnotationModeEvent : public tinyfsm::Event {};
+
+/// User wants to create a new annotation
+struct CreateNewAnnotationEvent : public tinyfsm::Event {};
+
+/// User wants to complete the new annotation
+struct CompleteNewAnnotationEvent : public tinyfsm::Event {};
 
 /********** End event declarations **********/
 
@@ -83,16 +89,16 @@ public:
     AnnotationStateMachine() = default;
     virtual ~AnnotationStateMachine() = default;
 
-    void setAppData( AppData* appData )
-    {
-        m_appData = appData;
-    }
+    static void setAppData( AppData* appData ) { ms_appData = appData; }
+    static AppData* appData() { return ms_appData; }
 
     /// Hovered (putatively selected) view UID
-    static std::optional<uuids::uuid> m_hoveredViewUid;
+    static std::optional<uuids::uuid> hoveredViewUid() { return ms_hoveredViewUid; }
 
     /// Selected view UID, in which the user is currently annotating
-    static std::optional<uuids::uuid> m_selectedViewUid;
+    static std::optional<uuids::uuid> selectedViewUid() { return ms_selectedViewUid; }
+
+    static std::optional<uuids::uuid> growingAnnotUid() { return ms_growingAnnotUid; }
 
 
 protected:
@@ -111,10 +117,27 @@ protected:
     virtual void react( const MouseReleaseEvent& ) {}
     virtual void react( const MouseMoveEvent& ) {}
 
-    virtual void react( const TurnOnAnnotationMode& ) {}
-    virtual void react( const TurnOffAnnotationMode& ) {}
+    virtual void react( const TurnOnAnnotationModeEvent& ) {}
+    virtual void react( const TurnOffAnnotationModeEvent& ) {}
+    virtual void react( const CreateNewAnnotationEvent& ) {}
+    virtual void react( const CompleteNewAnnotationEvent& ) {}
 
-    AppData* m_appData = nullptr;
+    /// Commonly used functions by various states
+    void turnAnnotatingOff();
+    void hoverOverView( const ViewHit& );
+    void selectView( const ViewHit& );
+    void addVertexToGrowingAnnotation( const ViewHit& );
+
+    static AppData* ms_appData;
+
+    /// Hovered (putatively selected) view UID
+    static std::optional<uuids::uuid> ms_hoveredViewUid;
+
+    /// Selected view UID, in which the user is currently annotating
+    static std::optional<uuids::uuid> ms_selectedViewUid;
+
+    /// The active annotation that is being created and growing
+    static std::optional<uuids::uuid> ms_growingAnnotUid;
 };
 
 
@@ -130,7 +153,7 @@ class AnnotationOffState : public AnnotationStateMachine
 {
     void entry() override;
 
-    void react( const TurnOnAnnotationMode& ) override;
+    void react( const TurnOnAnnotationModeEvent& ) override;
 };
 
 /**
@@ -143,23 +166,55 @@ class ViewBeingSelectedState : public AnnotationStateMachine
 
     void react( const MousePressEvent& ) override;
     void react( const MouseMoveEvent& ) override;
-    void react( const TurnOffAnnotationMode& ) override;
+    void react( const TurnOffAnnotationModeEvent& ) override;
 };
 
 /**
  * @brief State where the user has turned annotating on
  * and has also selected a view in which to perform annotation.
- * They are ready to create and edit annotations.
+ * They are ready to edit existing annotations.
  */
-class ReadyState : public AnnotationStateMachine
+/// @todo rename to ReadyState or IdleState
+class ReadyToEditState : public AnnotationStateMachine
 {
     void entry() override;
     void exit() override;
 
     void react( const MousePressEvent& ) override;
-    void react( const MouseReleaseEvent& ) override;
     void react( const MouseMoveEvent& ) override;
-    void react( const TurnOffAnnotationMode& ) override;
+    void react( const MouseReleaseEvent& ) override;
+    void react( const TurnOffAnnotationModeEvent& ) override;
+    void react( const CreateNewAnnotationEvent& ) override;
+};
+
+/**
+ * @brief State where the user has decided to create a new annotation.
+ */
+class CreatingNewAnnotationState : public AnnotationStateMachine
+{
+    void entry() override;
+    void exit() override;
+
+    void react( const MousePressEvent& ) override;
+    void react( const MouseMoveEvent& ) override;
+    void react( const MouseReleaseEvent& ) override;
+    void react( const TurnOffAnnotationModeEvent& ) override;
+    void react( const CompleteNewAnnotationEvent& ) override;
+};
+
+/**
+ * @brief State where the user is adding vertices to the new annotation.
+ */
+class AddingVertexToNewAnnotationState : public AnnotationStateMachine
+{
+    void entry() override;
+    void exit() override;
+
+    void react( const MousePressEvent& ) override;
+    void react( const MouseMoveEvent& ) override;
+    void react( const MouseReleaseEvent& ) override;
+    void react( const TurnOffAnnotationModeEvent& ) override;
+    void react( const CompleteNewAnnotationEvent& ) override;
 };
 
 /**
@@ -184,7 +239,7 @@ class VertexSelectedState : public AnnotationStateMachine
     void react( const MousePressEvent& ) override;
     void react( const MouseReleaseEvent& ) override;
     void react( const MouseMoveEvent& ) override;
-    void react( const TurnOffAnnotationMode& ) override;
+    void react( const TurnOffAnnotationModeEvent& ) override;
 };
 
 /********** End state declarations **********/
@@ -197,6 +252,12 @@ bool isInStateWhereViewsCanScroll();
 
 /// Is the toolbar visible in the current state?
 bool isInStateWhereToolbarVisible();
+
+/// Is the toolbar's "Create" button visible in the current state?
+bool showToolbarCreateButton();
+
+/// Is the toolbar's "Complete" button visible in the current state?
+bool showToolbarCompleteButton();
 
 /********** End helper functions **********/
 

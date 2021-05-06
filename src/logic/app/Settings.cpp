@@ -2,6 +2,8 @@
 
 #include <glm/glm.hpp>
 
+#include <algorithm>
+
 
 AppSettings::AppSettings()
     :   
@@ -79,7 +81,14 @@ bool AppSettings::crosshairsMoveWithBrush() const { return m_crosshairsMoveWithB
 void AppSettings::setCrosshairsMoveWithBrush( bool set ) { m_crosshairsMoveWithBrush = set; }
 
 uint32_t AppSettings::brushSizeInVoxels() const { return m_brushSizeInVoxels; }
-void AppSettings::setBrushSizeInVoxels( uint32_t size ) { m_brushSizeInVoxels = size; }
+
+void AppSettings::setBrushSizeInVoxels( uint32_t size )
+{
+    static constexpr uint32_t sk_minBrushVox = 1;
+    static constexpr uint32_t sk_maxBrushVox = 511;
+
+    m_brushSizeInVoxels = std::min( std::max( size, sk_minBrushVox ), sk_maxBrushVox );
+}
 
 float AppSettings::brushSizeInMm() const { return m_brushSizeInMm; }
 void AppSettings::setBrushSizeInMm( float size ) { m_brushSizeInMm = size; }

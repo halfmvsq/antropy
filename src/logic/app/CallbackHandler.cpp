@@ -456,8 +456,9 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
     }
 }
 
-void CallbackHandler::doAnnotate( const ViewHit& hit )
+void CallbackHandler::doAnnotate( const ViewHit& /*hit*/ )
 {
+    /*
     // Only create/edit points on the outer polygon boundary for now
     static constexpr size_t OUTER_BOUNDARY = 0;
 
@@ -575,6 +576,7 @@ void CallbackHandler::doAnnotate( const ViewHit& hit )
         spdlog::error( "Unable to add point {} to annotation {}",
                        glm::to_string( hit.worldPos_offsetApplied ), *annotUid );
     }
+    */
 }
 
 void CallbackHandler::doWindowLevel( const ViewHit& prevHit, const ViewHit& currHit )
@@ -1503,11 +1505,8 @@ void CallbackHandler::cycleBackgroundSegLabel( int i )
 /// @todo Put into DataHelper
 void CallbackHandler::cycleBrushSize( int i )
 {
-    constexpr int k_minBrushVox = 1;
-    constexpr int k_maxBrushVox = 101;
-
     int brushSizeVox = static_cast<int>( m_appData.settings().brushSizeInVoxels() );
-    brushSizeVox = std::min( std::max( brushSizeVox + i, k_minBrushVox ), k_maxBrushVox );
+    brushSizeVox = std::max( brushSizeVox + i, 1 );
     m_appData.settings().setBrushSizeInVoxels( static_cast<uint32_t>( brushSizeVox ) );
 }
 

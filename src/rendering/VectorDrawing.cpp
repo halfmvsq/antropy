@@ -824,147 +824,148 @@ void drawAnnotations(
         const auto annotUids = data::findAnnotationsForImage(
                     appData, imgUid, subjectPlaneEquation, sliceSpacing );
 
-        if ( annotUids.empty() ) continue;
-
-        const Annotation* annot = appData.annotation( annotUids[0] );
-        if ( ! annot ) continue;
-
-        const bool visible = ( img->settings().visibility() && annot->isVisible() );
-        if ( ! visible ) continue;
-
-
-        // Annotation vertices in 2D annotation plane coordinates:
-        const std::list<glm::vec2>& annotPlaneVertices =
-                annot->getBoundaryVertices( OUTER_BOUNDARY );
-
-        if ( annotPlaneVertices.empty() ) continue;
-
-        // Track the minimum and maximum vertex positions for drawing the bounding box
-        glm::vec2 miewportMinPos{ std::numeric_limits<float>::max() };
-        glm::vec2 miewportMaxPos{ std::numeric_limits<float>::lowest() };
-
-        // If the annotation opacity equals zero, then do not show selected vertices,
-        // edges, or the selection bounding box.
-        const bool showSelections = ( annot->getOpacity() > 0.0f );
-
-
-        // Set the annotation outer boundary:
-        nvgBeginPath( nvg );
-
-        bool isFirst = true;
-
-        for ( const glm::vec2& vertex : annotPlaneVertices )
+        for ( const auto& annotUid : annotUids )
         {
-            const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                        *img, *annot, vertex );
+            const Annotation* annot = appData.annotation( annotUid );
+            if ( ! annot ) continue;
 
-            miewportMinPos = glm::min( miewportMinPos, miewportPos );
-            miewportMaxPos = glm::max( miewportMaxPos, miewportPos );
-
-            if ( isFirst )
-            {
-                // Move pen to the first point:
-                nvgMoveTo( nvg, miewportPos.x, miewportPos.y );
-                isFirst = false;
-            }
-            else
-            {
-                nvgLineTo( nvg, miewportPos.x, miewportPos.y );
-            }
-        }
+            const bool visible = ( img->settings().visibility() && annot->isVisible() );
+            if ( ! visible ) continue;
 
 
-        // If the annotation is a closed, then create a line back to the first vertex:
-        if ( annot->isClosed() )
-        {
-            const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                        *img, *annot, annotPlaneVertices.front() );
+            // Annotation vertices in 2D annotation plane coordinates:
+            const std::list<glm::vec2>& annotPlaneVertices =
+                    annot->getBoundaryVertices( OUTER_BOUNDARY );
 
-            nvgLineTo( nvg, miewportPos.x, miewportPos.y );
-        }
+            if ( annotPlaneVertices.empty() ) continue;
 
+            // Track the minimum and maximum vertex positions for drawing the bounding box
+            glm::vec2 miewportMinPos{ std::numeric_limits<float>::max() };
+            glm::vec2 miewportMaxPos{ std::numeric_limits<float>::lowest() };
 
-        // Draw the boundary line:
-        const glm::vec4& lineColor = annot->getLineColor();
-        nvgStrokeColor( nvg, nvgRGBAf( lineColor.r, lineColor.g, lineColor.b,
-                                       annot->getOpacity() * lineColor.a ) );
-        nvgStrokeWidth( nvg, annot->getLineThickness() );
-        nvgStroke( nvg );
+            // If the annotation opacity equals zero, then do not show selected vertices,
+            // edges, or the selection bounding box.
+            const bool showSelections = ( annot->getOpacity() > 0.0f );
 
 
-        // Only fill the annotation if it is closed:
-        if ( annot->isClosed() && annot->isFilled() )
-        {
-            const glm::vec4& fillColor = annot->getFillColor();
-            nvgFillColor( nvg, nvgRGBAf( fillColor.r, fillColor.g, fillColor.b,
-                                         annot->getOpacity() * fillColor.a ) );
-            nvgFill( nvg );
-        }
+            // Set the annotation outer boundary:
+            nvgBeginPath( nvg );
 
+            bool isFirst = true;
 
-        // Draw the annotation outer boundary vertices:
-        if ( annot->getVertexVisibility() )
-        {
             for ( const glm::vec2& vertex : annotPlaneVertices )
             {
                 const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
                             *img, *annot, vertex );
 
-                const float radius = std::max( sk_vertexRadius, annot->getLineThickness() );
-                const glm::vec4& vertColor = annot->getVertexColor();
+                miewportMinPos = glm::min( miewportMinPos, miewportPos );
+                miewportMaxPos = glm::max( miewportMaxPos, miewportPos );
 
-                nvgFillColor( nvg, nvgRGBAf( vertColor.r, vertColor.g, vertColor.b,
-                                             annot->getOpacity() * vertColor.a ) );
+                if ( isFirst )
+                {
+                    // Move pen to the first point:
+                    nvgMoveTo( nvg, miewportPos.x, miewportPos.y );
+                    isFirst = false;
+                }
+                else
+                {
+                    nvgLineTo( nvg, miewportPos.x, miewportPos.y );
+                }
+            }
 
-                nvgBeginPath( nvg );
-                nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
+
+            // If the annotation is a closed, then create a line back to the first vertex:
+            if ( annot->isClosed() )
+            {
+                const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
+                            *img, *annot, annotPlaneVertices.front() );
+
+                nvgLineTo( nvg, miewportPos.x, miewportPos.y );
+            }
+
+
+            // Draw the boundary line:
+            const glm::vec4& lineColor = annot->getLineColor();
+            nvgStrokeColor( nvg, nvgRGBAf( lineColor.r, lineColor.g, lineColor.b,
+                                           annot->getOpacity() * lineColor.a ) );
+            nvgStrokeWidth( nvg, annot->getLineThickness() );
+            nvgStroke( nvg );
+
+
+            // Only fill the annotation if it is closed:
+            if ( annot->isClosed() && annot->isFilled() )
+            {
+                const glm::vec4& fillColor = annot->getFillColor();
+                nvgFillColor( nvg, nvgRGBAf( fillColor.r, fillColor.g, fillColor.b,
+                                             annot->getOpacity() * fillColor.a ) );
                 nvgFill( nvg );
             }
 
 
-            // Highlight the selected vertex (if any) with a circle:
-            const auto selectedVertexIndex = annot->polygon().selectedVertex();
-
-            if ( showSelections && selectedVertexIndex )
+            // Draw the annotation outer boundary vertices:
+            if ( annot->getVertexVisibility() )
             {
-                const size_t boundary = selectedVertexIndex->first;
-                const size_t vertexIndex = selectedVertexIndex->second;
-
-                const auto selectedVertexCoords =
-                        annot->polygon().getBoundaryVertex( boundary, vertexIndex );
-
-                if ( ( OUTER_BOUNDARY == boundary ) && selectedVertexCoords )
+                for ( const glm::vec2& vertex : annotPlaneVertices )
                 {
                     const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                                *img, *annot, *selectedVertexCoords );
+                                *img, *annot, vertex );
 
-                    const float radius = std::max( sk_vertexSelectionRadius, annot->getLineThickness() );
+                    const float radius = std::max( sk_vertexRadius, annot->getLineThickness() );
+                    const glm::vec4& vertColor = annot->getVertexColor();
 
-                    nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
-                    nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
+                    nvgFillColor( nvg, nvgRGBAf( vertColor.r, vertColor.g, vertColor.b,
+                                                 annot->getOpacity() * vertColor.a ) );
 
                     nvgBeginPath( nvg );
                     nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
-                    nvgStroke( nvg );
+                    nvgFill( nvg );
+                }
+
+
+                // Highlight the selected vertex (if any) with a circle:
+                const auto selectedVertexIndex = annot->polygon().selectedVertex();
+
+                if ( showSelections && selectedVertexIndex )
+                {
+                    const size_t boundary = selectedVertexIndex->first;
+                    const size_t vertexIndex = selectedVertexIndex->second;
+
+                    const auto selectedVertexCoords =
+                            annot->polygon().getBoundaryVertex( boundary, vertexIndex );
+
+                    if ( ( OUTER_BOUNDARY == boundary ) && selectedVertexCoords )
+                    {
+                        const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
+                                    *img, *annot, *selectedVertexCoords );
+
+                        const float radius = std::max( sk_vertexSelectionRadius, annot->getLineThickness() );
+
+                        nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
+                        nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
+
+                        nvgBeginPath( nvg );
+                        nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
+                        nvgStroke( nvg );
+                    }
                 }
             }
-        }
 
 
-//                const auto selectedEdge = annot->polygon().selectedEdge();
+    //                const auto selectedEdge = annot->polygon().selectedEdge();
 
 
-        // If selected, draw the annotation outer boundary bounding box:
-        if ( showSelections && annot->isSelected() )
-        {
-            nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
-            nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
+            // If selected, draw the annotation outer boundary bounding box:
+            if ( showSelections && annot->isSelected() )
+            {
+                nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
+                nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
 
-            nvgBeginPath( nvg );
-            nvgRect( nvg, miewportMinPos.x, miewportMinPos.y,
-                     miewportMaxPos.x - miewportMinPos.x,
-                     miewportMaxPos.y - miewportMinPos.y );
-            nvgStroke( nvg );
+                nvgBeginPath( nvg );
+                nvgRect( nvg, miewportMinPos.x, miewportMinPos.y,
+                         miewportMaxPos.x - miewportMinPos.x,
+                         miewportMaxPos.y - miewportMinPos.y );
+                nvgStroke( nvg );
+            }
         }
     }
 

@@ -743,44 +743,30 @@ void ImGuiWrapper::render()
 
 void ImGuiWrapper::annotationToolbar()
 {
-    bool showAnnotationToolbar = true;
-    std::optional<uuids::uuid> annotationViewUid = std::nullopt;
-
     if ( ! state::isInStateWhereToolbarVisible() )
     {
-        showAnnotationToolbar = false;
+        return;
     }
 
-    if ( ASM::current_state_ptr )
+    if ( ! ASM::current_state_ptr || ! ASM::current_state_ptr->selectedViewUid() )
     {
-        annotationViewUid = ASM::current_state_ptr->m_selectedViewUid;
-
-        if ( ! annotationViewUid )
-        {
-            showAnnotationToolbar = false;
-        }
-    }
-    else
-    {
-        showAnnotationToolbar = false;
+        return;
     }
 
-    if ( showAnnotationToolbar )
-    {
-        // Position the annotation toolbar at the bottom of this view:
-        const View* annotationView = m_appData.windowData().getView( *annotationViewUid );
+    // Position the annotation toolbar at the bottom of this view:
+    const View* annotationView = m_appData.windowData().getView(
+                *ASM::current_state_ptr->selectedViewUid() );
 
-        const float wholeWindowHeight = static_cast<float>( m_appData.windowData().getWindowSize().y );
+    const float wholeWindowHeight = static_cast<float>( m_appData.windowData().getWindowSize().y );
 
-        const auto mindowAnnotViewFrameBounds = camera::computeMindowFrameBounds(
-                    annotationView->windowClipViewport(),
-                    m_appData.windowData().viewport().getAsVec4(),
-                    wholeWindowHeight );
+    const auto mindowAnnotViewFrameBounds = camera::computeMindowFrameBounds(
+                annotationView->windowClipViewport(),
+                m_appData.windowData().viewport().getAsVec4(),
+                wholeWindowHeight );
 
-        renderAnnotationToolbar(
-                    m_appData,
-                    mindowAnnotViewFrameBounds );
-    }
+    renderAnnotationToolbar(
+                m_appData,
+                mindowAnnotViewFrameBounds );
 }
 
 
