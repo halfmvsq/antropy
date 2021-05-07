@@ -132,22 +132,24 @@ void AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
                 activeImage->transformations().subject_T_worldDef(),
                 -hit.worldFrontAxis, glm::vec3{ hit.worldPos_offsetApplied } );
 
-    Annotation* annot = ms_appData->annotation( *ms_growingAnnotUid );
+    Annotation* growingAnnot = ms_appData->annotation( *ms_growingAnnotUid );
 
-    if ( ! annot )
+    if ( ! growingAnnot )
     {
         spdlog::error( "Null annotation {}", *ms_growingAnnotUid );
         return;
     }
 
     const bool hasMoreThanTwoVertices =
-            ( annot->getBoundaryVertices( OUTER_BOUNDARY ).size() >= 2 );
+            ( growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size() >= 2 );
 
     const size_t currentVertexIndex =
-            annot->getBoundaryVertices( OUTER_BOUNDARY ).size();
+            growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size();
+
+    const auto hitVertices = findHitVertices( hit );
 
     // Loop over vertices near this hit
-    for ( const auto& vertex : findHitVertices( hit ) )
+    for ( const auto& vertex : hitVertices )
     {
         if ( *ms_growingAnnotUid == vertex.first &&
              currentVertexIndex == ( vertex.second + 1 ) )
@@ -156,19 +158,45 @@ void AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
             return;
         }
 
-        if ( hasMoreThanTwoVertices &&
-             *ms_growingAnnotUid == vertex.first && 0 == vertex.second )
+        if ( *ms_growingAnnotUid == vertex.first &&
+             0 == vertex.second &&
+             hasMoreThanTwoVertices )
         {
             // The point is near the annotation's first vertex and the annotation
             // has more than two vertices, so close the polygon and do not add a new vertex.
-            annot->setClosed( true );
-            annot->setFilled( true );
+            growingAnnot->setClosed( true );
+            growingAnnot->setFilled( true );
             transit<ReadyToEditState>();
             return;
         }
     }
 
-    const auto projectedPoint = annot->addSubjectPointToBoundary(
+    // Check if the point is near another vertex of an annotation. Use this existing
+    // vertex position for the new one, so that we can create sealed annotations.
+
+    for ( const auto& vertex : hitVertices )
+    {
+        Annotation* otherAnnot = ms_appData->annotation( vertex.first );
+
+        if ( ! otherAnnot )
+        {
+            spdlog::error( "Null annotation {}", vertex.first );
+            continue;
+        }
+
+        if ( const auto planePoint2d = otherAnnot->polygon().getBoundaryVertex(
+                 OUTER_BOUNDARY, vertex.second ) )
+        {
+            // Add the existing point
+            growingAnnot->addPlanePointToBoundary( OUTER_BOUNDARY, *planePoint2d );
+            return;
+        }
+    }
+
+
+    // Just add the new point...
+
+    const auto projectedPoint = growingAnnot->addSubjectPointToBoundary(
                 OUTER_BOUNDARY, subjectPlanePoint );
 
     if ( ! projectedPoint )
@@ -300,6 +328,33 @@ AnnotationStateMachine::findHitVertices( const ViewHit& hit )
     return annotAndVertex;
 }
 
+void AnnotationStateMachine::highlightHoveredVertex( const ViewHit& hit )
+{
+    if ( ! checkAppData() ) return;
+
+    deselectAllAnnotationVertices();
+
+    const auto hitVertices = findHitVertices( hit );
+
+    if ( hitVertices.empty() )
+    {
+        return; // No vertex hit
+    }
+
+    // Let's select the first vertex that was hit:
+    const auto hitVertex = hitVertices.front();
+
+    Annotation* annot = ms_appData->annotation( hitVertex.first );
+
+    if ( ! annot )
+    {
+        spdlog::error( "Null annotation {}", hitVertex.first );
+        return;
+    }
+
+    annot->polygon().setSelectedVertex( std::make_pair( OUTER_BOUNDARY, hitVertex.second ) );
+}
+
 void AnnotationStateMachine::selectVertex(
         const uuids::uuid& annotUid, size_t vertexIndex )
 {
@@ -417,27 +472,7 @@ void ReadyToEditState::react( const MouseMoveEvent& e )
 
     if ( ! checkViewSelection( e.hit ) ) return;
 
-    deselectAllAnnotationVertices();
-
-    const auto hitVertices = findHitVertices( e.hit );
-
-    if ( hitVertices.empty() )
-    {
-        return; // No vertex hit
-    }
-
-    // Let's select the first vertex that was hit:
-    const auto hitVertex = hitVertices.front();
-
-    Annotation* annot = ms_appData->annotation( hitVertex.first );
-
-    if ( ! annot )
-    {
-        spdlog::error( "Null annotation {}", hitVertex.first );
-        return;
-    }
-
-    annot->polygon().setSelectedVertex( std::make_pair( OUTER_BOUNDARY, hitVertex.second ) );
+    highlightHoveredVertex( e.hit );
 
     /// Don't do this just for hover. Do it when clicking
 //    deselect();
@@ -464,7 +499,7 @@ void ReadyToEditState::react( const CreateNewAnnotationEvent& )
 
 void CreatingNewAnnotationState::entry()
 {
-    spdlog::trace( "ReadyToCreateState::entry()" );
+//    spdlog::trace( "ReadyToCreateState::entry()" );
 
     if ( ms_selectedViewUid )
     {
@@ -472,7 +507,7 @@ void CreatingNewAnnotationState::entry()
     }
     else
     {
-        spdlog::error( "Entered ReadyToCreateState without a selected view" );
+        spdlog::error( "Entered CreatingNewAnnotationState without a selected view" );
         transit<ViewBeingSelectedState>();
         return;
     }
@@ -682,6 +717,8 @@ void AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )
 {
 //    spdlog::trace( "AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )" );
     // Check if this closes the polygon!!!
+
+    highlightHoveredVertex( e.hit );
 
     if ( e.buttonState.left )
     {

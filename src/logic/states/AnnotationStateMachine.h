@@ -151,6 +151,8 @@ protected:
     /// @return Vector of pairs of { annotationUid, vertex index }
     std::vector< std::pair<uuids::uuid, size_t> > findHitVertices( const ViewHit& );
 
+    void highlightHoveredVertex( const ViewHit& );
+
 
     /// Hold a pointer to the application data object
     static AppData* ms_appData;

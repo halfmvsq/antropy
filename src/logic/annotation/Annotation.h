@@ -65,6 +65,8 @@ public:
     const std::list<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
 
 
+    void addPlanePointToBoundary( size_t boundary, const glm::vec2& planePoint );
+
     /**
      * @brief Add a 3D Subject point to the annotation polygon.
      * @param[in] boundary Boundary to add point to

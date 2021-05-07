@@ -1951,12 +1951,6 @@ void renderAnnotationsHeader(
     if ( annotUids.empty() )
     {
         ImGui::Text( "This image has no annotations." );
-
-        if ( ImGui::Button( "Create new annotation" ) )
-        {
-
-        }
-
         ImGui::PopID(); // imageUid
         return;
     }

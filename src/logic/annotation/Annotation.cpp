@@ -119,23 +119,25 @@ Annotation::getBoundaryVertices( size_t boundary ) const
     return m_polygon.getBoundaryVertices( boundary );
 }
 
+void Annotation::addPlanePointToBoundary(
+        size_t boundary, const glm::vec2& planePoint )
+{
+    m_polygon.addVertexToBoundary( boundary, planePoint );
+}
+
 std::optional<glm::vec2> Annotation::addSubjectPointToBoundary(
         size_t boundary, const glm::vec3& subjectPoint )
 {
-    const glm::vec2 projectedPoint =
+    const glm::vec2 projectedPlanePoint =
             math::projectPointToPlaneLocal2dCoords(
                 subjectPoint,
                 m_subjectPlaneEquation,
                 m_subjectPlaneOrigin,
                 m_subjectPlaneAxes );
 
-    m_polygon.addVertexToBoundary( boundary, projectedPoint );
+    addPlanePointToBoundary( boundary, projectedPlanePoint );
 
-    // select the vertex:
-//    auto a = std::make_pair( boundary, m_polygon.getBoundaryVertices( boundary ).size() - 1 );
-//    m_polygon.setSelectedVertex( a );
-
-    return projectedPoint;
+    return projectedPlanePoint;
 }
 
 void Annotation::setLayer( uint32_t layer )
