@@ -17,6 +17,7 @@ class AppData;
 struct ViewHit
 {
     /// @todo Make this a reference so that we never have to check for null!!!
+    /// This requires a copy constructor, etc.
     View* view = nullptr;
     uuids::uuid viewUid;
 

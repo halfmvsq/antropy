@@ -456,8 +456,10 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
     }
 }
 
-void CallbackHandler::doAnnotate( const ViewHit& /*hit*/ )
+void CallbackHandler::doAnnotate( const ViewHit& hit )
 {
+    checkAndSetActiveView( hit.viewUid );
+
     /*
     // Only create/edit points on the outer polygon boundary for now
     static constexpr size_t OUTER_BOUNDARY = 0;

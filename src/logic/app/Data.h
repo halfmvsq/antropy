@@ -111,6 +111,7 @@ public:
 //    bool removeImage( const uuids::uuid& imageUid );
     bool removeSeg( const uuids::uuid& segUid );
     bool removeDef( const uuids::uuid& defUid );
+    bool removeAnnotation( const uuids::uuid& defUid );
 
     const Image* image( const uuids::uuid& imageUid ) const;
     Image* image( const uuids::uuid& imageUid );

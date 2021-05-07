@@ -235,7 +235,10 @@ glm::vec2 windowNdc_T_window(
 
 glm::vec2 viewDevice_T_ndc( const Viewport&, const glm::vec2& ndcPos );
 glm::vec2 window_T_windowClip( const Viewport&, const glm::vec2& ndcPos );
+
 glm::vec2 viewport_T_windowClip( const Viewport&, const glm::vec2& ndcPos );
+glm::vec2 windowClip_T_viewport( const Viewport&, const glm::vec2& viewportPos );
+
 glm::mat4 window_T_windowClip( const Viewport& );
 glm::mat4 viewport_T_windowClip( const Viewport& );
 
@@ -244,6 +247,7 @@ glm::mat4 window_T_mindow( float wholeWindowHeight );
 glm::mat4 mindow_T_window( float wholeWindowHeight );
 
 glm::vec2 miewport_T_viewport( float viewportHeight, const glm::vec2& viewPos );
+glm::vec2 viewport_T_miewport( float viewportHeight, const glm::vec2& viewPos );
 glm::mat4 miewport_T_viewport( float viewportHeight );
 
 
@@ -348,6 +352,16 @@ glm::vec2 miewport_T_world(
         const glm::mat4& windowClip_T_viewClip,
         const glm::vec3& worldPos );
 
+glm::vec3 world_T_miewport(
+        const Viewport& windowVP,
+        const camera::Camera& camera,
+        const glm::mat4& viewClip_T_windowClip,
+        const glm::vec2& miewportPos );
+
+glm::vec2 worldPixelSize(
+            const Viewport& windowVP,
+            const camera::Camera& camera,
+            const glm::mat4& viewClip_T_windowClip );
 
 /**
  * @brief Compute the matrix transformation between view Clip space and Clip space of the

@@ -1946,7 +1946,7 @@ void renderAnnotationsHeader(
 
     ImGui::Spacing();
 
-    const auto annotUids = appData.annotationsForImage( imageUid );
+    const auto& annotUids = appData.annotationsForImage( imageUid );
 
     if ( annotUids.empty() )
     {

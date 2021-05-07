@@ -282,7 +282,7 @@ std::optional<uuids::uuid> AppData::addAnnotation(
     }
 
     auto annotUid = generateRandomUuid();
-    m_annotations.emplace( annotUid, std::move(annotation) );
+    m_annotations.emplace( annotUid, std::move(annotation) );   
     m_imageToAnnotations[imageUid].emplace_back( annotUid );
 
     // If this is the first annotation or there is no active annotation for the image,
@@ -406,6 +406,43 @@ bool AppData::removeDef( const uuids::uuid& defUid )
         if ( defUid == it->second )
         {
             it = m_imageToActiveDef.erase( it );
+        }
+        else
+        {
+            ++it;
+        }
+    }
+
+    return true;
+}
+
+bool AppData::removeAnnotation( const uuids::uuid& annotUid )
+{
+    auto annotMapIt = m_annotations.find( annotUid );
+    if ( std::end( m_annotations ) != annotMapIt )
+    {
+        // Remove the annotation
+        m_annotations.erase( annotMapIt );
+    }
+    else
+    {
+        // This deformation does not exist
+        return false;
+    }
+
+    // Remove annotation from image-to-annotation map
+    for ( auto& p : m_imageToAnnotations )
+    {
+        p.second.erase( std::remove( std::begin( p.second ), std::end( p.second ), annotUid ),
+                        std::end( p.second ) );
+    }
+
+    // Remove it as the active annotation
+    for ( auto it = std::begin( m_imageToActiveAnnotation ); it != std::end( m_imageToActiveDef ); )
+    {
+        if ( annotUid == it->second )
+        {
+            it = m_imageToActiveAnnotation.erase( it );
         }
         else
         {

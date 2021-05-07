@@ -1256,7 +1256,7 @@ void renderAnnotationToolbar(
     static int corner = 3;
     static bool isHoriz = true;
 
-//    const ImVec2 buttonSpace = ( isHoriz ? ImVec2( 2.0f, 0.0f ) : ImVec2( 0.0f, 2.0f ) );
+    const ImVec2 buttonSpace = ( isHoriz ? ImVec2( 2.0f, 0.0f ) : ImVec2( 0.0f, 2.0f ) );
 
     const ImVec4* colors = ImGui::GetStyle().Colors;
     ImVec4 activeColor = colors[ImGuiCol_ButtonActive];
@@ -1288,9 +1288,9 @@ void renderAnnotationToolbar(
     }
 
 
-    ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
-//    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
-//    ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
+//    ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+    ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 0.0f, 0.0f ) );
     ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
@@ -1307,6 +1307,7 @@ void renderAnnotationToolbar(
 
         ImGui::PushStyleColor( ImGuiCol_Button, inactiveColor ); // PUSH color
 
+        bool needsSpace = false;
 
         if ( state::showToolbarCreateButton() )
         {
@@ -1326,14 +1327,17 @@ void renderAnnotationToolbar(
             }
             ImGui::PopID();
 
-
-//            if ( isHoriz ) ImGui::SameLine();
-    //        ImGui::Dummy( buttonSpace );
+            needsSpace = true;
         }
-
 
         if ( state::showToolbarCompleteButton() )
         {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
@@ -1351,9 +1355,35 @@ void renderAnnotationToolbar(
             }
             ImGui::PopID();
 
+            needsSpace = true;
+        }
 
-//            if ( isHoriz ) ImGui::SameLine();
-    //        ImGui::Dummy( buttonSpace );
+        if ( state::showToolbarCancelButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_cancel = std::string( ICON_FK_TIMES ) + " Cancel";
+
+                if ( ImGui::Button( sk_cancel.c_str() ) )
+                {
+                    send_event( state::CancelNewAnnotationEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Cancel creating the annotation" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
         }
 
 
@@ -1416,12 +1446,12 @@ void renderAnnotationToolbar(
         ImGui::End(); // End toolbar
     }
 
-    // ImGuiStyleVar_FramePadding,
-    // // ImGuiStyleVar_ItemSpacing,
-    // //ImGuiStyleVar_WindowBorderSize,
+    // // ImGuiStyleVar_FramePadding,
+    // ImGuiStyleVar_ItemSpacing,
+    // ImGuiStyleVar_WindowBorderSize,
     // ImGuiStyleVar_WindowPadding,
     // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
-    ImGui::PopStyleVar( 4 );
+    ImGui::PopStyleVar( 5 );
 
     // ImGuiCol_TitleBgCollapsed
     ImGui::PopStyleColor( 1 );

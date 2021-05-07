@@ -608,12 +608,16 @@ glm::vec2 window_T_windowClip( const Viewport& viewport, const glm::vec2& ndcPos
                       ( ndcPos.y + 1.0f ) * viewport.height() / 2.0f + viewport.bottom() );
 }
 
-glm::vec2 viewport_T_windowClip(
-        const Viewport& windowViewport,
-        const glm::vec2& windowClipPos )
+glm::vec2 viewport_T_windowClip( const Viewport& windowViewport, const glm::vec2& windowClipPos )
 {
     return glm::vec2( ( windowClipPos.x + 1.0f ) * windowViewport.width() / 2.0f,
                       ( windowClipPos.y + 1.0f ) * windowViewport.height() / 2.0f );
+}
+
+glm::vec2 windowClip_T_viewport( const Viewport& windowViewport, const glm::vec2& viewportPos )
+{
+    return glm::vec2( ( 2.0f * viewportPos.x / windowViewport.width() - 1.0f ),
+                      ( 2.0f * viewportPos.y / windowViewport.height() - 1.0f ) );
 }
 
 glm::mat4 window_T_windowClip( const Viewport& viewport )
@@ -638,17 +642,6 @@ glm::mat4 viewport_T_windowClip( const Viewport& windowViewport )
     };
 }
 
-glm::mat4 view_T_ndc_TEST( const Viewport& viewport )
-{
-    return glm::mat4{
-        glm::vec4{ viewport.width() / 2.0f, 0.0f, 0.0f, 0.0f },
-        glm::vec4{ 0.0f, viewport.height() / 2.0f, 0.0f, 0.0f },
-        glm::vec4{ 0.0f, 0.0f, 1.0f, 0.0f },
-        glm::vec4{ viewport.left() + viewport.width() / 2.0f,
-                   viewport.bottom() + viewport.height() / 2.0f, 1.0f, 1.0f }
-    };
-}
-
 glm::vec2 window_T_mindow( float wholeWindowHeight, const glm::vec2& mousePos )
 {
     return glm::vec2( mousePos.x, wholeWindowHeight - mousePos.y );
@@ -670,6 +663,11 @@ glm::mat4 mindow_T_window( float wholeWindowHeight )
 }
 
 glm::vec2 miewport_T_viewport( float viewportHeight, const glm::vec2& viewPos )
+{
+    return glm::vec2( viewPos.x, viewportHeight - viewPos.y );
+}
+
+glm::vec2 viewport_T_miewport( float viewportHeight, const glm::vec2& viewPos )
 {
     return glm::vec2( viewPos.x, viewportHeight - viewPos.y );
 }
@@ -971,6 +969,39 @@ glm::vec2 miewport_T_world(
 }
 
 
+glm::vec3 world_T_miewport(
+        const Viewport& windowVP,
+        const camera::Camera& camera,
+        const glm::mat4& viewClip_T_windowClip,
+        const glm::vec2& miewportPos )
+{
+    static constexpr float sk_nearPlaneClip = -1.0f;
+
+    const glm::vec2 viewportPos = viewport_T_miewport( windowVP.height(), miewportPos );
+    const glm::vec2 winClipPos = windowClip_T_viewport( windowVP, viewportPos );
+
+    const glm::vec4 worldPos = world_T_clip( camera ) * viewClip_T_windowClip *
+            glm::vec4{ winClipPos, sk_nearPlaneClip, 1.0f };
+
+    return worldPos / worldPos.w;
+}
+
+glm::vec2 worldPixelSize(
+            const Viewport& windowVP,
+            const camera::Camera& camera,
+            const glm::mat4& viewClip_T_windowClip )
+{
+    static const glm::vec2 miewO( 0.0f, 0.0f );
+    static const glm::vec2 miewX( 1.0f, 0.0f );
+    static const glm::vec2 miewY( 0.0f, 1.0f );
+
+    const glm::vec3 worldO = world_T_miewport( windowVP, camera, viewClip_T_windowClip, miewO );
+    const glm::vec3 worldX = world_T_miewport( windowVP, camera, viewClip_T_windowClip, miewX );
+    const glm::vec3 worldY = world_T_miewport( windowVP, camera, viewClip_T_windowClip, miewY );
+
+    return glm::vec2{ glm::length( worldX - worldO ), glm::length( worldY - worldO ) };
+}
+
 glm::mat4 compute_windowClip_T_viewClip( const glm::vec4& windowClipViewport )
 {
     const glm::vec3 T{ windowClipViewport[0] + 0.5f * windowClipViewport[2],
@@ -1002,13 +1033,15 @@ FrameBounds computeMiewportFrameBounds(
             camera::miewport_T_viewport( windowViewport[3] ) *
             camera::viewport_T_windowClip( windowViewport );
 
-    const glm::vec4 winClipViewBL{ windowClipFrameViewport[0],
-                                   windowClipFrameViewport[1],
-                                   0.0f, 1.0f };
+    const glm::vec4 winClipViewBL{
+        windowClipFrameViewport[0],
+        windowClipFrameViewport[1],
+        0.0f, 1.0f };
 
-    const glm::vec4 winClipViewTR{ windowClipFrameViewport[0] + windowClipFrameViewport[2],
-                                   windowClipFrameViewport[1] + windowClipFrameViewport[3],
-                                   0.0f, 1.0f };
+    const glm::vec4 winClipViewTR{
+        windowClipFrameViewport[0] + windowClipFrameViewport[2],
+        windowClipFrameViewport[1] + windowClipFrameViewport[3],
+        0.0f, 1.0f };
 
     const glm::vec2 miewportViewBL{ miewport_T_windowClip * winClipViewBL };
     const glm::vec2 miewportViewTR{ miewport_T_windowClip * winClipViewTR };
@@ -1028,13 +1061,15 @@ FrameBounds computeMindowFrameBounds(
             camera::mindow_T_window( wholeWindowHeight ) *
             camera::window_T_windowClip( windowViewport );
 
-    const glm::vec4 winClipViewBL{ windowClipFrameViewport[0],
-                                   windowClipFrameViewport[1],
-                                   0.0f, 1.0f };
+    const glm::vec4 winClipViewBL{
+        windowClipFrameViewport[0],
+        windowClipFrameViewport[1],
+        0.0f, 1.0f };
 
-    const glm::vec4 winClipViewTR{ windowClipFrameViewport[0] + windowClipFrameViewport[2],
-                                   windowClipFrameViewport[1] + windowClipFrameViewport[3],
-                                   0.0f, 1.0f };
+    const glm::vec4 winClipViewTR{
+        windowClipFrameViewport[0] + windowClipFrameViewport[2],
+        windowClipFrameViewport[1] + windowClipFrameViewport[3],
+        0.0f, 1.0f };
 
     const glm::vec2 mindowViewBL{ mindow_T_windowClip * winClipViewBL };
     const glm::vec2 mindowViewTR{ mindow_T_windowClip * winClipViewTR };
