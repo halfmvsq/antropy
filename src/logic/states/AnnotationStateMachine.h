@@ -127,15 +127,30 @@ protected:
     virtual void react( const CompleteNewAnnotationEvent& ) {}
     virtual void react( const CancelNewAnnotationEvent& ) {}
 
+
     /// Functions commonly used in various states
+
+    /// @return false iff not ok
+    bool checkViewSelection( const ViewHit& );
+
+    /// @return false iff not ok
+    bool checkAppData();
+
     void turnAnnotatingOff();
     void hoverOverView( const ViewHit& );
     void selectView( const ViewHit& );
     void addVertexToGrowingAnnotation( const ViewHit& );
     void completeGrowingAnnotation();
     void removeGrowingAnnotation();
+
     void selectVertex( const uuids::uuid& annotUid, size_t vertexIndex );
-    void deselect();
+    void deselectVertex();
+
+    void deselectAllAnnotationVertices();
+
+    /// @return Vector of pairs of { annotationUid, vertex index }
+    std::vector< std::pair<uuids::uuid, size_t> > findHitVertices( const ViewHit& );
+
 
     /// Hold a pointer to the application data object
     static AppData* ms_appData;
