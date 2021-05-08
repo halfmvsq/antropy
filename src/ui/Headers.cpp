@@ -2102,11 +2102,8 @@ void renderAnnotationsHeader(
 
     if ( ImGui::BeginPopupModal( "Remove Annotation", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) )
     {
-        const std::string removeText =
-                std::string( "Are you sure that you want to remove annotation '" ) +
-                activeAnnot->getDisplayName() + "'?";
-
-        ImGui::Text( removeText.c_str() );
+        ImGui::Text( "Are you sure that you want to remove annotation '%s'?",
+                     activeAnnot->getDisplayName().c_str() );
         ImGui::Separator();
 
         ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2(0, 0) );
