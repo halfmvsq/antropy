@@ -2181,7 +2181,7 @@ void renderAnnotationsHeader(
 
     if ( showDecreaseLayer || showIncreaseLayer )
     {
-        ImGui::Text( "Annotation layer order: " );
+        ImGui::Text( "Layer order: " );
     }
 
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );

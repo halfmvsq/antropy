@@ -923,36 +923,35 @@ void drawAnnotations(
                 }
 
 
-                // Highlight the selected vertex (if any) with a circle:
-                const auto selectedVertexIndex = annot->polygon().selectedVertex();
+                // Highlight the selected vertices with circles:
 
-                if ( showSelections && selectedVertexIndex )
+                if ( showSelections )
                 {
-                    const size_t boundary = selectedVertexIndex->first;
-                    const size_t vertexIndex = selectedVertexIndex->second;
-
-                    const auto selectedVertexCoords =
-                            annot->polygon().getBoundaryVertex( boundary, vertexIndex );
-
-                    if ( ( OUTER_BOUNDARY == boundary ) && selectedVertexCoords )
+                    for ( const auto& selectedVertex : annot->selectedVertices() )
                     {
-                        const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                                    *img, *annot, *selectedVertexCoords );
+                        const size_t boundary = selectedVertex.first;
+                        const size_t vertexIndex = selectedVertex.second;
 
-                        const float radius = std::max( sk_vertexSelectionRadius, annot->getLineThickness() );
+                        const auto selectedVertexCoords =
+                                annot->polygon().getBoundaryVertex( boundary, vertexIndex );
 
-                        nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
-                        nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
+                        if ( ( OUTER_BOUNDARY == boundary ) && selectedVertexCoords )
+                        {
+                            const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
+                                        *img, *annot, *selectedVertexCoords );
 
-                        nvgBeginPath( nvg );
-                        nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
-                        nvgStroke( nvg );
+                            const float radius = std::max( sk_vertexSelectionRadius, annot->getLineThickness() );
+
+                            nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
+                            nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
+
+                            nvgBeginPath( nvg );
+                            nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
+                            nvgStroke( nvg );
+                        }
                     }
                 }
             }
-
-
-    //                const auto selectedEdge = annot->polygon().selectedEdge();
 
 
             // If selected, draw the annotation outer boundary bounding box:

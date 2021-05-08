@@ -10,6 +10,7 @@
 #include <uuid.h>
 
 #include <memory>
+#include <set>
 #include <string>
 #include <utility>
 
@@ -66,6 +67,29 @@ public:
      */
     std::optional<glm::vec2> addSubjectPointToBoundary(
             size_t boundary, const glm::vec3& subjectPoint );
+
+
+    /// Remove the vertex selections
+    void removeVertexSelections();
+
+    /// Remove the edge selections
+    void removeEdgeSelections();
+
+    /// Get the selected vertices: pairs of { boundary index, vertex index },
+    /// where the vertex index is for the given boundary
+    const std::set< std::pair<size_t, size_t> >& selectedVertices() const;
+
+    /// Get the selected edge: { boundary index, {first edge vertex index, second edge vertex index} },
+    /// where the vertex indices are for the given boundary.
+    const std::set< std::pair<size_t, std::pair<size_t, size_t> > >& selectedEdge() const;
+
+    /// Add a selected vertex: { boundary index, vertex index },
+    /// where the vertex index is for the given boundary.
+    void addSelectedVertex( const std::pair<size_t, size_t>& vertex );
+
+    /// Add a selected edge: pairs of { boundary index, {first edge vertex index, second edge vertex index} },
+    /// where the vertex indices are for the given boundary.
+    void addSelectedEdge( const std::pair<size_t, std::pair<size_t, size_t> >& edge );
 
 
     /// @brief Set/get the annotation selected state
@@ -146,6 +170,12 @@ private:
 
     /// Annotation polygon, which can include holes
     AnnotPolygon<float, 2> m_polygon;
+
+    /// Selected vertices: pairs of { boundary index, vertex index }
+    std::set< std::pair<size_t, size_t> > m_selectedVertices;
+
+    /// Selected edge: pairs of { boundary index, {vertex index 1, vertex index 2} }
+    std::set< std::pair<size_t, std::pair<size_t, size_t> > > m_selectedEdges;
 
     bool m_selected; //!< Is the annotation selected?
     bool m_closed; //!< Is the annotation's outer boundary closed?

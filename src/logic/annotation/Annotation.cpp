@@ -27,7 +27,10 @@ Annotation::Annotation(
       m_fileName(),
       m_polygon(),
 
+      m_selectedVertices(),
+      m_selectedEdges(),
       m_selected( false ),
+
       m_closed( false ),
       m_visible( true ),
       m_filled( false ),
@@ -136,6 +139,76 @@ std::optional<glm::vec2> Annotation::addSubjectPointToBoundary(
     addPlanePointToBoundary( boundary, projectedPlanePoint );
 
     return projectedPlanePoint;
+}
+
+void Annotation::removeVertexSelections()
+{
+    m_selectedVertices.clear();
+}
+
+void Annotation::removeEdgeSelections()
+{
+    m_selectedEdges.clear();
+}
+
+const std::set< std::pair<size_t, size_t> >&
+Annotation::selectedVertices() const
+{
+    return m_selectedVertices;
+}
+
+const std::set< std::pair<size_t, std::pair<size_t, size_t> > >&
+Annotation::selectedEdge() const
+{
+    return m_selectedEdges;
+}
+
+void Annotation::addSelectedVertex( const std::pair<size_t, size_t>& vertex )
+{
+    // Is this a valid boundary and vertex index for that boundary?
+    const size_t boundary = vertex.first;
+    const size_t vertexIndex = vertex.second;
+
+    if ( m_polygon.getBoundaryVertex( boundary, vertexIndex ) )
+    {
+        m_selectedVertices.insert( vertex );
+    }
+    else
+    {
+        spdlog::warn( "Unable to select invalid polygon vertex {} for boundary {}.",
+                      vertexIndex, boundary );
+    }
+}
+
+void Annotation::addSelectedEdge( const std::pair<size_t, std::pair<size_t, size_t> >& edge )
+{
+    // Is this a valid boundary and pair of vertices (defining an edge) for that boundary?
+    const size_t boundary = edge.first;
+    const size_t vertexIndex1 = edge.second.first;
+    const size_t vertexIndex2 = edge.second.second;
+
+    if ( m_polygon.getBoundaryVertex( boundary, vertexIndex1 ) &&
+         m_polygon.getBoundaryVertex( boundary, vertexIndex2 ) )
+    {
+        // Check that the vertices are neighbors and form an edge.
+        // This happens if they are either separated by 1 or N-1,
+        // the latter if the edge connects vertices 0 and N-1.
+
+        const size_t N = m_polygon.getBoundaryVertices( boundary ).size();
+        const int v1 = static_cast<int>( vertexIndex1 );
+        const int v2 = static_cast<int>( vertexIndex2 );
+        const size_t dist = std::abs( v1 - v2 );
+
+        if ( 1 == dist || (N - 1) == dist )
+        {
+            m_selectedEdges.insert( edge );
+        }
+    }
+    else
+    {
+        spdlog::warn( "Unable to select invalid polygon edge ({}, {}) for boundary {}.",
+                      vertexIndex1, vertexIndex2, boundary );
+    }
 }
 
 void Annotation::setSelected( bool selected )

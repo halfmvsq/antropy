@@ -487,7 +487,7 @@ void AnnotationStateMachine::highlightHoveredVertex( const ViewHit& hit )
         return;
     }
 
-    annot->polygon().setSelectedVertex( std::make_pair( OUTER_BOUNDARY, hitVertex.second ) );
+    annot->addSelectedVertex( std::make_pair( OUTER_BOUNDARY, hitVertex.second ) );
 }
 
 void AnnotationStateMachine::selectVertex(
@@ -518,7 +518,7 @@ void AnnotationStateMachine::deselectAllAnnotationVertices()
                 continue;
             }
 
-            annot->polygon().setSelectedVertex( std::nullopt );
+            annot->removeVertexSelections();
         }
     }
 }
