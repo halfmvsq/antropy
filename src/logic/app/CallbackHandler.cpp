@@ -893,8 +893,9 @@ void CallbackHandler::handleSetViewForwardDirection(
     if ( camera::ViewRenderMode::Disabled == view->renderMode() ) return;
     if ( camera::CameraType::Oblique != view->cameraType() ) return;
 
+    const glm::vec3 worldXhairsPos = m_appData.state().worldCrosshairs().worldOrigin();
     camera::setWorldForwardDirection( view->camera(), worldForwardDirection );
-    camera::setWorldTarget( view->camera(), m_appData.state().worldCrosshairs().worldOrigin(), std::nullopt );
+    camera::setWorldTarget( view->camera(), worldXhairsPos, std::nullopt );
 
     if ( const auto rotGroupUid = view->cameraRotationSyncGroupUid() )
     {
@@ -909,7 +910,7 @@ void CallbackHandler::handleSetViewForwardDirection(
             if ( syncedView->cameraType() != view->cameraType() ) continue;
 
             camera::setWorldForwardDirection( syncedView->camera(), worldForwardDirection );
-            camera::setWorldTarget( syncedView->camera(), m_appData.state().worldCrosshairs().worldOrigin(), std::nullopt );
+            camera::setWorldTarget( syncedView->camera(), worldXhairsPos, std::nullopt );
         }
     }
 }
@@ -928,7 +929,8 @@ void CallbackHandler::doCameraZoomDrag(
 
     const auto& viewUidToZoom = startHit.viewUid;
 
-    auto getCenterViewClipPos = [this, &zoomBehavior, &startHit] ( const View* view ) -> glm::vec2
+    auto getCenterViewClipPos = [this, &zoomBehavior, &startHit]
+            ( const View* view ) -> glm::vec2
     {
         glm::vec2 viewClipCenterPos;
 
@@ -942,7 +944,8 @@ void CallbackHandler::doCameraZoomDrag(
         }
         case ZoomBehavior::ToStartPosition:
         {
-            const glm::vec4 _viewClipStartPos = camera::clip_T_world( view->camera() ) * startHit.worldPos;
+            const glm::vec4 _viewClipStartPos =
+                    camera::clip_T_world( view->camera() ) * startHit.worldPos;
             viewClipCenterPos = glm::vec2{ _viewClipStartPos / _viewClipStartPos.w };
             break;
         }
@@ -957,7 +960,6 @@ void CallbackHandler::doCameraZoomDrag(
     };
 
     const float factor = 2.0f * ( currHit.windowClipPos.y - prevHit.windowClipPos.y ) / 2.0f + 1.0f;
-
     camera::zoomNdc( viewToZoom->camera(), factor, getCenterViewClipPos( viewToZoom ) );
 
     if ( syncZoomForAllViews )
@@ -1467,7 +1469,9 @@ void CallbackHandler::cycleActiveImage( int i )
     if ( ! imageIndex ) return;
 
     const int N = static_cast<int>( m_appData.numImages() );
-    const size_t newImageIndex = static_cast<size_t>( ( N + (*imageIndex) + i ) % N );
+    const int idx = static_cast<int>( *imageIndex );
+
+    const size_t newImageIndex = static_cast<size_t>( ( N + idx + i ) % N );
 
     const auto newImageUid = m_appData.imageUid( newImageIndex );
     if ( ! newImageUid ) return;
@@ -1576,7 +1580,7 @@ void CallbackHandler::moveCrosshairsToSegLabelCentroid(
         {
             for ( int i = 0; i < dataSizeInt.x; ++i )
             {
-                if ( std::optional<int64_t> value = seg->valueAsInt64( sk_comp0, i, j, k ) )
+                if ( auto value = seg->valueAsInt64( sk_comp0, i, j, k ) )
                 {
                     if ( label == *value )
                     {
