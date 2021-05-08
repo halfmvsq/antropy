@@ -96,15 +96,93 @@ void AnnotationStateMachine::selectView( const ViewHit& hit )
     ms_selectedViewUid = hit.viewUid;
 }
 
-void AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
+bool AnnotationStateMachine::createNewGrowingAnnotation( const ViewHit& hit )
 {
-    if ( ! checkViewSelection( hit ) ) return;
+    if ( ! checkViewSelection( hit ) ) return false;
+
+    // Annotate on the active image
+    const auto activeImageUid = ms_appData->activeImageUid();
+    const Image* activeImage = ( activeImageUid ? ms_appData->image( *activeImageUid ) : nullptr );
+
+    if ( ! activeImage )
+    {
+        spdlog::warn( "There is no active image when attempting to annotate" );
+        return false;
+    }
+
+    if ( 0 == std::count( std::begin( hit.view->visibleImages() ),
+                          std::end( hit.view->visibleImages() ),
+                          *activeImageUid ) )
+    {
+        // The active image is not visible
+        return false;
+    }
+
+    deselectVertex();
+
+    // Compute the plane equation in Subject space. Use the World position after the view
+    // offset has been applied, so that the user can annotate in any view of a lightbox layout.
+    const auto [subjectPlaneEquation, subjectPlanePoint] =
+            math::computeSubjectPlaneEquation(
+                activeImage->transformations().subject_T_worldDef(),
+                -hit.worldFrontAxis, glm::vec3{ hit.worldPos_offsetApplied } );
+
+    // Create new annotation for this image:
+    std::optional<uuids::uuid> annotUid;
+
+    try
+    {
+        const std::string name = std::string( "Annotation " ) +
+                std::to_string( ms_appData->annotationsForImage( *activeImageUid ).size() );
+
+        const glm::vec4 color{ activeImage->settings().borderColor(), 1.0f };
+
+        annotUid = ms_appData->addAnnotation(
+                    *activeImageUid, Annotation( name, color, subjectPlaneEquation ) );
+
+        if ( ! annotUid )
+        {
+            spdlog::error( "Unable to add new annotation (subject plane: {}) for image {}",
+                           glm::to_string( subjectPlaneEquation ), *activeImageUid );
+            return false;
+        }
+
+        ms_appData->assignActiveAnnotationUidToImage( *activeImageUid, *annotUid );
+
+        spdlog::debug( "Added new annotation {} (subject plane: {}) for image {}",
+                       *annotUid, glm::to_string( subjectPlaneEquation ), *activeImageUid );
+    }
+    catch ( const std::exception& ex )
+    {
+        spdlog::error( "Unable to create new annotation (subject plane: {}) for image {}: {}",
+                       glm::to_string( subjectPlaneEquation ), *activeImageUid, ex.what() );
+        return false;
+    }
+
+    Annotation* annot = ms_appData->annotation( *annotUid );
+    if ( ! annot )
+    {
+        spdlog::error( "Null annotation {}", *annotUid );
+        return false;
+    }
+
+    // Mark this annotation as the one being created:
+    ms_growingAnnotUid = annotUid;
+
+    return true;
+}
+
+bool AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
+{
+    static constexpr size_t FIRST_VERTEX_INDEX = 0;
+
+    if ( ! checkViewSelection( hit ) ) return false;
 
     if ( ! ms_growingAnnotUid )
     {
         spdlog::error( "There is no new annotation for which to add a vertex" );
         turnAnnotatingOff();
-        return;
+        return false;
     }
 
     // Annotate on the active image
@@ -114,7 +192,7 @@ void AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
     if ( ! activeImage )
     {
         spdlog::warn( "There is no active image when attempting to annotate" );
-        return;
+        return false;
     }
 
     if ( 0 == std::count( std::begin( hit.view->visibleImages() ),
@@ -122,7 +200,7 @@ void AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
                           *activeImageUid ) )
     {
         // The active image is not visible
-        return;
+        return false;
     }
 
     // Compute the plane equation in Subject space. Use the World position after the view
@@ -137,37 +215,46 @@ void AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
     if ( ! growingAnnot )
     {
         spdlog::error( "Null annotation {}", *ms_growingAnnotUid );
-        return;
+        return false;
     }
-
-    const bool hasMoreThanTwoVertices =
-            ( growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size() >= 2 );
-
-    const size_t currentVertexIndex =
-            growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size();
 
     const auto hitVertices = findHitVertices( hit );
 
-    // Loop over vertices near this hit
-    for ( const auto& vertex : hitVertices )
+    if ( growingAnnot->polygon().numBoundaries() > 0 )
     {
-        if ( *ms_growingAnnotUid == vertex.first &&
-             currentVertexIndex == ( vertex.second + 1 ) )
-        {
-            // The current vertex to add is close to the last vertex, so do not add it.
-            return;
-        }
+        // If the growing annotation has a boundary polygon, then perform checks
+        // to see if we should
+        // 1) ignore the current vertex due to being too close to the last vertex
+        // 2) close the polygon due to the current vertex being close to the first vertex
 
-        if ( *ms_growingAnnotUid == vertex.first &&
-             0 == vertex.second &&
-             hasMoreThanTwoVertices )
+        const bool hasMoreThanTwoVertices =
+                ( growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size() >= 2 );
+
+        // Index of the vertex that is going to be added:
+        const size_t currentVertexIndex =
+                growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size();
+
+        // Loop over vertices near this hit
+        for ( const auto& vertex : hitVertices )
         {
-            // The point is near the annotation's first vertex and the annotation
-            // has more than two vertices, so close the polygon and do not add a new vertex.
-            growingAnnot->setClosed( true );
-            growingAnnot->setFilled( true );
-            transit<ReadyToEditState>();
-            return;
+            if ( *ms_growingAnnotUid == vertex.first &&
+                 currentVertexIndex == ( vertex.second + 1 ) )
+            {
+                // The current vertex to add is close to the last vertex, so do not add it.
+                return false;
+            }
+
+            if ( *ms_growingAnnotUid == vertex.first &&
+                 FIRST_VERTEX_INDEX == vertex.second &&
+                 hasMoreThanTwoVertices )
+            {
+                // The point is near the annotation's first vertex and the annotation
+                // has more than two vertices, so close the polygon and do not add a new vertex.
+                growingAnnot->setClosed( true );
+                growingAnnot->setFilled( true );
+                transit<ReadyToEditState>();
+                return true;
+            }
         }
     }
 
@@ -189,28 +276,76 @@ void AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
         {
             // Add the existing point
             growingAnnot->addPlanePointToBoundary( OUTER_BOUNDARY, *planePoint2d );
-            return;
+            return true;
         }
     }
 
-
-    // Just add the new point...
-
-    const auto projectedPoint = growingAnnot->addSubjectPointToBoundary(
-                OUTER_BOUNDARY, subjectPlanePoint );
-
-    if ( ! projectedPoint )
+    // The prior checks fell through, so add the new point to the polygon:
+    if ( ! growingAnnot->addSubjectPointToBoundary( OUTER_BOUNDARY, subjectPlanePoint ) )
     {
         spdlog::error( "Unable to add point {} to annotation {}",
                        glm::to_string( hit.worldPos_offsetApplied ),
                        *ms_growingAnnotUid );
     }
+
+    return true;
 }
 
-void AnnotationStateMachine::completeGrowingAnnotation()
+void AnnotationStateMachine::completeGrowingAnnotation( bool closeAnnotation )
 {
+    if ( ! ms_growingAnnotUid )
+    {
+        // No growing annotation to complete/close
+        return;
+    }
+
+    if ( closeAnnotation )
+    {
+        Annotation* growingAnnot = ms_appData->annotation( *ms_growingAnnotUid );
+
+        if ( ! growingAnnot )
+        {
+            spdlog::error( "Null annotation {}", *ms_growingAnnotUid );
+            return;
+        }
+
+        const bool hasMoreThanThreeVertices =
+                ( growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size() >= 3 );
+
+        if ( hasMoreThanThreeVertices )
+        {
+            growingAnnot->setClosed( true );
+            growingAnnot->setFilled( true );
+        }
+    }
+
+    // Done with growing this annotation:
     ms_growingAnnotUid = std::nullopt;
     transit<ReadyToEditState>();
+}
+
+void AnnotationStateMachine::undoLastVertexOfGrowingAnnotation()
+{
+    if ( ! ms_growingAnnotUid )
+    {
+        // No growing annotation to complete/close
+        return;
+    }
+
+    Annotation* growingAnnot = ms_appData->annotation( *ms_growingAnnotUid );
+
+    if ( ! growingAnnot )
+    {
+        spdlog::error( "Null annotation {}", *ms_growingAnnotUid );
+        return;
+    }
+
+    const size_t numVertices = growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size();
+
+    if ( numVertices >= 1 )
+    {
+        growingAnnot->polygon().removeVertexFromBoundary( OUTER_BOUNDARY, numVertices - 1 );
+    }
 }
 
 void AnnotationStateMachine::removeGrowingAnnotation()
@@ -529,95 +664,22 @@ void CreatingNewAnnotationState::react( const MousePressEvent& e )
 {
 //    spdlog::trace( "CreatingNewAnnotationState::react( const MousePressEvent& e )" );
 
-    if ( ! checkViewSelection( e.hit ) ) return;
-
-    // Annotate on the active image
-    const auto activeImageUid = ms_appData->activeImageUid();
-    const Image* activeImage = ( activeImageUid ? ms_appData->image( *activeImageUid ) : nullptr );
-
-    if ( ! activeImage )
+    if ( e.buttonState.left )
     {
-        spdlog::warn( "There is no active image when attempting to annotate" );
-        return;
-    }
-
-    if ( 0 == std::count( std::begin( e.hit.view->visibleImages() ),
-                          std::end( e.hit.view->visibleImages() ),
-                          *activeImageUid ) )
-    {
-        // The active image is not visible
-        return;
-    }
-
-    deselectVertex();
-
-    // Compute the plane equation in Subject space. Use the World position after the view
-    // offset has been applied, so that the user can annotate in any view of a lightbox layout.
-    const auto [subjectPlaneEquation, subjectPlanePoint] =
-            math::computeSubjectPlaneEquation(
-                activeImage->transformations().subject_T_worldDef(),
-                -e.hit.worldFrontAxis, glm::vec3{ e.hit.worldPos_offsetApplied } );
-
-    // Create new annotation for this image:
-    std::optional<uuids::uuid> annotUid;
-
-    try
-    {
-        const std::string name = std::string( "Annotation " ) +
-                std::to_string( ms_appData->annotationsForImage( *activeImageUid ).size() );
-
-        const glm::vec4 color{ activeImage->settings().borderColor(), 1.0f };
-
-        annotUid = ms_appData->addAnnotation(
-                    *activeImageUid, Annotation( name, color, subjectPlaneEquation ) );
-
-        if ( ! annotUid )
+        if ( createNewGrowingAnnotation( e.hit ) &&
+             addVertexToGrowingAnnotation( e.hit ) )
         {
-            spdlog::error( "Unable to add new annotation (subject plane: {}) for image {}",
-                           glm::to_string( subjectPlaneEquation ), *activeImageUid );
-            return;
+            transit<AddingVertexToNewAnnotationState>();
         }
-
-        ms_appData->assignActiveAnnotationUidToImage( *activeImageUid, *annotUid );
-
-        spdlog::debug( "Added new annotation {} (subject plane: {}) for image {}",
-                       *annotUid, glm::to_string( subjectPlaneEquation ), *activeImageUid );
     }
-    catch ( const std::exception& ex )
-    {
-        spdlog::error( "Unable to create new annotation (subject plane: {}) for image {}: {}",
-                       glm::to_string( subjectPlaneEquation ), *activeImageUid, ex.what() );
-        return;
-    }
-
-    Annotation* annot = ms_appData->annotation( *annotUid );
-    if ( ! annot )
-    {
-        spdlog::error( "Null annotation {}", *annotUid );
-        return;
-    }
-
-    const auto projectedPoint = annot->addSubjectPointToBoundary(
-                OUTER_BOUNDARY, subjectPlanePoint );
-
-    if ( ! projectedPoint )
-    {
-        spdlog::error( "Unable to add point {} to annotation {}",
-                       glm::to_string( e.hit.worldPos_offsetApplied ), *annotUid );
-
-        /// @todo Delete the annotation!!!
-    }
-
-    // Mark this annotation as the one being created:
-    ms_growingAnnotUid = annotUid;
-
-    transit<AddingVertexToNewAnnotationState>();
 }
 
 /// @todo Make a function for moving a vertex
 /// @todo This function should move the vertex that was added above
-void CreatingNewAnnotationState::react( const MouseMoveEvent& /*e*/ )
+void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
 {
+    highlightHoveredVertex( e.hit );
+
     /*
     // Only create/edit points on the outer polygon boundary for now
     static constexpr size_t OUTER_BOUNDARY = 0;
@@ -663,7 +725,7 @@ void CreatingNewAnnotationState::react( const TurnOffAnnotationModeEvent& )
 void CreatingNewAnnotationState::react( const CompleteNewAnnotationEvent& )
 {
 //    spdlog::trace( "CreatingNewAnnotationState::react( const CompleteNewAnnotationEvent& )" );
-    completeGrowingAnnotation();
+    completeGrowingAnnotation( false );
 }
 
 void CreatingNewAnnotationState::react( const CancelNewAnnotationEvent& )
@@ -710,13 +772,15 @@ void AddingVertexToNewAnnotationState::exit()
  */
 void AddingVertexToNewAnnotationState::react( const MousePressEvent& e )
 {
-    addVertexToGrowingAnnotation( e.hit );
+    if ( e.buttonState.left )
+    {
+        addVertexToGrowingAnnotation( e.hit );
+    }
 }
 
 void AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )
 {
-//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )" );
-    // Check if this closes the polygon!!!
+    spdlog::trace( "AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )" );
 
     highlightHoveredVertex( e.hit );
 
@@ -741,7 +805,19 @@ void AddingVertexToNewAnnotationState::react( const TurnOffAnnotationModeEvent& 
 void AddingVertexToNewAnnotationState::react( const CompleteNewAnnotationEvent& )
 {
 //    spdlog::trace( "AddingVertexToNewAnnotationState::react( const CompleteNewAnnotationEvent& )" );
-    completeGrowingAnnotation();
+    completeGrowingAnnotation( false );
+}
+
+void AddingVertexToNewAnnotationState::react( const CloseNewAnnotationEvent& )
+{
+//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const CloseNewAnnotationEvent& )" );
+    completeGrowingAnnotation( true );
+}
+
+void AddingVertexToNewAnnotationState::react( const UndoVertexEvent& )
+{
+//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const UndoVertexEvent& )" );
+    undoLastVertexOfGrowingAnnotation();
 }
 
 void AddingVertexToNewAnnotationState::react( const CancelNewAnnotationEvent& )
@@ -848,6 +924,40 @@ bool showToolbarCompleteButton()
     }
 
     return false;
+}
+
+bool showToolbarCloseButton()
+{
+    if ( ! ASM::growingAnnotUid() )
+    {
+        return false;
+    }
+
+    // Need a valid annotation with at least 3 vertices in order to close it:
+    Annotation* annot = ASM::appData()->annotation( *ASM::growingAnnotUid() );
+
+    if ( ! annot )
+    {
+        return false;
+    }
+
+    if ( annot->polygon().numVertices() < 3 )
+    {
+        return false;
+    }
+
+    if ( ASM::is_in_state<state::CreatingNewAnnotationState>() ||
+         ASM::is_in_state<state::AddingVertexToNewAnnotationState>() )
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool showToolbarUndoButton()
+{
+    return showToolbarCompleteButton();
 }
 
 bool showToolbarCancelButton()

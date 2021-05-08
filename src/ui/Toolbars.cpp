@@ -1298,7 +1298,7 @@ void renderAnnotationToolbar(
     ImGui::PushStyleColor( ImGuiCol_TitleBgCollapsed, activeColor );
 
     const char* title = ( ( isHoriz /*| isCollapsed*/ )
-                          ? "Annotations###AnnotToolbarWindow"
+                          ? "Annotation###AnnotToolbarWindow"
                           : "###AnnotToolbarWindow" );
 
     if ( ImGui::Begin( title, toolbarWindowOpen, sk_toolbarWindowFlags ) )
@@ -1350,6 +1350,62 @@ void renderAnnotationToolbar(
                 if ( ImGui::IsItemHovered() )
                 {
                     ImGui::SetTooltip( "%s", "Complete the annotation" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
+        if ( state::showToolbarCloseButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_close = std::string( ICON_FK_CIRCLE_O_NOTCH ) + " Close";
+
+                if ( ImGui::Button( sk_close.c_str() ) )
+                {
+                    send_event( state::CloseNewAnnotationEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Close the annotation" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
+        if ( state::showToolbarUndoButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_cancel = std::string( ICON_FK_UNDO ) + " Undo";
+
+                if ( ImGui::Button( sk_cancel.c_str() ) )
+                {
+                    send_event( state::UndoVertexEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Undo the last annotation vertex" );
                 }
                 ++id;
             }

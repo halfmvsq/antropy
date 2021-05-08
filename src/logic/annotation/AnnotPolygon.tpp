@@ -189,6 +189,50 @@ public:
     }
 
 
+    /// Remove a vertex from a boundary
+    bool removeVertexFromBoundary( size_t boundary, size_t vertexIndex )
+    {
+        if ( boundary >= m_vertices.size() )
+        {
+            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            return false;
+        }
+
+        const size_t numVertices = getBoundaryVertices( boundary ).size();
+
+        if ( 1 == numVertices )
+        {
+            spdlog::error( "Cannot remove the last vertex of a boundary" );
+            return false;
+        }
+
+        if ( vertexIndex >= numVertices )
+        {
+            spdlog::error( "Invalid polygon vertex {}", vertexIndex );
+            return false;
+        }
+
+        auto iter = std::begin( m_vertices[boundary] );
+        std::advance( iter, vertexIndex );
+
+        // Erase the vertex
+        m_vertices.at( boundary ).erase( iter );
+
+        m_triangulation.clear();
+        m_currentUid = generateRandomUuid();
+
+        if ( 0 == boundary )
+        {
+            computeAABBox();
+            computeCentroid();
+        }
+
+        removeSelections();
+
+        return true;
+    }
+
+
     /// Add a hole to the polygon. The operation only succeeds if the polygon has at least
     /// an outer boundary.
     bool addHole( std::list<PointType> vertices )

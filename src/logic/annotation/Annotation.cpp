@@ -26,8 +26,6 @@ Annotation::Annotation(
       m_displayName( std::move( name ) ),
       m_fileName(),
       m_polygon(),
-      m_layer( 0 ),
-      m_maxLayer( 0 ),
 
       m_selected( false ),
       m_closed( false ),
@@ -138,26 +136,6 @@ std::optional<glm::vec2> Annotation::addSubjectPointToBoundary(
     addPlanePointToBoundary( boundary, projectedPlanePoint );
 
     return projectedPlanePoint;
-}
-
-void Annotation::setLayer( uint32_t layer )
-{
-    m_layer = layer;
-}
-
-uint32_t Annotation::getLayer() const
-{
-    return m_layer;
-}
-
-void Annotation::setMaxLayer( uint32_t maxLayer )
-{
-    m_maxLayer = maxLayer;
-}
-
-uint32_t Annotation::getMaxLayer() const
-{
-    return m_maxLayer;
 }
 
 void Annotation::setSelected( bool selected )

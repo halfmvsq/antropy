@@ -932,8 +932,10 @@ void Rendering::renderOneImage(
         setupOpenGlState();
     }
 
-    drawImageViewIntersections( m_nvg, miewportViewBounds, worldOffsetXhairs, m_appData, view, I,
-                                renderData.m_globalSliceIntersectionParams.renderInactiveImageViewIntersections );
+    drawImageViewIntersections(
+                m_nvg, miewportViewBounds, worldOffsetXhairs, m_appData, view, I,
+                renderData.m_globalSliceIntersectionParams.renderInactiveImageViewIntersections );
+
     setupOpenGlState();
 }
 

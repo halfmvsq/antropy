@@ -61,16 +61,23 @@ struct MouseMoveEvent : public MouseEvent
 /// User has turned on annotation mode: they want to create or edit annotations
 struct TurnOnAnnotationModeEvent : public tinyfsm::Event {};
 
-/// User has turned off annotation mode: they do not want to annotate
+/// User has turned off annotation mode: they want to stop annotating
 struct TurnOffAnnotationModeEvent : public tinyfsm::Event {};
 
 /// User wants to create a new annotation
 struct CreateNewAnnotationEvent : public tinyfsm::Event {};
 
-/// User wants to complete a new annotation that is currently in progress
+/// User wants to complete the new annotation that is currently in progress
 struct CompleteNewAnnotationEvent : public tinyfsm::Event {};
 
-/// User wants to cancel creating a new annotation that is currently in progress
+/// User wants to close the new annotation that is currently in progress
+struct CloseNewAnnotationEvent : public tinyfsm::Event {};
+
+/// User wants to undo the last annotation vertex that was created for the current
+/// annotation in progress
+struct UndoVertexEvent : public tinyfsm::Event {};
+
+/// User wants to cancel creating the new annotation that is currently in progress
 struct CancelNewAnnotationEvent : public tinyfsm::Event {};
 
 /********** End event declarations **********/
@@ -125,10 +132,12 @@ protected:
     virtual void react( const TurnOffAnnotationModeEvent& ) {}
     virtual void react( const CreateNewAnnotationEvent& ) {}
     virtual void react( const CompleteNewAnnotationEvent& ) {}
+    virtual void react( const CloseNewAnnotationEvent& ) {}
+    virtual void react( const UndoVertexEvent& ) {}
     virtual void react( const CancelNewAnnotationEvent& ) {}
 
 
-    /// Functions commonly used in various states
+    /***** Start functions commonly used in various states *****/
 
     /// @return false iff not ok
     bool checkViewSelection( const ViewHit& );
@@ -139,8 +148,10 @@ protected:
     void turnAnnotatingOff();
     void hoverOverView( const ViewHit& );
     void selectView( const ViewHit& );
-    void addVertexToGrowingAnnotation( const ViewHit& );
-    void completeGrowingAnnotation();
+    bool createNewGrowingAnnotation( const ViewHit& );
+    bool addVertexToGrowingAnnotation( const ViewHit& );
+    void completeGrowingAnnotation( bool closeAnnotation );
+    void undoLastVertexOfGrowingAnnotation();
     void removeGrowingAnnotation();
 
     void selectVertex( const uuids::uuid& annotUid, size_t vertexIndex );
@@ -152,6 +163,8 @@ protected:
     std::vector< std::pair<uuids::uuid, size_t> > findHitVertices( const ViewHit& );
 
     void highlightHoveredVertex( const ViewHit& );
+
+    /***** End functions commonly used in various states *****/
 
 
     /// Hold a pointer to the application data object
@@ -253,6 +266,8 @@ class AddingVertexToNewAnnotationState : public AnnotationStateMachine
 
     void react( const TurnOffAnnotationModeEvent& ) override;
     void react( const CompleteNewAnnotationEvent& ) override;
+    void react( const CloseNewAnnotationEvent& ) override;
+    void react( const UndoVertexEvent& ) override;
     void react( const CancelNewAnnotationEvent& ) override;
 };
 
@@ -280,14 +295,12 @@ bool isInStateWhereViewsCanScroll();
 /// Is the toolbar visible in the current state?
 bool isInStateWhereToolbarVisible();
 
-/// Is the toolbar's "Create" button visible in the current state?
-bool showToolbarCreateButton();
-
-/// Is the toolbar's "Complete" button visible in the current state?
-bool showToolbarCompleteButton();
-
-/// Is the toolbar's "Cancel" button visible in the current state?
-bool showToolbarCancelButton();
+/// Check whether Annotation toolbar buttons are visible in the current state
+bool showToolbarCreateButton(); // Create new annotation
+bool showToolbarCompleteButton(); // Complete current annotation
+bool showToolbarCloseButton(); // Close current annotation
+bool showToolbarCancelButton(); // Cancel current annotation
+bool showToolbarUndoButton(); // Undo last vertex
 
 /********** End helper functions **********/
 

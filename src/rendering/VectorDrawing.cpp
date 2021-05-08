@@ -903,7 +903,8 @@ void drawAnnotations(
 
 
             // Draw the annotation outer boundary vertices:
-            if ( annot->getVertexVisibility() )
+            if ( ! appData.renderData().m_globalAnnotationParams.hidePolygonVertices &&
+                 annot->getVertexVisibility() )
             {
                 for ( const glm::vec2& vertex : annotPlaneVertices )
                 {

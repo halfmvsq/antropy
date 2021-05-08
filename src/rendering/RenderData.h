@@ -191,6 +191,9 @@ struct RenderData
         /// Flag to either render annotations on top of all image planes (true)
         /// or interspersed with each image plane (false)
         bool renderOnTopOfAllImagePlanes = false;
+
+        /// Flag to never render polygon vertices
+        bool hidePolygonVertices = false;
     };
 
     struct SliceIntersectionParams

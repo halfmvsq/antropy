@@ -1402,17 +1402,37 @@ void renderSettingsWindow(
 
 
 
-            if ( ImGui::BeginTabItem( "Landmarks" ) )
+            if ( ImGui::BeginTabItem( "Annotations" ) )
             {
                 ImGui::PushID( "landmarks" ); /*** PushID landmarks ***/
 
-                bool onTop = appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
-                if ( ImGui::Checkbox( "Landmarks on top", &onTop ) )
+
+                bool annotOnTop = appData.renderData().m_globalAnnotationParams.renderOnTopOfAllImagePlanes;
+                if ( ImGui::Checkbox( "Annotations on top", &annotOnTop ) )
                 {
-                    appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes = onTop;
+                    appData.renderData().m_globalAnnotationParams.renderOnTopOfAllImagePlanes = annotOnTop;
+                }
+                ImGui::SameLine();
+                helpMarker( "Render annotations on top of all image layers" );
+
+
+                bool lmOnTop = appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes;
+                if ( ImGui::Checkbox( "Landmarks on top", &lmOnTop ) )
+                {
+                    appData.renderData().m_globalLandmarkParams.renderOnTopOfAllImagePlanes = lmOnTop;
                 }
                 ImGui::SameLine();
                 helpMarker( "Render landmarks on top of all image layers" );
+
+
+                bool hideVertices = appData.renderData().m_globalAnnotationParams.hidePolygonVertices;
+                if ( ImGui::Checkbox( "Hide all annotation vertices", &hideVertices ) )
+                {
+                    appData.renderData().m_globalAnnotationParams.hidePolygonVertices = hideVertices;
+                }
+                ImGui::SameLine();
+                helpMarker( "Hide all annotation vertices" );
+
 
                 ImGui::PopID(); /*** PopID landmarks ***/
                 ImGui::EndTabItem();

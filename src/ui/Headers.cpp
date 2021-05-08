@@ -507,8 +507,8 @@ void renderImageHeader(
     if ( 0 < imageIndex )
     {
         // Rules for showing the buttons that change image order:
-        const bool showDecreaseIndex = ( 1 < imageIndex );
-        const bool showIncreaseIndex = ( imageIndex < numImages - 1 );
+        const bool showDecreaseIndex = true | ( 1 < imageIndex );
+        const bool showIncreaseIndex = true | ( imageIndex < numImages - 1 );
 
         if ( showDecreaseIndex || showIncreaseIndex )
         {
@@ -1844,8 +1844,8 @@ void renderAnnotationsHeader(
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
 
-    static const char* sk_saveAnnotButtonText( "Save annotation..." );
-    static const char* sk_saveAnnotDialogTitle( "Save Annotation" );
+    static const char* sk_saveAnnotButtonText( "Save..." );
+    static const char* sk_saveAnnotDialogTitle( "Save Annotation to SVG" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
 
     Image* image = appData.image( imageUid );
@@ -1961,20 +1961,20 @@ void renderAnnotationsHeader(
     // The default active annotation is at index 0
     if ( ! activeAnnotUid )
     {
-        if ( appData.assignActiveAnnotationUidToImage( imageUid, annotUids[0] ) )
+        if ( appData.assignActiveAnnotationUidToImage( imageUid, annotUids.front() ) )
         {
             activeAnnotUid = appData.imageToActiveAnnotationUid( imageUid );
         }
         else
         {
-            spdlog::error( "Unable to assign active annotation {} to image {}",
-                           annotUids[0], imageUid );
+            spdlog::error( "Unable to assign active annotation {} to image {}", annotUids.front(), imageUid );
             ImGui::PopID(); // imageUid
             return;
         }
     }
 
     Annotation* activeAnnot = appData.annotation( *activeAnnotUid );
+    size_t activeAnnotIndex = 0;
 
     if ( ! activeAnnot )
     {
@@ -2001,11 +2001,17 @@ void renderAnnotationsHeader(
         size_t annotIndex = 0;
         for ( const auto& annotUid : annotUids )
         {
-            ImGui::PushID( static_cast<int>( annotIndex++ ) );
+            ImGui::PushID( static_cast<int>( annotIndex ) );
 
             if ( Annotation* annot = appData.annotation( annotUid ) )
             {
-                const bool isSelected = ( annotUid == *activeAnnotUid );
+                bool isSelected = false;
+
+                if ( annotUid == *activeAnnotUid )
+                {
+                    isSelected = true;
+                    activeAnnotIndex = annotIndex;
+                }
 
                 /// @see Line 2791 of demo:
                 /// ImGui::SetScrollHereY(i * 0.25f); // 0.0f:top, 0.5f:center, 1.0f:bottom
@@ -2032,6 +2038,8 @@ void renderAnnotationsHeader(
             }
 
             ImGui::PopID(); // lmGroupIndex
+
+            ++annotIndex;
         }
 
         ImGui::EndListBox();
@@ -2060,15 +2068,95 @@ void renderAnnotationsHeader(
     // Annotation file name:
     std::string fileName = activeAnnot->getFileName();
     ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine(); helpMarker( "Scalar Vector Graphics (SVG) file storing the annotation" );
+    ImGui::SameLine(); helpMarker( "File storing the annotation in Scalar Vector Graphics (SVG) format" );
+
+
+
+    // Remove the annotation:
+    bool removeAnnot = false;
+    static bool doNotAskAagain = false;
+
+    const bool clickedRemoveButton = ImGui::Button( "Remove" );
+
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Remove the annotation. The file will not be deleted." );
+    }
+
+    if ( clickedRemoveButton )
+    {
+        if ( ! doNotAskAagain && ! ImGui::IsPopupOpen( "Remove Annotation" ) )
+        {
+            ImGui::OpenPopup( "Remove Annotation", ImGuiWindowFlags_AlwaysAutoResize );
+        }
+        else if ( doNotAskAagain )
+        {
+            removeAnnot = true;
+        }
+    }
+
+    const ImVec2 center( ImGui::GetIO().DisplaySize.x * 0.5f,
+                         ImGui::GetIO().DisplaySize.y * 0.5f );
+
+    ImGui::SetNextWindowPos( center, ImGuiCond_Appearing, ImVec2( 0.5f, 0.5f ) );
+
+    if ( ImGui::BeginPopupModal( "Remove Annotation", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) )
+    {
+        const std::string removeText =
+                std::string( "Are you sure that you want to remove annotation '" ) +
+                activeAnnot->getDisplayName() + "'?";
+
+        ImGui::Text( removeText.c_str() );
+        ImGui::Separator();
+
+        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2(0, 0) );
+        ImGui::Checkbox( "Don't ask again", &doNotAskAagain );
+        ImGui::PopStyleVar();
+
+
+        if ( ImGui::Button( "Yes", ImVec2( 80, 0 ) ) )
+        {
+            removeAnnot = true;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SetItemDefaultFocus();
+
+        ImGui::SameLine();
+        if ( ImGui::Button( "No", ImVec2( 80, 0 ) ) )
+        {
+            removeAnnot = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if ( removeAnnot )
+    {
+        const bool removed = appData.removeAnnotation( *activeAnnotUid );
+
+        if ( removed  )
+        {
+            spdlog::info( "Removed annotation {}", *activeAnnotUid );
+            return;
+        }
+        else
+        {
+            spdlog::error( "Unable to remove annotation {}", *activeAnnotUid );
+        }
+    }
 
 
     // Save annotation SVG and save settings to project file:
-
+    ImGui::SameLine();
     const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
                 sk_saveAnnotButtonText, sk_saveAnnotDialogTitle, sk_saveAnnotDialogFilters );
 
-    ImGui::SameLine(); helpMarker( "Save the annotation to an SVG file" );
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Save the annotation to an SVG file." );
+    }
+
 
 //    if ( selectedFile )
 //    {
@@ -2085,7 +2173,69 @@ void renderAnnotationsHeader(
 //        }
 //    }
 
-    ImGui::Spacing();
+    ImGui::Separator();
+
+    // Rules for showing the buttons that change annotation layer order:
+    const bool showDecreaseLayer = true | ( 1 <= activeAnnotIndex );
+    const bool showIncreaseLayer = true | ( activeAnnotIndex <= annotUids.size() - 2 );
+
+    if ( showDecreaseLayer || showIncreaseLayer )
+    {
+        ImGui::Text( "Annotation layer order: " );
+    }
+
+    ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
+
+    if ( showDecreaseLayer )
+    {
+        ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_FAST_BACKWARD ) )
+        {
+            appData.moveAnnotationToBack( imageUid, *activeAnnotUid );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Move annotation to backmost layer" );
+        }
+
+        ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_BACKWARD ) )
+        {
+            appData.moveAnnotationBackwards( imageUid, *activeAnnotUid );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Move annotation backward in layers (decrease the annotation order)" );
+        }
+    }
+
+    if ( showIncreaseLayer )
+    {
+        ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_FORWARD ) )
+        {
+            appData.moveAnnotationForwards( imageUid, *activeAnnotUid );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Move annotation forward in layers (increase the annotation order)" );
+        }
+
+        ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_FAST_FORWARD ) )
+        {
+            appData.moveAnnotationToFront( imageUid, *activeAnnotUid );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Move annotation to frontmost layer" );
+        }
+    }
+
+    /*** ImGuiStyleVar_ItemSpacing ***/
+    ImGui::PopStyleVar( 1 );
+
+
     ImGui::Separator();
     ImGui::Spacing();
 
@@ -2118,12 +2268,15 @@ void renderAnnotationsHeader(
 
 
     // Show vertices checkbox:
-    bool showVertices = activeAnnot->getVertexVisibility();
-    if ( ImGui::Checkbox( "Show vertices", &showVertices ) )
+    if ( ! appData.renderData().m_globalAnnotationParams.hidePolygonVertices )
     {
-        activeAnnot->setVertexVisibility( showVertices );
+        bool showVertices = activeAnnot->getVertexVisibility();
+        if ( ImGui::Checkbox( "Show vertices", &showVertices ) )
+        {
+            activeAnnot->setVertexVisibility( showVertices );
+        }
+        ImGui::SameLine(); helpMarker( "Show/hide the annotation vertices" );
     }
-    ImGui::SameLine(); helpMarker( "Show/hide the annotation vertices" );
 
 
     // Filled checkbox:

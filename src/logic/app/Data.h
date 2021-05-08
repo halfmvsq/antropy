@@ -23,6 +23,7 @@
 
 #include <uuid.h>
 
+#include <list>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -156,12 +157,23 @@ public:
     void setRainbowColorsForAllLandmarkGroups();
 
     /// Move the image backward/forward in layers (decrease/increase its layer order)
+    /// @note It is important that these take arguments by value, since imageUids are being swapped
+    /// internally. Potential for nasty bugs if a reference is used.
     bool moveImageBackwards( const uuids::uuid imageUid );
     bool moveImageForwards( const uuids::uuid imageUid );
 
     /// Move the image to the backmost/frontmost layer
     bool moveImageToBack( const uuids::uuid imageUid );
     bool moveImageToFront( const uuids::uuid imageUid );
+
+
+    /// Move the image annotation backward/forward in layers (decrease/increase its layer order)
+    bool moveAnnotationBackwards( const uuids::uuid imageUid, const uuids::uuid annotUid );
+    bool moveAnnotationForwards( const uuids::uuid imageUid, const uuids::uuid annotUid );
+
+    /// Move the image annotation to the backmost/frontmost layer
+    bool moveAnnotationToBack( const uuids::uuid imageUid, const uuids::uuid annotUid );
+    bool moveAnnotationToFront( const uuids::uuid imageUid, const uuids::uuid annotUid );
 
 
     size_t numImages() const;
@@ -217,13 +229,13 @@ public:
 
 
     /**
-     * @brief Get a vector of all annotations assigned to a given image. The annotation order
+     * @brief Get a list of all annotations assigned to a given image. The annotation order
      * corresponds to the order in which the annotations were added to the image.
      * @param imageUid Image UID
-     * @return Vector of (ordered) annotation UIDs for the image.
-     * The vector is empty if the image has no annotations or the image UID is invalid.
+     * @return List of (ordered) annotation UIDs for the image.
+     * The list is empty if the image has no annotations or the image UID is invalid.
      */
-    const std::vector<uuids::uuid>& annotationsForImage( const uuids::uuid& imageUid ) const;
+    const std::list<uuids::uuid>& annotationsForImage( const uuids::uuid& imageUid ) const;
 
     /// Set/get whether the image is
     void setImageBeingSegmented( const uuids::uuid& imageUid, bool set );
@@ -245,6 +257,7 @@ public:
     std::optional<size_t> imageColorMapIndex( const uuids::uuid& mapUid ) const;
     std::optional<size_t> labelTableIndex( const uuids::uuid& tableUid ) const;
     std::optional<size_t> landmarkGroupIndex( const uuids::uuid& lmGroupUid ) const;
+    std::optional<size_t> annotationIndex( const uuids::uuid& imageUid, const uuids::uuid& annotUid ) const;
 
     /// @todo Put into DataHelper
     Image* refImage();
@@ -313,8 +326,9 @@ private:
     /// Map of image to its active landmark group
     std::unordered_map< uuids::uuid, uuids::uuid > m_imageToActiveLandmarkGroup;
 
-    /// Map of image to its annotations
-    std::unordered_map< uuids::uuid, std::vector<uuids::uuid> > m_imageToAnnotations;
+    /// Map of image to its annotations.
+    /// The order of the annotations matches the order in the list.
+    std::unordered_map< uuids::uuid, std::list<uuids::uuid> > m_imageToAnnotations;
 
     /// Map of image to its active annotation
     std::unordered_map< uuids::uuid, uuids::uuid > m_imageToActiveAnnotation;

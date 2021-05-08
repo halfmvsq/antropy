@@ -15,7 +15,6 @@
 
 
 class AppData;
-//enum class LayerChangeType;
 
 
 /**
@@ -25,18 +24,10 @@ class AppData;
  *
  * The annotation plane is defined in the image's Subject coordinate system.
  *
- * @todo Layering
  * @todo Text and regular shape annotations
  */
 class Annotation
 {
-    /// Friend helper function that sets the layer depth of annotations
-//    friend void setUniqueAnnotationLayers( AppData& );
-
-    /// Friend helper function that changes the layer depth of annotations
-//    friend void changeAnnotationLayering( AppData&, const uuids::uuid&, const LayerChangeType& );
-
-
 public:
 
     explicit Annotation(
@@ -75,14 +66,6 @@ public:
      */
     std::optional<glm::vec2> addSubjectPointToBoundary(
             size_t boundary, const glm::vec3& subjectPoint );
-
-
-    /// Get the annotation layer, with 0 being the backmost layer and layers increasing in value
-    /// closer towards the viewer
-    uint32_t getLayer() const;
-
-    /// Get the maximum annotation layer
-    uint32_t getMaxLayer() const;
 
 
     /// @brief Set/get the annotation selected state
@@ -158,25 +141,11 @@ private:
     /// Set the axes of the plane in Subject space
     bool setSubjectPlane( const glm::vec4& subjectPlaneEquation );
 
-    /// Set the annotation layer, with 0 being the backmost layer.
-    /// @note Use the function \c changeSlideAnnotationLayering to change annotation layer
-    void setLayer( uint32_t layer );
-
-    /// Set the maximum annotation layer.
-    /// @note Set using the function \c changeSlideAnnotationLayering
-    void setMaxLayer( uint32_t maxLayer );
-
     std::string m_displayName; //!< Annotation display name
     std::string m_fileName; //!< Annotation file name
 
     /// Annotation polygon, which can include holes
     AnnotPolygon<float, 2> m_polygon;
-
-    /// Annotation layer: 0 is the backmost layer and higher layers are more frontwards
-    uint32_t m_layer;
-
-    /// The maximum layer among all annotations in the same plane as this annotation
-    uint32_t m_maxLayer;
 
     bool m_selected; //!< Is the annotation selected?
     bool m_closed; //!< Is the annotation's outer boundary closed?

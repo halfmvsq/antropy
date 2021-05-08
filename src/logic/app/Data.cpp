@@ -17,7 +17,6 @@
 #include <algorithm>
 #include <cmath>
 #include <sstream>
-#include <vector>
 
 CMRC_DECLARE(colormaps);
 
@@ -27,6 +26,9 @@ namespace
 
 // Empty vector of UIDs. Used as a return value.
 static const std::vector<uuids::uuid> sk_emptyUidVector{};
+
+// Empty list of UIDs. Used as a return value.
+static const std::list<uuids::uuid> sk_emptyUidList{};
 
 }
 
@@ -597,11 +599,10 @@ void AppData::setRainbowColorsForAllImages()
     static constexpr float sk_startHue = -1.0f / 48.0f;
 
     const float N = static_cast<float>( m_imageUidsOrdered.size() );
+    size_t i = 0;
 
-    for ( size_t i = 0; i < m_imageUidsOrdered.size(); ++i )
+    for ( const auto& imageUid : m_imageUidsOrdered )
     {
-        const auto imageUid = m_imageUidsOrdered[i];
-
         if ( Image* img = image( imageUid ) )
         {
             const float a = ( 1.0f + sk_startHue + static_cast<float>( i ) / N );
@@ -620,6 +621,7 @@ void AppData::setRainbowColorsForAllImages()
                 img->settings().setEdgeColor( c, color );
             }
         }
+        ++i;
     }
 }
 
@@ -649,10 +651,15 @@ bool AppData::moveImageBackwards( const uuids::uuid imageUid )
 
     // Only allow moving backwards images with index 2 or greater, because
     // image 1 cannot become 0: that is the reference image index.
-    if ( 1 < *index )
+    if ( 2 <= *index )
     {
-        std::iter_swap( std::begin( m_imageUidsOrdered ) + *index - 1,
-                        std::begin( m_imageUidsOrdered ) + *index );
+        auto itFirst = std::begin( m_imageUidsOrdered );
+        auto itSecond = std::begin( m_imageUidsOrdered );
+
+        std::advance( itFirst, *index - 1 );
+        std::advance( itSecond, *index );
+
+        std::iter_swap( itFirst, itSecond );
         return true;
     }
 
@@ -667,8 +674,13 @@ bool AppData::moveImageForwards( const uuids::uuid imageUid )
     // Do not allow moving the reference image or the last image:
     if ( 0 < *index && *index < m_imageUidsOrdered.size() - 1 )
     {
-        std::iter_swap( std::begin( m_imageUidsOrdered ) + *index,
-                        std::begin( m_imageUidsOrdered ) + *index + 1 );
+        auto itFirst = std::begin( m_imageUidsOrdered );
+        auto itSecond = std::begin( m_imageUidsOrdered );
+
+        std::advance( itFirst, *index );
+        std::advance( itSecond, *index + 1 );
+
+        std::iter_swap( itFirst, itSecond );
         return true;
     }
 
@@ -682,7 +694,10 @@ bool AppData::moveImageToBack( const uuids::uuid imageUid )
 
     while ( index && *index > 1 )
     {
-        if ( ! moveImageBackwards( imageUid ) ) return false;
+        if ( ! moveImageBackwards( imageUid ) )
+        {
+            return false;
+        }
         index = imageIndex( imageUid );
     }
 
@@ -698,6 +713,80 @@ bool AppData::moveImageToFront( const uuids::uuid imageUid )
     {
         if ( ! moveImageForwards( imageUid ) ) return false;
         index = imageIndex( imageUid );
+    }
+
+    return true;
+}
+
+bool AppData::moveAnnotationBackwards( const uuids::uuid imageUid, const uuids::uuid annotUid )
+{
+    const auto index = annotationIndex( imageUid, annotUid );
+    if ( ! index ) return false;
+
+    // Only allow moving backwards annotations with index 1 or greater
+    if ( 1 <= *index )
+    {
+        auto& annotList = m_imageToAnnotations.at( imageUid );
+        auto itFirst = std::begin( annotList );
+        auto itSecond = std::begin( annotList );
+
+        std::advance( itFirst, *index - 1 );
+        std::advance( itSecond, *index );
+
+        std::iter_swap( itFirst, itSecond );
+        return true;
+    }
+
+    return false;
+}
+
+bool AppData::moveAnnotationForwards( const uuids::uuid imageUid, const uuids::uuid annotUid )
+{
+    const auto index = annotationIndex( imageUid, annotUid );
+    if ( ! index ) return false;
+
+    auto& annotList = m_imageToAnnotations.at( imageUid );
+
+    if ( *index <= annotList.size() - 2 )
+    {
+        auto itFirst = std::begin( annotList );
+        auto itSecond = std::begin( annotList );
+
+        std::advance( itFirst, *index );
+        std::advance( itSecond, *index + 1 );
+
+        std::iter_swap( itFirst, itSecond );
+        return true;
+    }
+
+    return false;
+}
+
+bool AppData::moveAnnotationToBack( const uuids::uuid imageUid, const uuids::uuid annotUid )
+{
+    auto index = annotationIndex( imageUid, annotUid );
+    if ( ! index ) return false;
+
+    while ( index && *index >= 1 )
+    {
+        if ( ! moveAnnotationBackwards( imageUid, annotUid ) ) return false;
+        index = annotationIndex( imageUid, annotUid );
+    }
+
+    return true;
+}
+
+bool AppData::moveAnnotationToFront( const uuids::uuid imageUid, const uuids::uuid annotUid )
+{
+    auto index = annotationIndex( imageUid, annotUid );
+    if ( ! index ) return false;
+
+    auto& annotList = m_imageToAnnotations.at( imageUid );
+
+    while ( index && *index <= annotList.size() - 1 )
+    {
+        if ( ! moveAnnotationForwards( imageUid, annotUid ) ) return false;
+        index = annotationIndex( imageUid, annotUid );
     }
 
     return true;
@@ -932,7 +1021,7 @@ std::optional<uuids::uuid> AppData::imageToActiveAnnotationUid(
     return std::nullopt;
 }
 
-const std::vector<uuids::uuid>&
+const std::list<uuids::uuid>&
 AppData::annotationsForImage( const uuids::uuid& imageUid ) const
 {
     auto it = m_imageToAnnotations.find( imageUid );
@@ -940,7 +1029,7 @@ AppData::annotationsForImage( const uuids::uuid& imageUid ) const
     {
         return it->second;
     }
-    return sk_emptyUidVector;
+    return sk_emptyUidList;
 }
 
 void AppData::setImageBeingSegmented( const uuids::uuid& imageUid, bool set )
@@ -969,7 +1058,7 @@ std::optional<uuids::uuid> AppData::imageUid( size_t index ) const
 {
     if ( index < m_imageUidsOrdered.size() )
     {
-        return m_imageUidsOrdered.at( index );
+        return m_imageUidsOrdered[index];
     }
     return std::nullopt;
 }
@@ -1021,12 +1110,14 @@ std::optional<uuids::uuid> AppData::landmarkGroupUid( size_t index ) const
 
 std::optional<size_t> AppData::imageIndex( const uuids::uuid& imageUid ) const
 {
-    for ( size_t i = 0; i < m_imageUidsOrdered.size(); ++i )
+    size_t i = 0;
+    for ( const auto& uid : m_imageUidsOrdered )
     {
-        if ( m_imageUidsOrdered[i] == imageUid )
+        if ( uid == imageUid )
         {
             return i;
         }
+        ++i;
     }
     return std::nullopt;
 }
@@ -1087,6 +1178,21 @@ std::optional<size_t> AppData::landmarkGroupIndex( const uuids::uuid& lmGroupUid
         {
             return i;
         }
+    }
+    return std::nullopt;
+}
+
+std::optional<size_t> AppData::annotationIndex(
+        const uuids::uuid& imageUid, const uuids::uuid& annotUid ) const
+{
+    size_t i = 0;
+    for ( const auto& uid : annotationsForImage( imageUid ) )
+    {
+        if ( annotUid == uid )
+        {
+            return i;
+        }
+        ++i;
     }
     return std::nullopt;
 }
