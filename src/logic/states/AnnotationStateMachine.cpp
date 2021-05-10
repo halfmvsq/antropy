@@ -589,7 +589,6 @@ void AnnotationOffState::entry()
     }
 
     ms_growingAnnotUid = std::nullopt;
-    deselectAnnotation();
     unhoverAnnotation();
 }
 
