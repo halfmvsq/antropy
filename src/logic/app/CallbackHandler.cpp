@@ -243,16 +243,14 @@ bool CallbackHandler::executeGridCutSegmentation(
 }
 
 
+/// @todo Add another option to reset/not reset zoom!
 void CallbackHandler::recenterViews(
         const ImageSelection& imageSelection,
         bool recenterCrosshairs,
         bool recenterOnCurrentCrosshairsPos,
-        bool resetObliqueOrientation )
+        bool resetObliqueOrientation,
+        const std::optional<bool>& resetZoom )
 {
-    // Option to reset zoom or not:
-    static constexpr bool sk_doNotResetZoom = false;
-    static constexpr bool sk_resetZoom = true;
-
     if ( 0 == m_appData.numImages() )
     {
         spdlog::warn( "No images loaded: preparing views using default bounds" );
@@ -274,25 +272,15 @@ void CallbackHandler::recenterViews(
         m_appData.state().setWorldCrosshairsPos( worldPos );
     }
 
-    if ( recenterOnCurrentCrosshairsPos )
-    {
-        // Size the views based on the enclosing AABB; position the views based on the curent crosshairs.
-        // This is a "soft reset".
-        m_appData.windowData().recenterAllViews(
-                    m_appData.state().worldCrosshairs().worldOrigin(),
-                    sk_viewAABBoxScaleFactor * math::computeAABBoxSize( worldBox ),
-                    sk_doNotResetZoom,
-                    resetObliqueOrientation );
-    }
-    else
-    {
-        // Size and position the views based on the enclosing AABB. This is a "hard reset".
-        m_appData.windowData().recenterAllViews(
-                    math::computeAABBoxCenter( worldBox ),
-                    sk_viewAABBoxScaleFactor * math::computeAABBoxSize( worldBox ),
-                    sk_resetZoom,
-                    resetObliqueOrientation );
-    }
+    const glm::vec3 worldCenter = ( recenterOnCurrentCrosshairsPos )
+            ? m_appData.state().worldCrosshairs().worldOrigin()
+            : math::computeAABBoxCenter( worldBox );
+
+    m_appData.windowData().recenterAllViews(
+                worldCenter,
+                sk_viewAABBoxScaleFactor * math::computeAABBoxSize( worldBox ),
+                ( resetZoom ? *resetZoom : ! recenterOnCurrentCrosshairsPos ),
+                resetObliqueOrientation );
 }
 
 void CallbackHandler::recenterView(

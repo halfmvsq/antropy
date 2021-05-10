@@ -81,6 +81,7 @@ void renderToolbar(
     static constexpr bool sk_recenterCrosshairs = true;
     static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;
     static constexpr bool sk_doNotResetObliqueViews = false;
+    static constexpr bool sk_resetZoom = true;
 
     // Always keep the toolbar open by setting this to null
     static bool* toolbarWindowOpen = nullptr;
@@ -371,7 +372,8 @@ void renderToolbar(
                 {
                     recenterAllViews( sk_recenterCrosshairs,
                                       sk_doNotRecenterOnCurrentCrosshairsPosition,
-                                      sk_doNotResetObliqueViews );
+                                      sk_doNotResetObliqueViews,
+                                      sk_resetZoom );
                 }
                 if ( ImGui::IsItemHovered() ) {
                     ImGui::SetTooltip( "%s", "Recenter views (C)" );
@@ -535,7 +537,8 @@ void renderToolbar(
                 {
                     recenterAllViews( true,
                                       sk_doNotRecenterOnCurrentCrosshairsPosition,
-                                      sk_doNotResetObliqueViews );
+                                      sk_doNotResetObliqueViews,
+                                      sk_resetZoom );
                 } );
 
     renderAboutDialogModalPopup( openAboutDialogPopup );

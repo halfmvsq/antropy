@@ -19,6 +19,7 @@
 
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
+#include "logic/states/AnnotationStateMachine.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -1832,8 +1833,9 @@ void renderAnnotationsHeader(
         const AllViewsRecenterType& recenterAllViews )
 {
     static constexpr bool sk_doNotRecenterCrosshairs = false;
-    static constexpr bool sk_recenterOnCurrentCrosshairsPosition = true;
+    static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;
     static constexpr bool sk_doNotResetObliqueOrientation = false;
+    static constexpr bool sk_doNotResetZoom = false;
 
     static const ImGuiColorEditFlags sk_annotColorEditFlags =
             ImGuiColorEditFlags_PickerHueBar |
@@ -1844,20 +1846,18 @@ void renderAnnotationsHeader(
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
 
-    static const char* sk_saveAnnotButtonText( "Save..." );
-    static const char* sk_saveAnnotDialogTitle( "Save Annotation to SVG" );
+    static const char* sk_saveAnnotButtonText( "Save annotations..." );
+    static const char* sk_saveAnnotDialogTitle( "Save Annotations to SVG" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
 
     Image* image = appData.image( imageUid );
     if ( ! image ) return;
 
     // Move crosshairs to the annotation centroid:
-    auto moveCrosshairsToAnnotationCenter = [&appData, &image] ( const Annotation* annot )
+    auto moveCrosshairsToAnnotationCenter = [&appData, &image] ( const Annotation& annot )
     {
-        if ( ! annot ) return;
-
-        const glm::vec4 subjectCentroid{ annot->unprojectFromAnnotationPlaneToSubjectPoint(
-                        annot->polygon().getCentroid() ), 1.0f };
+        const glm::vec4 subjectCentroid{ annot.unprojectFromAnnotationPlaneToSubjectPoint(
+                        annot.polygon().getCentroid() ), 1.0f };
 
         const glm::vec4 worldCentroid = image->transformations().worldDef_T_subject() * subjectCentroid;
 
@@ -1868,16 +1868,14 @@ void renderAnnotationsHeader(
     // Todo: make this view active.
     // If none found, make the largest view oblique and align it to the annotation.
     auto alignViewToAnnotationPlane = [&appData, &imageUid, &image, &setViewDirection]
-            ( const Annotation* annot )
+            ( const Annotation& annot )
     {
-        if ( ! annot ) return;
-
         const glm::mat3 world_T_subject_invTranspose = glm::inverseTranspose(
                     glm::mat3{ image->transformations().worldDef_T_subject() } );
 
         const glm::vec3 worldAnnotNormal = glm::normalize(
                     world_T_subject_invTranspose *
-                    glm::vec3{ annot->getSubjectPlaneEquation() } );
+                    glm::vec3{ annot.getSubjectPlaneEquation() } );
 
         // Does the current layout have a view with this orientaion?
         const auto viewsWithNormal = appData.windowData().findCurrentViewsWithNormal( worldAnnotNormal );
@@ -1947,7 +1945,6 @@ void renderAnnotationsHeader(
     ImGui::Spacing();
 
     const auto& annotUids = appData.annotationsForImage( imageUid );
-
     if ( annotUids.empty() )
     {
         ImGui::Text( "This image has no annotations." );
@@ -1955,33 +1952,7 @@ void renderAnnotationsHeader(
         return;
     }
 
-
     auto activeAnnotUid = appData.imageToActiveAnnotationUid( imageUid );
-
-    // The default active annotation is at index 0
-    if ( ! activeAnnotUid )
-    {
-        if ( appData.assignActiveAnnotationUidToImage( imageUid, annotUids.front() ) )
-        {
-            activeAnnotUid = appData.imageToActiveAnnotationUid( imageUid );
-        }
-        else
-        {
-            spdlog::error( "Unable to assign active annotation {} to image {}", annotUids.front(), imageUid );
-            ImGui::PopID(); // imageUid
-            return;
-        }
-    }
-
-    Annotation* activeAnnot = appData.annotation( *activeAnnotUid );
-    size_t activeAnnotIndex = 0;
-
-    if ( ! activeAnnot )
-    {
-        spdlog::error( "Annotation {} for image {} is null", *activeAnnotUid, imageUid );
-        ImGui::PopID(); // imageUid
-        return;
-    }
 
     const ImVec4* colors = ImGui::GetStyle().Colors;
     ImGui::PushStyleColor( ImGuiCol_Header, colors[ImGuiCol_ButtonActive] );
@@ -2001,59 +1972,107 @@ void renderAnnotationsHeader(
         size_t annotIndex = 0;
         for ( const auto& annotUid : annotUids )
         {
-            ImGui::PushID( static_cast<int>( annotIndex ) );
+            ImGui::PushID( static_cast<int>( annotIndex++ ) );
 
-            if ( Annotation* annot = appData.annotation( annotUid ) )
+            Annotation* annot = appData.annotation( annotUid );
+            if ( ! annot )
             {
-                bool isSelected = false;
-
-                if ( annotUid == *activeAnnotUid )
-                {
-                    isSelected = true;
-                    activeAnnotIndex = annotIndex;
-                }
-
-                /// @see Line 2791 of demo:
-                /// ImGui::SetScrollHereY(i * 0.25f); // 0.0f:top, 0.5f:center, 1.0f:bottom
-
-                const std::string text = annot->getDisplayName() +
-                        " [" + data::getAnnotationSubjectPlaneName( *annot ) + "]";
-
-                if ( ImGui::Selectable( text.c_str(), isSelected ) )
-                {
-                    // Make the annotation active and move crosshairs to it:
-                    appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
-                    activeAnnot = appData.annotation( annotUid );
-
-                    moveCrosshairsToAnnotationCenter( activeAnnot );
-                    alignViewToAnnotationPlane( activeAnnot );
-
-                    recenterAllViews( sk_doNotRecenterCrosshairs,
-                                      sk_recenterOnCurrentCrosshairsPosition,
-                                      sk_doNotResetObliqueOrientation );
-                }
-
-                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                if ( isSelected ) ImGui::SetItemDefaultFocus();
+                spdlog::error( "Null annotation {}", annotUid );
+                ImGui::PopID(); // lmGroupIndex
             }
 
-            ImGui::PopID(); // lmGroupIndex
+            /// @see Line 2791 of demo:
+            /// ImGui::SetScrollHereY(i * 0.25f); // 0.0f:top, 0.5f:center, 1.0f:bottom
 
-            ++annotIndex;
+            const std::string text = annot->getDisplayName() +
+                    " [" + data::getAnnotationSubjectPlaneName( *annot ) + "]";
+
+            const bool isSelected = ( activeAnnotUid && ( annotUid == *activeAnnotUid ) );
+
+            if ( ImGui::Selectable( text.c_str(), isSelected ) )
+            {
+                // Make the annotation active and move crosshairs to it:
+                const bool assigned = appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
+                if ( ! assigned )
+                {
+                    spdlog::error( "Unable to assign active annotation {} to image {}",
+                                   annotUid, imageUid );
+                }
+
+                // Need to synchronize the active annotation change with the highlighting
+                // state of annotations.
+                ASM::synchronizeAnnotationHighlights();
+
+                if ( const Annotation* activeAnnot = appData.annotation( annotUid ) )
+                {
+                    moveCrosshairsToAnnotationCenter( *activeAnnot );
+                    alignViewToAnnotationPlane( *activeAnnot );
+
+                    recenterAllViews( sk_doNotRecenterCrosshairs,
+                                      sk_doNotRecenterOnCurrentCrosshairsPosition,
+                                      sk_doNotResetObliqueOrientation,
+                                      sk_doNotResetZoom );
+                }
+                else
+                {
+                    spdlog::error( "Null active annotation {}", annotUid );
+                }
+            }
+
+            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+            if ( isSelected ) ImGui::SetItemDefaultFocus();
+
+            ImGui::PopID(); // lmGroupIndex
         }
 
         ImGui::EndListBox();
     }
     ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
 
-    if ( ! activeAnnot )
+
+    /// @todo Put this at the bottom of the WHOLE window
+
+    // Save annotations to SVG and save settings to project file:
+    const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
+                sk_saveAnnotButtonText, sk_saveAnnotDialogTitle, sk_saveAnnotDialogFilters );
+
+    if ( ImGui::IsItemHovered() )
     {
-        spdlog::error( "Active annotation for image {} is null", imageUid );
-        ImGui::PopID(); // imageUid
+        ImGui::SetTooltip( "Save all annotations to an SVG file." );
+    }
+
+
+//    if ( selectedFile )
+//    {
+//        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
+//        {
+//            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
+
+//            /// @todo How to handle changing the file name?
+//            activeAnnot->setFileName( *selectedFile );
+//        }
+//        else
+//        {
+//            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
+//        }
+//    }
+
+    ImGui::Separator();
+
+    activeAnnotUid = appData.imageToActiveAnnotationUid( imageUid );
+    if ( ! activeAnnotUid )
+    {
+        // If there is no active/selected annotation, then do not render the rest of the header,
+        // which shows view properites of the annotation
         return;
     }
 
-    ImGui::Separator();
+    Annotation* activeAnnot = appData.annotation( *activeAnnotUid );
+    if ( ! activeAnnot )
+    {
+        spdlog::error( "Null active annotation {}", *activeAnnotUid );
+        return;
+    }
 
 
     // Annotation display name:
@@ -2069,7 +2088,6 @@ void renderAnnotationsHeader(
     std::string fileName = activeAnnot->getFileName();
     ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "File storing the annotation in Scalar Vector Graphics (SVG) format" );
-
 
 
     // Remove the annotation:
@@ -2094,6 +2112,7 @@ void renderAnnotationsHeader(
             removeAnnot = true;
         }
     }
+
 
     const ImVec2 center( ImGui::GetIO().DisplaySize.x * 0.5f,
                          ImGui::GetIO().DisplaySize.y * 0.5f );
@@ -2130,9 +2149,7 @@ void renderAnnotationsHeader(
 
     if ( removeAnnot )
     {
-        const bool removed = appData.removeAnnotation( *activeAnnotUid );
-
-        if ( removed  )
+        if ( appData.removeAnnotation( *activeAnnotUid ) )
         {
             spdlog::info( "Removed annotation {}", *activeAnnotUid );
             return;
@@ -2143,90 +2160,51 @@ void renderAnnotationsHeader(
         }
     }
 
-
-    // Save annotation SVG and save settings to project file:
-    ImGui::SameLine();
-    const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
-                sk_saveAnnotButtonText, sk_saveAnnotDialogTitle, sk_saveAnnotDialogFilters );
-
-    if ( ImGui::IsItemHovered() )
-    {
-        ImGui::SetTooltip( "Save the annotation to an SVG file." );
-    }
-
-
-//    if ( selectedFile )
-//    {
-//        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
-//        {
-//            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
-
-//            /// @todo How to handle changing the file name?
-//            activeAnnot->setFileName( *selectedFile );
-//        }
-//        else
-//        {
-//            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
-//        }
-//    }
-
     ImGui::Separator();
 
-    // Rules for showing the buttons that change annotation layer order:
-    const bool showDecreaseLayer = true | ( 1 <= activeAnnotIndex );
-    const bool showIncreaseLayer = true | ( activeAnnotIndex <= annotUids.size() - 2 );
 
-    if ( showDecreaseLayer || showIncreaseLayer )
-    {
-        ImGui::Text( "Layer order: " );
-    }
+    ImGui::Text( "Layer order: " );
 
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
 
-    if ( showDecreaseLayer )
+    ImGui::SameLine();
+    if ( ImGui::Button( ICON_FK_FAST_BACKWARD ) )
     {
-        ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_FAST_BACKWARD ) )
-        {
-            appData.moveAnnotationToBack( imageUid, *activeAnnotUid );
-        }
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "Move annotation to backmost layer" );
-        }
-
-        ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_BACKWARD ) )
-        {
-            appData.moveAnnotationBackwards( imageUid, *activeAnnotUid );
-        }
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "Move annotation backward in layers (decrease the annotation order)" );
-        }
+        appData.moveAnnotationToBack( imageUid, *activeAnnotUid );
+    }
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Move annotation to backmost layer" );
     }
 
-    if ( showIncreaseLayer )
+    ImGui::SameLine();
+    if ( ImGui::Button( ICON_FK_BACKWARD ) )
     {
-        ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_FORWARD ) )
-        {
-            appData.moveAnnotationForwards( imageUid, *activeAnnotUid );
-        }
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "Move annotation forward in layers (increase the annotation order)" );
-        }
+        appData.moveAnnotationBackwards( imageUid, *activeAnnotUid );
+    }
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Move annotation backward in layers (decrease the annotation order)" );
+    }
 
-        ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_FAST_FORWARD ) )
-        {
-            appData.moveAnnotationToFront( imageUid, *activeAnnotUid );
-        }
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "Move annotation to frontmost layer" );
-        }
+    ImGui::SameLine();
+    if ( ImGui::Button( ICON_FK_FORWARD ) )
+    {
+        appData.moveAnnotationForwards( imageUid, *activeAnnotUid );
+    }
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Move annotation forward in layers (increase the annotation order)" );
+    }
+
+    ImGui::SameLine();
+    if ( ImGui::Button( ICON_FK_FAST_FORWARD ) )
+    {
+        appData.moveAnnotationToFront( imageUid, *activeAnnotUid );
+    }
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Move annotation to frontmost layer" );
     }
 
     /*** ImGuiStyleVar_ItemSpacing ***/

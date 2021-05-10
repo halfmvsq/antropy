@@ -1000,12 +1000,21 @@ bool AppData::assignLandmarkGroupUidToImage(
 }
 
 bool AppData::assignActiveAnnotationUidToImage(
-        const uuids::uuid& imageUid, const uuids::uuid& annotUid )
+        const uuids::uuid& imageUid,
+        const std::optional<uuids::uuid>& annotUid )
 {
-    if ( image( imageUid ) && annotation( annotUid ) )
+    if ( image( imageUid ) )
     {
-        m_imageToActiveAnnotation[imageUid] = annotUid;
-        return true;
+        if ( annotUid && annotation( *annotUid ) )
+        {
+            m_imageToActiveAnnotation[imageUid] = *annotUid;
+            return true;
+        }
+        else if ( ! annotUid )
+        {
+            m_imageToActiveAnnotation.erase( imageUid );
+            return true;
+        }
     }
     return false;
 }

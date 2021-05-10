@@ -489,12 +489,13 @@ std::string getAnnotationSubjectPlaneName( const Annotation& annotation )
 
     static constexpr float sk_parallelThreshold_degrees = 0.1f;
 
-    const glm::vec3 subjectPlaneNormal = glm::vec3{ annotation.getSubjectPlaneEquation() };
+    const glm::vec3 subjectPlaneNormal{ annotation.getSubjectPlaneEquation() };
 
     for ( const auto& dir : sk_directionToName )
     {
         if ( camera::areVectorsParallel(
-                 Directions::get( dir.first ), subjectPlaneNormal, sk_parallelThreshold_degrees ) )
+                 Directions::get( dir.first ), subjectPlaneNormal,
+                 sk_parallelThreshold_degrees ) )
         {
             return dir.second;
         }

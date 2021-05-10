@@ -27,9 +27,9 @@ Annotation::Annotation(
       m_fileName(),
       m_polygon(),
 
-      m_selectedVertices(),
-      m_selectedEdges(),
-      m_selected( false ),
+      m_highlightedVertices(),
+      m_highlightedEdges(),
+      m_highlighted( false ),
 
       m_closed( false ),
       m_visible( true ),
@@ -114,6 +114,11 @@ Annotation::getAllVertices() const
     return m_polygon.getAllVertices();
 }
 
+size_t Annotation::numBoundaries() const
+{
+    return m_polygon.numBoundaries();
+}
+
 const std::list<glm::vec2>&
 Annotation::getBoundaryVertices( size_t boundary ) const
 {
@@ -141,84 +146,110 @@ std::optional<glm::vec2> Annotation::addSubjectPointToBoundary(
     return projectedPlanePoint;
 }
 
-void Annotation::removeVertexSelections()
+void Annotation::removeVertexHighlights()
 {
-    m_selectedVertices.clear();
+    m_highlightedVertices.clear();
 }
 
-void Annotation::removeEdgeSelections()
+void Annotation::removeEdgeHighlights()
 {
-    m_selectedEdges.clear();
+    m_highlightedEdges.clear();
 }
 
 const std::set< std::pair<size_t, size_t> >&
-Annotation::selectedVertices() const
+Annotation::highlightedVertices() const
 {
-    return m_selectedVertices;
+    return m_highlightedVertices;
 }
 
 const std::set< std::pair<size_t, std::pair<size_t, size_t> > >&
-Annotation::selectedEdge() const
+Annotation::highlightedEdges() const
 {
-    return m_selectedEdges;
+    return m_highlightedEdges;
 }
 
-void Annotation::addSelectedVertex( const std::pair<size_t, size_t>& vertex )
+void Annotation::setVertexHighlight(
+        const std::pair<size_t, size_t>& vertex, bool highlight )
 {
     // Is this a valid boundary and vertex index for that boundary?
     const size_t boundary = vertex.first;
     const size_t vertexIndex = vertex.second;
 
-    if ( m_polygon.getBoundaryVertex( boundary, vertexIndex ) )
+    if ( ! m_polygon.getBoundaryVertex( boundary, vertexIndex ) )
     {
-        m_selectedVertices.insert( vertex );
+        spdlog::warn( "Invalid polygon vertex {} for boundary {}", vertexIndex, boundary );
+        return;
     }
-    else
+
+    const auto it = m_highlightedVertices.find( vertex );
+
+    if ( highlight && std::end( m_highlightedVertices ) == it )
     {
-        spdlog::warn( "Unable to select invalid polygon vertex {} for boundary {}.",
-                      vertexIndex, boundary );
+        m_highlightedVertices.insert( vertex );
+    }
+    else if ( ! highlight && std::end( m_highlightedVertices ) != it )
+    {
+        m_highlightedVertices.erase( vertex );
     }
 }
 
-void Annotation::addSelectedEdge( const std::pair<size_t, std::pair<size_t, size_t> >& edge )
+void Annotation::setEdgeHighlight(
+        const std::pair<size_t, std::pair<size_t, size_t> >& edge, bool highlight )
 {
     // Is this a valid boundary and pair of vertices (defining an edge) for that boundary?
     const size_t boundary = edge.first;
     const size_t vertexIndex1 = edge.second.first;
     const size_t vertexIndex2 = edge.second.second;
 
-    if ( m_polygon.getBoundaryVertex( boundary, vertexIndex1 ) &&
-         m_polygon.getBoundaryVertex( boundary, vertexIndex2 ) )
+    bool validEdge = true;
+
+    if ( ! m_polygon.getBoundaryVertex( boundary, vertexIndex1 ) ||
+         ! m_polygon.getBoundaryVertex( boundary, vertexIndex2 ) )
     {
-        // Check that the vertices are neighbors and form an edge.
-        // This happens if they are either separated by 1 or N-1,
-        // the latter if the edge connects vertices 0 and N-1.
-
-        const size_t N = m_polygon.getBoundaryVertices( boundary ).size();
-        const int v1 = static_cast<int>( vertexIndex1 );
-        const int v2 = static_cast<int>( vertexIndex2 );
-        const size_t dist = std::abs( v1 - v2 );
-
-        if ( 1 == dist || (N - 1) == dist )
-        {
-            m_selectedEdges.insert( edge );
-        }
+        validEdge = false;
     }
-    else
+
+    // Check that the vertices are neighbors and form an edge.
+    // This happens if they are either separated by 1 or N-1,
+    // the latter if the edge connects vertices 0 and N-1.
+
+    const size_t N = m_polygon.getBoundaryVertices( boundary ).size();
+    const int v1 = static_cast<int>( vertexIndex1 );
+    const int v2 = static_cast<int>( vertexIndex2 );
+    const size_t dist = std::abs( v1 - v2 );
+
+    if ( 1 != dist && (N - 1) != dist )
     {
-        spdlog::warn( "Unable to select invalid polygon edge ({}, {}) for boundary {}.",
-                      vertexIndex1, vertexIndex2, boundary );
+        validEdge = false;
+    }
+
+    if ( ! validEdge )
+    {
+        spdlog::warn( "Invalid polygon edge ({}, {}) for boundary {} of length {}",
+                      vertexIndex1, vertexIndex2, boundary, N );
+        return;
+    }
+
+    const auto it = m_highlightedEdges.find( edge );
+
+    if ( highlight && std::end( m_highlightedEdges ) == it )
+    {
+        m_highlightedEdges.insert( edge );
+    }
+    else if ( ! highlight && std::end( m_highlightedEdges ) != it )
+    {
+        m_highlightedEdges.erase( edge );
     }
 }
 
-void Annotation::setSelected( bool selected )
+void Annotation::setHighlighted( bool highlighted )
 {
-    m_selected = selected;
+    m_highlighted = highlighted;
 }
 
-bool Annotation::isSelected() const
+bool Annotation::isHighlighted() const
 {
-    return m_selected;
+    return m_highlighted;
 }
 
 void Annotation::setClosed( bool closed )

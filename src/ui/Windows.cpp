@@ -932,6 +932,7 @@ void renderSettingsWindow(
     static constexpr bool sk_recenterCrosshairs = true;
     static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;
     static constexpr bool sk_doNotResetObliqueOrientation = false;
+    static constexpr bool sk_resetZoom = true;
 
     static const float sk_windowMin = 0.0f;
     static const float sk_windowMax = 1.0f;
@@ -1154,7 +1155,8 @@ void renderSettingsWindow(
 
                         recenterAllViews( sk_recenterCrosshairs,
                                           sk_doNotRecenterOnCurrentCrosshairsPosition,
-                                          sk_doNotResetObliqueOrientation );
+                                          sk_doNotResetObliqueOrientation,
+                                          sk_resetZoom );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference image" );
 
@@ -1166,7 +1168,8 @@ void renderSettingsWindow(
 
                         recenterAllViews( sk_recenterCrosshairs,
                                           sk_doNotRecenterOnCurrentCrosshairsPosition,
-                                          sk_doNotResetObliqueOrientation );
+                                          sk_doNotResetObliqueOrientation,
+                                          sk_resetZoom );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the active image" );
 
@@ -1178,7 +1181,8 @@ void renderSettingsWindow(
 
                         recenterAllViews( sk_recenterCrosshairs,
                                           sk_doNotRecenterOnCurrentCrosshairsPosition,
-                                          sk_doNotResetObliqueOrientation );
+                                          sk_doNotResetObliqueOrientation,
+                                          sk_resetZoom );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on the reference and active images" );
 
@@ -1221,7 +1225,8 @@ void renderSettingsWindow(
 
                         recenterAllViews( sk_recenterCrosshairs,
                                           sk_doNotRecenterOnCurrentCrosshairsPosition,
-                                          sk_doNotResetObliqueOrientation);
+                                          sk_doNotResetObliqueOrientation,
+                                          sk_resetZoom );
                     }
                     ImGui::SameLine(); helpMarker( "Recenter views and crosshairs on all loaded images" );
 

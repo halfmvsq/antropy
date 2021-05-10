@@ -519,7 +519,7 @@ void keyCallback( GLFWwindow* window, int key, int /*scancode*/, int action, int
 
     case GLFW_KEY_C:
     {
-        handler.recenterViews( app->appData().state().recenteringMode(), true, false, true );
+        handler.recenterViews( app->appData().state().recenteringMode(), true, false, true, std::nullopt );
         break;
     }
 

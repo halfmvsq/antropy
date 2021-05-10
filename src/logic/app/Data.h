@@ -224,7 +224,7 @@ public:
     std::optional<uuids::uuid> imageToActiveLandmarkGroupUid( const uuids::uuid& imageUid ) const;
 
     /// Set/get the active annotation for an image
-    bool assignActiveAnnotationUidToImage( const uuids::uuid& imageUid, const uuids::uuid& annotUid );
+    bool assignActiveAnnotationUidToImage( const uuids::uuid& imageUid, const std::optional<uuids::uuid>& annotUid );
     std::optional<uuids::uuid> imageToActiveAnnotationUid( const uuids::uuid& imageUid ) const;
 
 

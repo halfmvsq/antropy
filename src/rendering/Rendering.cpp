@@ -1354,22 +1354,18 @@ void Rendering::renderVectorOverlays()
 
             ViewOutlineMode outlineMode = ViewOutlineMode::None;
 
-            if ( ASM::current_state_ptr )
+            if ( state::isInStateWhereViewSelectionsVisible() && ASM::current_state_ptr )
             {
-                if ( const auto hoveredViewUid = ASM::current_state_ptr->hoveredViewUid() )
-                {
-                    if ( ( viewUid == *hoveredViewUid ) )
-                    {
-                        outlineMode = ViewOutlineMode::Hovered;
-                    }
-                }
+                const auto hoveredViewUid = ASM::current_state_ptr->hoveredViewUid();
+                const auto selectedViewUid = ASM::current_state_ptr->selectedViewUid();
 
-                if ( const auto selectedViewUid = ASM::current_state_ptr->selectedViewUid() )
+                if ( selectedViewUid && ( viewUid == *selectedViewUid ) )
                 {
-                    if ( ( viewUid == *selectedViewUid ) )
-                    {
-                        outlineMode = ViewOutlineMode::Selected;
-                    }
+                    outlineMode = ViewOutlineMode::Selected;
+                }
+                else if ( hoveredViewUid && ( viewUid == *hoveredViewUid ) )
+                {
+                    outlineMode = ViewOutlineMode::Hovered;
                 }
             }
 

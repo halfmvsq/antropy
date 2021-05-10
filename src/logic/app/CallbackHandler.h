@@ -235,7 +235,8 @@ public:
             const ImageSelection&,
             bool recenterCrosshairs,
             bool recenterOnCurrentCrosshairsPos,
-            bool resetObliqueOrientation );
+            bool resetObliqueOrientation,
+            const std::optional<bool>& resetZoom = std::nullopt );
 
     /**
      * @brief Recenter one view

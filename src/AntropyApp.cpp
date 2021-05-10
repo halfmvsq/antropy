@@ -169,8 +169,9 @@ void AntropyApp::run()
 {
     // Recenter the crosshairs, but don't recenter views on the crosshairs:
     static constexpr bool sk_recenterCrosshairs = true;
-    static constexpr bool sk_recenterOnCurrentCrosshairsPos = false;
+    static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPos = false;
     static constexpr bool sk_resetObliqueOrientation = true;
+    static constexpr bool sk_resetZoom = true;
 
     auto onImagesReady = [this] ()
     {
@@ -216,8 +217,9 @@ void AntropyApp::run()
         m_callbackHandler.recenterViews(
                     m_data.state().recenteringMode(),
                     sk_recenterCrosshairs,
-                    sk_recenterOnCurrentCrosshairsPos,
-                    sk_resetObliqueOrientation );
+                    sk_doNotRecenterOnCurrentCrosshairsPos,
+                    sk_resetObliqueOrientation,
+                    sk_resetZoom );
 
         m_callbackHandler.setMouseMode( MouseMode::Pointer );
 
@@ -1133,11 +1135,17 @@ void AntropyApp::setCallbacks()
                 m_callbackHandler.recenterView( m_data.state().recenteringMode(), viewUid );
             },
 
-            [this] ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation )
+            [this] ( bool recenterCrosshairs,
+                     bool recenterOnCurrentCrosshairsPosition,
+                     bool resetObliqueOrientation,
+                     const std::optional<bool>& resetZoom )
             {
                 m_callbackHandler.recenterViews(
                             m_data.state().recenteringMode(),
-                            recenterCrosshairs, recenterOnCurrentCrosshairsPosition, resetObliqueOrientation );
+                            recenterCrosshairs,
+                            recenterOnCurrentCrosshairsPosition,
+                            resetObliqueOrientation,
+                            resetZoom );
             },
 
             [this] () { return m_callbackHandler.showOverlays(); },

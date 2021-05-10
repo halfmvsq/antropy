@@ -438,7 +438,7 @@ void renderLandmarkChildWindow(
 
             // With second argument set to true, this function centers all views on the crosshairs.
             // That way, views show the crosshairs even if they were not in the original view bounds.
-            recenterAllViews( false, true, false );
+            recenterAllViews( false, true, false, false );
         }
         if ( ImGui::IsItemHovered() )
         {

@@ -105,7 +105,7 @@ ImGuiWrapper::~ImGuiWrapper()
 
 void ImGuiWrapper::setCallbacks(
         std::function< void ( const uuids::uuid& viewUid )> recenterView,
-        std::function< void ( bool recenterCrosshairs, bool recenterOnCurrentCrosshairsPosition, bool resetObliqueOrientation )> recenterCurrentViews,
+        AllViewsRecenterType recenterCurrentViews,
         std::function< bool ( void ) > getOverlayVisibility,
         std::function< void ( bool ) > setOverlayVisibility,
         std::function< void ( const uuids::uuid& viewUid )> updateImageUniforms,
@@ -602,8 +602,9 @@ void ImGuiWrapper::render()
         // Per-layout UI controls:
 
         static constexpr bool sk_recenterCrosshairs = false;
-        static constexpr bool sk_recenterOnCurrentCrosshairsPosition = false;
+        static constexpr bool sk_doNotRecenterOnCurrentCrosshairsPosition = false;
         static constexpr bool sk_resetObliqueOrientation = false;
+        static constexpr bool sk_resetZoom = true;
 
         const auto mindowFrameBounds = camera::computeMindowFrameBounds(
             currentLayout.windowClipViewport(),
@@ -635,7 +636,7 @@ void ImGuiWrapper::render()
                     [&currentLayout] ( const camera::ViewRenderMode& renderMode ) { return currentLayout.setRenderMode( renderMode ); },
                     [&currentLayout] ( const camera::IntensityProjectionMode& ipMode ) { return currentLayout.setIntensityProjectionMode( ipMode ); },
 
-                    [this]() { m_recenterAllViews( sk_recenterCrosshairs, sk_recenterOnCurrentCrosshairsPosition, sk_resetObliqueOrientation ); },
+                    [this]() { m_recenterAllViews( sk_recenterCrosshairs, sk_doNotRecenterOnCurrentCrosshairsPosition, sk_resetObliqueOrientation, sk_resetZoom ); },
                     nullptr,
 
                     [this]() { return m_appData.renderData().m_intensityProjectionSlabThickness; },

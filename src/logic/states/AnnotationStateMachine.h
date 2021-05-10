@@ -9,6 +9,7 @@
 #include <optional>
 
 class AppData;
+class Image;
 
 
 namespace state
@@ -87,8 +88,8 @@ struct CancelNewAnnotationEvent : public tinyfsm::Event {};
 /**
  * @brief State machine for annotations
  *
- * @note Access the current sate with current_state_ptr()
- * @note Check if in state with is_in_state<STATE>()
+ * @note Access the current state with \c current_state_ptr()
+ * @note Check if it is in a given state with \c is_in_state<STATE>()
  */
 class AnnotationStateMachine : public tinyfsm::Fsm<AnnotationStateMachine>
 {
@@ -98,6 +99,12 @@ public:
 
     AnnotationStateMachine() = default;
     virtual ~AnnotationStateMachine() = default;
+
+    /// Synchronize selected and hovered annotations and vertices with highlight states
+    /**
+     * @brief Synchronize the annotation selection in the
+     */
+    static void synchronizeAnnotationHighlights();
 
     static void setAppData( AppData* appData ) { ms_appData = appData; }
     static AppData* appData() { return ms_appData; }
@@ -137,34 +144,70 @@ protected:
     virtual void react( const CancelNewAnnotationEvent& ) {}
 
 
-    /***** Start functions commonly used in various states *****/
+    /***** Start helper functions used in multiple states *****/
 
-    /// @return false iff not ok
-    bool checkViewSelection( const ViewHit& );
+    /**
+     * @brief Check if the pointer to AppData is null
+     * @return False iff the pointer is null
+     */
+    static bool checkAppData();
 
-    /// @return false iff not ok
-    bool checkAppData();
+    /**
+     * @brief Check if there is an active image that is visible in the selected view.
+     * @param[in] hit Mouse hit
+     * @return Pointer to the active image; nullptr if the image is null or not visible
+     * in the hit view
+     */
+    static  Image* checkActiveImage( const ViewHit& hit );
 
-    void turnAnnotatingOff();
-    void hoverOverView( const ViewHit& );
-    void selectView( const ViewHit& );
+    /**
+     * @brief Check if there is a view selection and whether the mouse hit is in the selected view.
+     * @param[in] hit Mouse hit
+     * @return True iff a view is selected and the mouse hit is in that view
+     */
+    bool checkViewSelection( const ViewHit& hit );
+
+    /**
+     * @brief Set the hovered view to the view hit by the mouse
+     * @param[in] hit Mouse hit
+     */
+    void hoverView( const ViewHit& hit );
+
+    /**
+     * @brief Select the view hit by the mouse
+     * @param[in] hit Mouse hit
+     */
+    void selectView( const ViewHit& hit );
+
+    /**
+     * @brief If there is a selected annotation or vertex, then deselect them.
+     */
+    void deselectAnnotation();
+
+    /**
+     * @brief If there is a hovered annotation or vertex, then unhover them.
+     */
+    void unhoverAnnotation();
+
     bool createNewGrowingAnnotation( const ViewHit& );
     bool addVertexToGrowingAnnotation( const ViewHit& );
     void completeGrowingAnnotation( bool closeAnnotation );
     void undoLastVertexOfGrowingAnnotation();
     void removeGrowingAnnotation();
 
-    void selectVertex( const uuids::uuid& annotUid, size_t vertexIndex );
-    void deselectVertex();
-
-    void deselectAllAnnotationVertices();
-
     /// @return Vector of pairs of { annotationUid, vertex index }
     std::vector< std::pair<uuids::uuid, size_t> > findHitVertices( const ViewHit& );
 
-    void highlightHoveredVertex( const ViewHit& );
+    void selectAnnotationAndVertex(
+            const uuids::uuid& annotUid,
+            const std::optional<size_t>& vertexIndex );
 
-    /***** End functions commonly used in various states *****/
+
+    /// Set the hovered annotation and vertex. If nothing is hovered, then clear.
+    void hoverAnnotationAndVertex( const ViewHit& );
+
+
+    /***** End helper functions used in multiple states *****/
 
 
     /// Hold a pointer to the application data object
@@ -176,14 +219,17 @@ protected:
     /// Selected view UID, in which the user is currently annotating
     static std::optional<uuids::uuid> ms_selectedViewUid;
 
-    /// The annotation that is being created and growing
+    /// The annotation that is currently being created and that can grow
     static std::optional<uuids::uuid> ms_growingAnnotUid;
 
-    /// The annotation that is selected and being edited
-    static std::optional<uuids::uuid> ms_selectedAnnotUid;
-
-    /// The vertex index that is selected and being edited
+    /// The index of the selected vertex of the active annotation and that can be edited
     static std::optional<size_t> ms_selectedVertex;
+
+    /// The annotation that is currently hovered
+    static std::optional<uuids::uuid> ms_hoveredAnnotUid;
+
+    /// The index of the hovered vertex of the hovered annotation
+    static std::optional<size_t> ms_hoveredVertex;
 };
 
 
@@ -219,10 +265,10 @@ class ViewBeingSelectedState : public AnnotationStateMachine
 /**
  * @brief State where the user has turned annotating on
  * and has also selected a view in which to perform annotation.
- * They are ready to edit existing annotations.
+ * They are ready to either edit existing annotations or to
+ * create a new annotation.
  */
-/// @todo rename to ReadyState or IdleState
-class ReadyToEditState : public AnnotationStateMachine
+class StandbyState : public AnnotationStateMachine
 {
     void entry() override;
     void exit() override;
@@ -281,6 +327,7 @@ class VertexSelectedState : public AnnotationStateMachine
     void react( const MouseMoveEvent& ) override;
 
     void react( const TurnOffAnnotationModeEvent& ) override;
+    void react( const CreateNewAnnotationEvent& ) override;
 };
 
 /********** End state declarations **********/
@@ -289,11 +336,20 @@ class VertexSelectedState : public AnnotationStateMachine
 
 /********** Start helper functions **********/
 
+/// Are annotation selections/highlights visible?
+bool isInStateWhereAnnotationSelectionsAreVisible();
+
+/// Are vertex selections/highlights visible?
+bool isInStateWhereVertexSelectionsAreVisible();
+
 /// Can views scroll in the current state?
 bool isInStateWhereViewsCanScroll();
 
 /// Is the toolbar visible in the current state?
 bool isInStateWhereToolbarVisible();
+
+/// Are view highlights and selections visible in the current state?
+bool isInStateWhereViewSelectionsVisible();
 
 /// Check whether Annotation toolbar buttons are visible in the current state
 bool showToolbarCreateButton(); // Create new annotation

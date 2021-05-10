@@ -85,7 +85,7 @@ public:
     {
         if ( boundary >= m_vertices.size() )
         {
-            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            spdlog::error( "1. Invalid polygon boundary index {}", boundary );
             return false;
         }
 

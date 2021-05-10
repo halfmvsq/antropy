@@ -54,6 +54,8 @@ public:
 
     const std::vector< std::list<glm::vec2> >& getAllVertices() const;
 
+    size_t numBoundaries() const;
+
     const std::list<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
 
 
@@ -69,32 +71,32 @@ public:
             size_t boundary, const glm::vec3& subjectPoint );
 
 
-    /// Remove the vertex selections
-    void removeVertexSelections();
+    /// Remove the vertex highlights
+    void removeVertexHighlights();
 
-    /// Remove the edge selections
-    void removeEdgeSelections();
+    /// Remove the edge highlights
+    void removeEdgeHighlights();
 
-    /// Get the selected vertices: pairs of { boundary index, vertex index },
+    /// Get the highlighted vertices: pairs of { boundary index, vertex index },
     /// where the vertex index is for the given boundary
-    const std::set< std::pair<size_t, size_t> >& selectedVertices() const;
+    const std::set< std::pair<size_t, size_t> >& highlightedVertices() const;
 
-    /// Get the selected edge: { boundary index, {first edge vertex index, second edge vertex index} },
+    /// Get the highlighted edges: { boundary index, {first edge vertex index, second edge vertex index} },
     /// where the vertex indices are for the given boundary.
-    const std::set< std::pair<size_t, std::pair<size_t, size_t> > >& selectedEdge() const;
+    const std::set< std::pair<size_t, std::pair<size_t, size_t> > >& highlightedEdges() const;
 
-    /// Add a selected vertex: { boundary index, vertex index },
+    /// Add a highlighted vertex: { boundary index, vertex index },
     /// where the vertex index is for the given boundary.
-    void addSelectedVertex( const std::pair<size_t, size_t>& vertex );
+    void setVertexHighlight( const std::pair<size_t, size_t>& vertex, bool highlight );
 
-    /// Add a selected edge: pairs of { boundary index, {first edge vertex index, second edge vertex index} },
+    /// Add a highlighted edge: pairs of { boundary index, {first edge vertex index, second edge vertex index} },
     /// where the vertex indices are for the given boundary.
-    void addSelectedEdge( const std::pair<size_t, std::pair<size_t, size_t> >& edge );
+    void setEdgeHighlight( const std::pair<size_t, std::pair<size_t, size_t> >& edge, bool highlight );
 
 
-    /// @brief Set/get the annotation selected state
-    void setSelected( bool selected );
-    bool isSelected() const;
+    /// @brief Set/get the annotation highlighted state
+    void setHighlighted( bool highlighted );
+    bool isHighlighted() const;
 
     /// @brief Set/get whether the annotation's outer boundary is closed.
     /// If closed, then it is assumed that the last vertex conntects to the first vertex.
@@ -171,13 +173,13 @@ private:
     /// Annotation polygon, which can include holes
     AnnotPolygon<float, 2> m_polygon;
 
-    /// Selected vertices: pairs of { boundary index, vertex index }
-    std::set< std::pair<size_t, size_t> > m_selectedVertices;
+    /// Highlighted vertices: pairs of { boundary index, vertex index }
+    std::set< std::pair<size_t, size_t> > m_highlightedVertices;
 
-    /// Selected edge: pairs of { boundary index, {vertex index 1, vertex index 2} }
-    std::set< std::pair<size_t, std::pair<size_t, size_t> > > m_selectedEdges;
+    /// Highlighted edge: pairs of { boundary index, {vertex index 1, vertex index 2} }
+    std::set< std::pair<size_t, std::pair<size_t, size_t> > > m_highlightedEdges;
 
-    bool m_selected; //!< Is the annotation selected?
+    bool m_highlighted; //!< Is the annotation highlighted?
     bool m_closed; //!< Is the annotation's outer boundary closed?
     bool m_visible; //!< Is the annotation visible?
     bool m_filled; //!< Is the annotation filled?
