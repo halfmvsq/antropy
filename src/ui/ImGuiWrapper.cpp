@@ -9,6 +9,7 @@
 #include "logic/app/CallbackHandler.h"
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
+#include "logic/states/AnnotationStateHelpers.h"
 #include "logic/states/AnnotationStateMachine.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>

@@ -8,12 +8,14 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
 
+#include <algorithm>
+
 
 namespace
 {
 
 static constexpr float sk_defaultOpacity = 1.0f;
-static constexpr float sk_defaultThickness = 1.5f;
+static constexpr float sk_defaultThickness = 2.0f;
 
 } // anonymous
 
@@ -26,12 +28,10 @@ Annotation::Annotation(
       m_displayName( std::move( name ) ),
       m_fileName(),
       m_polygon(),
-
       m_highlightedVertices(),
       m_highlightedEdges(),
-      m_highlighted( false ),
 
-      m_closed( false ),
+      m_highlighted( false ),
       m_visible( true ),
       m_filled( false ),
       m_vertexVisibility( true ),
@@ -123,6 +123,12 @@ const std::list<glm::vec2>&
 Annotation::getBoundaryVertices( size_t boundary ) const
 {
     return m_polygon.getBoundaryVertices( boundary );
+}
+
+const std::vector< std::tuple< glm::vec2, glm::vec2, glm::vec2 > >&
+Annotation::getBezierCommands() const
+{
+    return m_polygon.getBezierCommands();
 }
 
 void Annotation::addPlanePointToBoundary(
@@ -254,12 +260,12 @@ bool Annotation::isHighlighted() const
 
 void Annotation::setClosed( bool closed )
 {
-    m_closed = closed;
+    m_polygon.setClosed( closed );
 }
 
 bool Annotation::isClosed() const
 {
-    return m_closed;
+    return m_polygon.isClosed();
 }
 
 void Annotation::setVisible( bool visibility )
@@ -280,6 +286,26 @@ void Annotation::setVertexVisibility( bool visibility )
 bool Annotation::getVertexVisibility() const
 {
     return m_vertexVisibility;
+}
+
+void Annotation::setSmoothed( bool smoothed )
+{
+    m_polygon.setSmoothed( smoothed );
+}
+
+bool Annotation::isSmoothed() const
+{
+    return m_polygon.isSmoothed();
+}
+
+void Annotation::setSmoothingFactor( float factor )
+{
+    m_polygon.setSmoothingFactor( factor );
+}
+
+float Annotation::getSmoothingFactor() const
+{
+    return m_polygon.getSmoothingFactor();
 }
 
 void Annotation::setOpacity( float opacity )

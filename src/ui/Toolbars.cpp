@@ -6,6 +6,7 @@
 
 #include "logic/app/Data.h"
 #include "logic/states/FsmList.hpp"
+#include "logic/states/AnnotationStateHelpers.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -1298,6 +1299,8 @@ void renderAnnotationToolbar(
     ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 0.0f );
     ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 0.0f );
 
+    ImGui::PushStyleColor( ImGuiCol_TitleBg, activeColor );
+    ImGui::PushStyleColor( ImGuiCol_TitleBgActive, activeColor );
     ImGui::PushStyleColor( ImGuiCol_TitleBgCollapsed, activeColor );
 
     const char* title = ( ( isHoriz /*| isCollapsed*/ )
@@ -1317,14 +1320,14 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_addNew = std::string( ICON_FK_PLUS ) + " New";
+                static const std::string sk_addNew = std::string( ICON_FK_PLUS ) + " New polygon";
                 if ( ImGui::Button( sk_addNew.c_str() ) )
                 {
                     send_event( state::CreateNewAnnotationEvent() );
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Create new annotation" );
+                    ImGui::SetTooltip( "%s", "Create a new annotation polygon" );
                 }
                 ++id;
             }
@@ -1352,7 +1355,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Complete the annotation" );
+                    ImGui::SetTooltip( "%s", "Complete the annotation polygon" );
                 }
                 ++id;
             }
@@ -1380,7 +1383,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Close the annotation" );
+                    ImGui::SetTooltip( "%s", "Close the annotation polygon" );
                 }
                 ++id;
             }
@@ -1408,7 +1411,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Undo the last annotation vertex" );
+                    ImGui::SetTooltip( "%s", "Undo the last annotation polygon vertex" );
                 }
                 ++id;
             }
@@ -1436,7 +1439,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Cancel creating the annotation" );
+                    ImGui::SetTooltip( "%s", "Cancel creating the annotation polygon" );
                 }
                 ++id;
             }
@@ -1512,8 +1515,10 @@ void renderAnnotationToolbar(
     // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
     ImGui::PopStyleVar( 5 );
 
+    // ImGuiCol_TitleBg
+    // ImGuiCol_TitleBgActive
     // ImGuiCol_TitleBgCollapsed
-    ImGui::PopStyleColor( 1 );
+    ImGui::PopStyleColor( 3 );
 
     ImGui::PopID();
 }

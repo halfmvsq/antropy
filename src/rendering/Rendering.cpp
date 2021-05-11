@@ -11,6 +11,7 @@
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
+#include "logic/states/AnnotationStateHelpers.h"
 #include "logic/states/FsmList.hpp"
 
 #include "rendering/ImageDrawing.h"

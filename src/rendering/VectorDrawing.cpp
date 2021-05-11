@@ -9,6 +9,7 @@
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
+#include "logic/states/AnnotationStateHelpers.h"
 #include "logic/states/AnnotationStateMachine.h"
 
 #include "windowing/View.h"
@@ -109,6 +110,7 @@ void drawLoadingOverlay( NVGcontext* nvg, const Viewport& windowVP )
 
     nvgBeginPath( nvg );
     nvgArc( nvg, 0.5f * windowVP.width(), 0.75f * windowVP.height(), radius, sk_arcAngle + C, C, NVG_CCW );
+    nvgClosePath( nvg );
     nvgStroke( nvg );
 }
 
@@ -125,6 +127,7 @@ void drawWindowOutline(
 
     nvgBeginPath( nvg );
     nvgRoundedRect( nvg, k_pad, k_pad, windowVP.width() - 2.0f * k_pad, windowVP.height() - 2.0f * k_pad, 3.0f );
+    nvgClosePath( nvg );
     nvgStroke( nvg );
 
     //        nvgStrokeWidth( nvg, 2.0f );
@@ -154,13 +157,12 @@ void drawViewOutline(
         nvgStrokeColor( nvg, color );
 
         nvgBeginPath( nvg );
-
         nvgRect( nvg,
                  miewportViewBounds.bounds.xoffset + pad,
                  miewportViewBounds.bounds.yoffset + pad,
                  miewportViewBounds.bounds.width - 2.0f * pad,
                  miewportViewBounds.bounds.height - 2.0f * pad );
-
+        nvgClosePath( nvg );
         nvgStroke( nvg );
     };
 
@@ -296,6 +298,7 @@ void drawImageViewIntersections(
             lastPos = currPos;
         }
 
+        nvgClosePath( nvg );
         nvgStroke( nvg );
     }
 
@@ -524,7 +527,7 @@ void drawCircle(
 
     nvgBeginPath( nvg );
     nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
-
+    nvgClosePath( nvg );
     nvgStroke( nvg );
     nvgFill( nvg );
 }
@@ -733,6 +736,7 @@ void drawLandmarks(
     endNvgFrame( nvg ); /*** END FRAME ***/
 }
 
+
 void drawAnnotations(
         NVGcontext* nvg,
         const camera::FrameBounds& miewportViewBounds,
@@ -747,7 +751,7 @@ void drawAnnotations(
     static constexpr size_t OUTER_BOUNDARY = 0;
 
     // Color of selected vertices, edges, and the selection bounding box:
-    static const glm::vec4 sk_green{ 0.0f, 1.0f, 0.0f, 1.0f };
+    static const glm::vec4 sk_green{ 0.0f, 1.0f, 0.0f, 0.75f };
 
     // Stroke width of selected vertices, edges, and the selection bounding box:
     static constexpr float sk_selectionStrokeWidth = 1.0f;
@@ -778,9 +782,6 @@ void drawAnnotations(
 
     // Other line cap options: NVG_BUTT, NVG_SQUARE
     nvgLineCap( nvg, NVG_ROUND );
-
-    // Other line join options: NVG_ROUND, NVG_BEVEL
-    nvgLineJoin( nvg, NVG_MITER );
 
     nvgScissor( nvg, miewportViewBounds.viewport[0], miewportViewBounds.viewport[1],
             miewportViewBounds.viewport[2], miewportViewBounds.viewport[3] );
@@ -847,38 +848,93 @@ void drawAnnotations(
             glm::vec2 miewportMaxPos{ std::numeric_limits<float>::lowest() };
 
             // Set the annotation outer boundary:
-            nvgBeginPath( nvg );
-
-            bool isFirst = true;
-
-            for ( const glm::vec2& vertex : annotPlaneVertices )
+            if ( annot->isSmoothed() )
             {
-                const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                            *img, *annot, vertex );
+                nvgLineJoin( nvg, NVG_ROUND );
 
-                miewportMinPos = glm::min( miewportMinPos, miewportPos );
-                miewportMaxPos = glm::max( miewportMaxPos, miewportPos );
+                std::vector<glm::vec2> miewportPoints;
 
-                if ( isFirst )
+                nvgBeginPath( nvg );
+
+                bool isFirst = true;
+
+                for ( const auto& command : annot->getBezierCommands() )
                 {
-                    // Move pen to the first point:
-                    nvgMoveTo( nvg, miewportPos.x, miewportPos.y );
-                    isFirst = false;
+                    const glm::vec2 c1 = convertAnnotationPlaneVertexToMiewport( *img, *annot, std::get<0>( command ) );
+                    const glm::vec2 c2 = convertAnnotationPlaneVertexToMiewport( *img, *annot, std::get<1>( command ) );
+                    const glm::vec2 p = convertAnnotationPlaneVertexToMiewport( *img, *annot, std::get<2>( command ) );
+
+                    miewportMinPos = glm::min( miewportMinPos, c1 );
+                    miewportMinPos = glm::min( miewportMinPos, c2 );
+                    miewportMinPos = glm::min( miewportMinPos, p );
+
+                    miewportMaxPos = glm::max( miewportMaxPos, c1 );
+                    miewportMaxPos = glm::max( miewportMaxPos, c2 );
+                    miewportMaxPos = glm::max( miewportMaxPos, p );
+
+                    if ( isFirst )
+                    {
+                        // Move pen to the first point:
+                        nvgMoveTo( nvg, p.x, p.y );
+                        isFirst = false;
+                    }
+                    else
+                    {
+                        nvgBezierTo( nvg, c1.x, c1.y, c2.x, c2.y, p.x, p.y );
+                    }
                 }
-                else
+
+                // If the annotation is a closed, then create a line back to the first vertex:
+                if ( annot->isClosed() )
                 {
-                    nvgLineTo( nvg, miewportPos.x, miewportPos.y );
+//                    const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
+//                                *img, *annot, annotPlaneVertices.front() );
+
+//                    nvgLineTo( nvg, miewportPos.x, miewportPos.y );
+
+//                    nvgClosePath( nvg );
+                }
+            }
+            else
+            {
+                nvgLineJoin( nvg, NVG_MITER );
+
+                nvgBeginPath( nvg );
+
+                bool isFirst = true;
+
+                for ( const glm::vec2& vertex : annotPlaneVertices )
+                {
+                    const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
+                                *img, *annot, vertex );
+
+                    miewportMinPos = glm::min( miewportMinPos, miewportPos );
+                    miewportMaxPos = glm::max( miewportMaxPos, miewportPos );
+
+                    if ( isFirst )
+                    {
+                        // Move pen to the first point:
+                        nvgMoveTo( nvg, miewportPos.x, miewportPos.y );
+                        isFirst = false;
+                    }
+                    else
+                    {
+                        nvgLineTo( nvg, miewportPos.x, miewportPos.y );
+                    }
+                }
+
+                // If the annotation is a closed, then create a line back to the first vertex:
+                if ( annot->isClosed() )
+                {
+//                    const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
+//                                *img, *annot, annotPlaneVertices.front() );
+
+//                    nvgLineTo( nvg, miewportPos.x, miewportPos.y );
+
+                    nvgClosePath( nvg );
                 }
             }
 
-            // If the annotation is a closed, then create a line back to the first vertex:
-            if ( annot->isClosed() )
-            {
-                const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-                            *img, *annot, annotPlaneVertices.front() );
-
-                nvgLineTo( nvg, miewportPos.x, miewportPos.y );
-            }
 
             // Draw the boundary line:
             const glm::vec4& lineColor = annot->getLineColor();
@@ -913,6 +969,7 @@ void drawAnnotations(
 
                     nvgBeginPath( nvg );
                     nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
+                    nvgClosePath( nvg );
                     nvgFill( nvg );
                 }
             }
@@ -945,6 +1002,7 @@ void drawAnnotations(
 
                         nvgBeginPath( nvg );
                         nvgCircle( nvg, miewportPos.x, miewportPos.y, radius );
+                        nvgClosePath( nvg );
                         nvgStroke( nvg );
                     }
                 }
@@ -955,13 +1013,17 @@ void drawAnnotations(
                  state::isInStateWhereAnnotationSelectionsAreVisible() &&
                  annot->isHighlighted() )
             {
+                static constexpr float sk_rectCornerRadius = 4.0f;
+
                 nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
                 nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
 
                 nvgBeginPath( nvg );
-                nvgRect( nvg, miewportMinPos.x, miewportMinPos.y,
-                         miewportMaxPos.x - miewportMinPos.x,
-                         miewportMaxPos.y - miewportMinPos.y );
+                nvgRoundedRect( nvg, miewportMinPos.x, miewportMinPos.y,
+                                miewportMaxPos.x - miewportMinPos.x,
+                                miewportMaxPos.y - miewportMinPos.y,
+                                sk_rectCornerRadius );
+                nvgClosePath( nvg );
                 nvgStroke( nvg );
             }
         }
@@ -1030,6 +1092,7 @@ void drawCrosshairs(
             nvgBeginPath( nvg );
             nvgMoveTo( nvg, hits[0].x, hits[0].y );
             nvgLineTo( nvg, hits[1].x, hits[1].y );
+            nvgClosePath( nvg );
             nvgStroke( nvg );
         }
         else
@@ -1048,6 +1111,7 @@ void drawCrosshairs(
                     if ( i % 2 ) nvgLineTo( nvg, p.x, p.y ); // when i odd
                     else nvgMoveTo( nvg, p.x, p.y ); // when i even
                 }
+                nvgClosePath( nvg );
                 nvgStroke( nvg );
             }
         }

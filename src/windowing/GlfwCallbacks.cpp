@@ -6,6 +6,7 @@
 #include "logic/camera/CameraHelpers.h"
 #include "logic/interaction/ViewHit.h"
 #include "logic/interaction/events/ButtonState.h"
+#include "logic/states/AnnotationStateHelpers.h"
 #include "logic/states/FsmList.hpp"
 
 #include <glm/glm.hpp>

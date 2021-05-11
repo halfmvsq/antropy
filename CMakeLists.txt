@@ -342,7 +342,7 @@ set( ATROPY_SOURCES
 
     # ${SRC_DIR}/logic/annotation/AnnotationHelper.cpp
     ${SRC_DIR}/logic/annotation/Annotation.cpp
-    ${SRC_DIR}/logic/annotation/AnnotationGroup.cpp
+    ${SRC_DIR}/logic/annotation/BezierHelper.cpp
     ${SRC_DIR}/logic/annotation/LandmarkGroup.cpp
 
     ${SRC_DIR}/logic/camera/Camera.cpp
@@ -357,7 +357,9 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/logic/interaction/events/ButtonState.cpp
 
     ${SRC_DIR}/logic/serialization/ProjectSerialization.cpp
+    ${SRC_DIR}/logic/states/AnnotationStateHelpers.cpp
     ${SRC_DIR}/logic/states/AnnotationStateMachine.cpp
+    ${SRC_DIR}/logic/states/AnnotationStates.cpp
 
     # We were testing IPC with ITK-SNAP. This functionality is not currently hooked up to Antropy.
     # ${SRC_DIR}/logic/ipc/IPCHandler.cxx

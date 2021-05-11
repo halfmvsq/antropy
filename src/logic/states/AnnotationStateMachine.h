@@ -1,8 +1,9 @@
-#ifndef VIEW_SELECTION_STATE_MACHINE_H
-#define VIEW_SELECTION_STATE_MACHINE_H
+#ifndef ANNOTATION_STATE_MACHINE_H
+#define ANNOTATION_STATE_MACHINE_H
 
 #include "logic/interaction/ViewHit.h"
 #include "logic/interaction/events/ButtonState.h"
+#include "logic/states/AnnotationEvents.h"
 
 #include <tinyfsm.hpp>
 #include <uuid.h>
@@ -14,76 +15,6 @@ class Image;
 
 namespace state
 {
-
-/********** Begin event declarations **********/
-
-/// MouseEvent is a base class for mouse press, release, and move events.
-struct MouseEvent : public tinyfsm::Event
-{
-    MouseEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
-        : hit( h ), buttonState( b ), modifierState( m ) {}
-
-    virtual ~MouseEvent() = default;
-
-    const ViewHit hit; //!< View hit information for this event
-    const ButtonState buttonState; //!< Mouse button state
-    const ModifierState modifierState; //!< Keyboard modifier state
-};
-
-
-/// Mouse pointer pressed
-struct MousePressEvent : public MouseEvent
-{
-    MousePressEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
-        : MouseEvent( h, b, m ) {}
-
-    ~MousePressEvent() override = default;
-};
-
-/// Mouse pointer released
-struct MouseReleaseEvent : public MouseEvent
-{
-    MouseReleaseEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
-        : MouseEvent( h, b, m ) {}
-
-    ~MouseReleaseEvent() override = default;
-};
-
-/// Mouse pointer moved
-struct MouseMoveEvent : public MouseEvent
-{
-    MouseMoveEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
-        : MouseEvent( h, b, m ) {}
-
-    ~MouseMoveEvent() override = default;
-};
-
-
-/// User has turned on annotation mode: they want to create or edit annotations
-struct TurnOnAnnotationModeEvent : public tinyfsm::Event {};
-
-/// User has turned off annotation mode: they want to stop annotating
-struct TurnOffAnnotationModeEvent : public tinyfsm::Event {};
-
-/// User wants to create a new annotation
-struct CreateNewAnnotationEvent : public tinyfsm::Event {};
-
-/// User wants to complete the new annotation that is currently in progress
-struct CompleteNewAnnotationEvent : public tinyfsm::Event {};
-
-/// User wants to close the new annotation that is currently in progress
-struct CloseNewAnnotationEvent : public tinyfsm::Event {};
-
-/// User wants to undo the last annotation vertex that was created for the current
-/// annotation in progress
-struct UndoVertexEvent : public tinyfsm::Event {};
-
-/// User wants to cancel creating the new annotation that is currently in progress
-struct CancelNewAnnotationEvent : public tinyfsm::Event {};
-
-/********** End event declarations **********/
-
-
 
 /**
  * @brief State machine for annotations
@@ -100,22 +31,30 @@ public:
     AnnotationStateMachine() = default;
     virtual ~AnnotationStateMachine() = default;
 
-    /// Synchronize selected and hovered annotations and vertices with highlight states
     /**
-     * @brief Synchronize the annotation selection in the
+     * @brief Synchronize the selected and hovered annotation and vertices with
+     * the highlight state held in annotations
      */
     static void synchronizeAnnotationHighlights();
 
+    /**
+     * @brief Set a non-const pointer to the application data
+     * @param[in] appData
+     */
     static void setAppData( AppData* appData ) { ms_appData = appData; }
+
+    /**
+     * @brief Get a non-const pointer to the application data
+     */
     static AppData* appData() { return ms_appData; }
 
-    /// Hovered (putatively selected) view UID
+    /// @brief Get the hovered (putatively selected) view UID
     static std::optional<uuids::uuid> hoveredViewUid() { return ms_hoveredViewUid; }
 
-    /// Selected view UID, in which the user is currently annotating
+    /// @brief Get the selected view UID, in which the user is currently annotating
     static std::optional<uuids::uuid> selectedViewUid() { return ms_selectedViewUid; }
 
-    /// The active annotation that is being created and growing
+    /// @brief Get the active annotation that is being created and growing
     static std::optional<uuids::uuid> growingAnnotUid() { return ms_growingAnnotUid; }
 
 
@@ -158,7 +97,7 @@ protected:
      * @return Pointer to the active image; nullptr if the image is null or not visible
      * in the hit view
      */
-    static  Image* checkActiveImage( const ViewHit& hit );
+    static Image* checkActiveImage( const ViewHit& hit );
 
     /**
      * @brief Check if there is a view selection and whether the mouse hit is in the selected view.
@@ -189,23 +128,61 @@ protected:
      */
     void unhoverAnnotation();
 
-    bool createNewGrowingAnnotation( const ViewHit& );
-    bool addVertexToGrowingAnnotation( const ViewHit& );
-    void completeGrowingAnnotation( bool closeAnnotation );
-    void undoLastVertexOfGrowingAnnotation();
-    void removeGrowingAnnotation();
+    /**
+     * @brief Start creating a new ("growing") annotation polygon at the mouse position
+     * @param[in] hit Mouse hit
+     * @return True iff the annotation was created
+     */
+    bool createNewGrowingPolygon( const ViewHit& hit );
 
-    /// @return Vector of pairs of { annotationUid, vertex index }
-    std::vector< std::pair<uuids::uuid, size_t> > findHitVertices( const ViewHit& );
+    /**
+     * @brief Add a vertex at the mouse hit to the currently growing annotation polygon
+     * @param[in] hit
+     * @return True iff a vertex was added or the polygon was closed
+     */
+    bool addVertexToGrowingPolygon( const ViewHit& hit );
 
+    /**
+     * @brief Complete the curently growing annotation polygon
+     * @param[in] closePolgon Flag to also close the polygon if it has three
+     * or more vertices
+     */
+    void completeGrowingPoylgon( bool closePolgon );
+
+    /**
+     * @brief If the currently growing annotation polygon has two or more vertices,
+     * then remove the last vertex that was added to it. If it has one vertex,
+     * then remove the annotation.
+     */
+    void undoLastVertexOfGrowingPolygon();
+
+    /**
+     * @brief Remove the currently growing annotation and deselect it.
+     */
+    void removeGrowingPolygon();
+
+    /**
+     * @brief Find vertices in annotations of the active image near the mouse hit
+     * @param[in] hit Mouse hit
+     * @return Pairs of {annotation uid, vertex index} for the found vertices
+     */
+    std::vector< std::pair<uuids::uuid, size_t> >
+    findHitVertices( const ViewHit& hit );
+
+    /**
+     * @brief Select an annotation and (optionally) one of its vertices
+     * @param[in] annotUid UID of annotation to select
+     * @param[in] vertexIndex Index of vertex to select
+     */
     void selectAnnotationAndVertex(
             const uuids::uuid& annotUid,
             const std::optional<size_t>& vertexIndex );
 
-
-    /// Set the hovered annotation and vertex. If nothing is hovered, then clear.
-    void hoverAnnotationAndVertex( const ViewHit& );
-
+    /**
+     * @brief Set/clear the hover state of the vertex near the hit
+     * @param[in] hit Mouse hit
+     */
+    void hoverAnnotationAndVertex( const ViewHit& hit );
 
     /***** End helper functions used in multiple states *****/
 
@@ -232,138 +209,10 @@ protected:
     static std::optional<size_t> ms_hoveredVertex;
 };
 
-
-
-/********** Begin state declarations **********/
-
-/// @todo Create AnnotatingState: { Nothing, PickingPoint, MovingPoint, SelectingPoint }
-
-/**
- * @brief State where annotating is turned off.
- */
-class AnnotationOffState : public AnnotationStateMachine
-{
-    void entry() override;
-
-    void react( const TurnOnAnnotationModeEvent& ) override;
-};
-
-/**
- * @brief State where the user has turned annotating on,
- * but no view has yet been selected in which to annotate.
- */
-class ViewBeingSelectedState : public AnnotationStateMachine
-{
-    void entry() override;
-
-    void react( const MousePressEvent& ) override;
-    void react( const MouseMoveEvent& ) override;
-
-    void react( const TurnOffAnnotationModeEvent& ) override;
-};
-
-/**
- * @brief State where the user has turned annotating on
- * and has also selected a view in which to perform annotation.
- * They are ready to either edit existing annotations or to
- * create a new annotation.
- */
-class StandbyState : public AnnotationStateMachine
-{
-    void entry() override;
-    void exit() override;
-
-    void react( const MousePressEvent& ) override;
-    void react( const MouseMoveEvent& ) override;
-    void react( const MouseReleaseEvent& ) override;
-
-    void react( const TurnOffAnnotationModeEvent& ) override;
-    void react( const CreateNewAnnotationEvent& ) override;
-};
-
-/**
- * @brief State where the user has decided to create a new annotation.
- */
-class CreatingNewAnnotationState : public AnnotationStateMachine
-{
-    void entry() override;
-    void exit() override;
-
-    void react( const MousePressEvent& ) override;
-    void react( const MouseMoveEvent& ) override;
-    void react( const MouseReleaseEvent& ) override;
-
-    void react( const TurnOffAnnotationModeEvent& ) override;
-    void react( const CompleteNewAnnotationEvent& ) override;
-    void react( const CancelNewAnnotationEvent& ) override;
-};
-
-/**
- * @brief State where the user is adding vertices to the new annotation.
- */
-class AddingVertexToNewAnnotationState : public AnnotationStateMachine
-{
-    void entry() override;
-    void exit() override;
-
-    void react( const MousePressEvent& ) override;
-    void react( const MouseMoveEvent& ) override;
-    void react( const MouseReleaseEvent& ) override;
-
-    void react( const TurnOffAnnotationModeEvent& ) override;
-    void react( const CompleteNewAnnotationEvent& ) override;
-    void react( const CloseNewAnnotationEvent& ) override;
-    void react( const UndoVertexEvent& ) override;
-    void react( const CancelNewAnnotationEvent& ) override;
-};
-
-class VertexSelectedState : public AnnotationStateMachine
-{
-    void entry() override;
-    void exit() override;
-
-    void react( const MousePressEvent& ) override;
-    void react( const MouseReleaseEvent& ) override;
-    void react( const MouseMoveEvent& ) override;
-
-    void react( const TurnOffAnnotationModeEvent& ) override;
-    void react( const CreateNewAnnotationEvent& ) override;
-};
-
-/********** End state declarations **********/
-
-
-
-/********** Start helper functions **********/
-
-/// Are annotation selections/highlights visible?
-bool isInStateWhereAnnotationSelectionsAreVisible();
-
-/// Are vertex selections/highlights visible?
-bool isInStateWhereVertexSelectionsAreVisible();
-
-/// Can views scroll in the current state?
-bool isInStateWhereViewsCanScroll();
-
-/// Is the toolbar visible in the current state?
-bool isInStateWhereToolbarVisible();
-
-/// Are view highlights and selections visible in the current state?
-bool isInStateWhereViewSelectionsVisible();
-
-/// Check whether Annotation toolbar buttons are visible in the current state
-bool showToolbarCreateButton(); // Create new annotation
-bool showToolbarCompleteButton(); // Complete current annotation
-bool showToolbarCloseButton(); // Close current annotation
-bool showToolbarCancelButton(); // Cancel current annotation
-bool showToolbarUndoButton(); // Undo last vertex
-
-/********** End helper functions **********/
-
 } // namespace state
 
 
 // Shortcut for referring to the state machine:
 using ASM = state::AnnotationStateMachine;
 
-#endif // VIEW_SELECTION_STATE_MACHINE_H
+#endif // ANNOTATION_STATE_MACHINE_H

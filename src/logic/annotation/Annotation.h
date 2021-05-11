@@ -12,8 +12,8 @@
 #include <memory>
 #include <set>
 #include <string>
-#include <utility>
-
+#include <tuple>
+#include <vector>
 
 class AppData;
 
@@ -57,6 +57,8 @@ public:
     size_t numBoundaries() const;
 
     const std::list<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
+
+    const std::vector< std::tuple< glm::vec2, glm::vec2, glm::vec2 > >& getBezierCommands() const;
 
 
     void addPlanePointToBoundary( size_t boundary, const glm::vec2& planePoint );
@@ -114,6 +116,14 @@ public:
     /// @brief Set/get the vertex visibility
     void setVertexVisibility( bool visibility );
     bool getVertexVisibility() const;
+
+    /// @brief Set/get whether the polygon is smoothed
+    void setSmoothed( bool smoothed );
+    bool isSmoothed() const;
+
+    /// @brief Set/get the Bezier smoothing factor
+    void setSmoothingFactor( float factor );
+    float getSmoothingFactor() const;
 
     /// @brief Set/get the overall annotation opacity in range [0.0, 1.0], which gets modulated
     /// with the color opacities
@@ -180,7 +190,6 @@ private:
     std::set< std::pair<size_t, std::pair<size_t, size_t> > > m_highlightedEdges;
 
     bool m_highlighted; //!< Is the annotation highlighted?
-    bool m_closed; //!< Is the annotation's outer boundary closed?
     bool m_visible; //!< Is the annotation visible?
     bool m_filled; //!< Is the annotation filled?
     bool m_vertexVisibility; //!< Are the annotation boundary vertices visible?

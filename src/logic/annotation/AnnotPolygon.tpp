@@ -4,6 +4,8 @@
 #include "common/AABB.h"
 #include "common/UuidUtility.h"
 
+#include "logic/annotation/BezierHelper.h"
+
 #include <spdlog/spdlog.h>
 
 #include <glm/glm.hpp>
@@ -49,6 +51,10 @@ public:
     explicit AnnotPolygon()
         :
           m_vertices(),
+          m_bezierCommands(),
+          m_closed( false ),
+          m_smoothed( false ),
+          m_smoothingFactor( 0.1f ),
           m_triangulation(),
           m_currentUid(),
           m_aabb( std::nullopt ),
@@ -68,6 +74,7 @@ public:
 
         computeAABBox();
         computeCentroid();
+        computeBezier();
     }
 
 
@@ -76,6 +83,44 @@ public:
     const std::vector< std::list<PointType> >& getAllVertices() const
     {
         return m_vertices;
+    }
+
+    void setClosed( bool closed )
+    {
+        m_closed = closed;
+        computeBezier();
+    }
+
+    bool isClosed() const
+    {
+        return m_closed;
+    }
+
+    void setSmoothed( bool smoothed )
+    {
+        m_smoothed = smoothed;
+        computeBezier();
+    }
+
+    bool isSmoothed() const
+    {
+        return m_smoothed;
+    }
+
+    void setSmoothingFactor( float factor )
+    {
+        m_smoothingFactor = factor;
+        computeBezier();
+    }
+
+    float getSmoothingFactor() const
+    {
+        return m_smoothingFactor;
+    }
+
+    const std::vector< std::tuple< glm::vec2, glm::vec2, glm::vec2 > >& getBezierCommands() const
+    {
+        return m_bezierCommands;
     }
 
 
@@ -97,6 +142,7 @@ public:
         {
             computeAABBox();
             computeCentroid();
+            computeBezier();
         }
 
         return true;
@@ -105,7 +151,7 @@ public:
 
     /// Add a vertex to a given boundary, where 0 refers to the outer boundary;
     /// boundaries >= 1 are for holes
-    bool addVertexToBoundary( size_t boundary, PointType vertex )
+    bool addVertexToBoundary( size_t boundary, const PointType& vertex )
     {
         if ( boundary >= m_vertices.size() )
         {
@@ -134,6 +180,7 @@ public:
         {
             computeAABBox();
             updateCentroid();
+            computeBezier();
         }
 
         return true;
@@ -157,6 +204,7 @@ public:
 
         computeAABBox();
         computeCentroid();
+        computeBezier();
     }
 
 
@@ -177,6 +225,7 @@ public:
 
         computeAABBox();
         updateCentroid();
+        computeBezier();
     }
 
 
@@ -216,6 +265,7 @@ public:
         {
             computeAABBox();
             computeCentroid();
+            computeBezier();
         }
 
         return true;
@@ -487,10 +537,33 @@ private:
     }
 
 
+    /// Compute the bezier commands for the outer boundary.
+    /// Only applies to 2D polygons.
+    void computeBezier()
+    {
+        if ( m_vertices.empty() ) return;
+
+        if ( 2 == Dim && m_smoothed )
+        {
+            const std::vector< glm::vec2 > v(
+                        std::begin( m_vertices[0] ), std::end( m_vertices[0] ) );
+
+            m_bezierCommands = computeBezierCommands( v, m_smoothingFactor, m_closed );
+        }
+    }
+
+
     /// Polygon stored as vector of lists of points. The first list defines the outer polygon
     /// boundary; subsequent lists define holes in the main polygon. Any winding order for the
     /// outer boundary and holes is valid.
     std::vector< std::list<PointType> > m_vertices;
+
+    /// Bezier commands for the outer boundary. Only updated if \c m_smoothingFactor > 0
+    std::vector< std::tuple< glm::vec2, glm::vec2, glm::vec2 > > m_bezierCommands;
+
+    bool m_closed; //!< Is the outer boundary closed?
+    bool m_smoothed; //!< Flag to smooth the outer boundary curve
+    float m_smoothingFactor; //!< Bezier smoothing factor
 
     /// Vector of indices that refer to the vertices of the input polygon.
     /// Three consecutive indices form a clockwise triangle.

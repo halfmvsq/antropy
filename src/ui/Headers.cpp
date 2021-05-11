@@ -1837,6 +1837,9 @@ void renderAnnotationsHeader(
     static constexpr bool sk_doNotResetObliqueOrientation = false;
     static constexpr bool sk_doNotResetZoom = false;
 
+    static constexpr size_t sk_minNumLines = 6;
+    static constexpr size_t sk_maxNumLines = 12;
+
     static const ImGuiColorEditFlags sk_annotColorEditFlags =
             ImGuiColorEditFlags_PickerHueBar |
             ImGuiColorEditFlags_DisplayRGB |
@@ -1846,14 +1849,18 @@ void renderAnnotationsHeader(
             ImGuiColorEditFlags_Uint8 |
             ImGuiColorEditFlags_InputRGB;
 
-    static const char* sk_saveAnnotButtonText( "Save annotations..." );
+    static const std::string sk_saveAnnotButtonText =
+            std::string( ICON_FK_FLOPPY_O ) + std::string( " Save all..." );
+
+    static const std::string sk_removeAnnotButtonText =
+            std::string( ICON_FK_TRASH_O ) + std::string( " Remove" );;
+
     static const char* sk_saveAnnotDialogTitle( "Save Annotations to SVG" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
 
     Image* image = appData.image( imageUid );
     if ( ! image ) return;
 
-    // Move crosshairs to the annotation centroid:
     auto moveCrosshairsToAnnotationCenter = [&appData, &image] ( const Annotation& annot )
     {
         const glm::vec4 subjectCentroid{ annot.unprojectFromAnnotationPlaneToSubjectPoint(
@@ -1864,8 +1871,7 @@ void renderAnnotationsHeader(
         appData.state().setWorldCrosshairsPos( glm::vec3{ worldCentroid / worldCentroid.w } );
     };
 
-    // Find a view with normal vector maching the annotation plane.
-    // Todo: make this view active.
+    // Finds a view with normal vector maching the annotation plane. (Todo: make this view active.)
     // If none found, make the largest view oblique and align it to the annotation.
     auto alignViewToAnnotationPlane = [&appData, &imageUid, &image, &setViewDirection]
             ( const Annotation& annot )
@@ -1926,9 +1932,7 @@ void renderAnnotationsHeader(
             image->settings().displayName() +
             "###" + std::to_string( imageIndex );
 
-    const auto& imgSettings = image->settings();
-
-    const auto headerColors = computeHeaderBgAndTextColors( imgSettings.borderColor() );
+    const auto headerColors = computeHeaderBgAndTextColors( image->settings().borderColor() );
     ImGui::PushStyleColor( ImGuiCol_Header, headerColors.first );
     ImGui::PushStyleColor( ImGuiCol_Text, headerColors.second );
 
@@ -1957,17 +1961,15 @@ void renderAnnotationsHeader(
     const ImVec4* colors = ImGui::GetStyle().Colors;
     ImGui::PushStyleColor( ImGuiCol_Header, colors[ImGuiCol_ButtonActive] );
 
-    static constexpr size_t sk_minNumLines = 5;
-    static constexpr size_t sk_maxNumLines = 10;
-
     const size_t numLines = std::max( std::min( annotUids.size(), sk_maxNumLines ), sk_minNumLines );
 
     /// @todo Change this into a child window, like for Landmarks.
     /// then do ImGui::SetScrollHereY( 1.0f ); to put activeAnnot at bottom
 
-    const ImVec2 listBoxSize( -FLT_MIN, static_cast<float>(numLines) * ImGui::GetTextLineHeightWithSpacing() );
+    const float listBoxWidth = ( activeAnnotUid ? -FLT_MIN : 250.0f );
+    const float listBoxHeight = static_cast<float>(numLines) * ImGui::GetTextLineHeightWithSpacing();
 
-    if ( ImGui::BeginListBox( "##annotList", listBoxSize ) )
+    if ( ImGui::BeginListBox( "##annotList", ImVec2( listBoxWidth, listBoxHeight ) ) )
     {
         size_t annotIndex = 0;
         for ( const auto& annotUid : annotUids )
@@ -1992,8 +1994,7 @@ void renderAnnotationsHeader(
             if ( ImGui::Selectable( text.c_str(), isSelected ) )
             {
                 // Make the annotation active and move crosshairs to it:
-                const bool assigned = appData.assignActiveAnnotationUidToImage( imageUid, annotUid );
-                if ( ! assigned )
+                if ( ! appData.assignActiveAnnotationUidToImage( imageUid, annotUid ) )
                 {
                     spdlog::error( "Unable to assign active annotation {} to image {}",
                                    annotUid, imageUid );
@@ -2030,35 +2031,6 @@ void renderAnnotationsHeader(
     ImGui::PopStyleColor( 1 ); // ImGuiCol_Header
 
 
-    /// @todo Put this at the bottom of the WHOLE window
-
-    // Save annotations to SVG and save settings to project file:
-    const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
-                sk_saveAnnotButtonText, sk_saveAnnotDialogTitle, sk_saveAnnotDialogFilters );
-
-    if ( ImGui::IsItemHovered() )
-    {
-        ImGui::SetTooltip( "Save all annotations to an SVG file." );
-    }
-
-
-//    if ( selectedFile )
-//    {
-//        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
-//        {
-//            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
-
-//            /// @todo How to handle changing the file name?
-//            activeAnnot->setFileName( *selectedFile );
-//        }
-//        else
-//        {
-//            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
-//        }
-//    }
-
-    ImGui::Separator();
-
     activeAnnotUid = appData.imageToActiveAnnotationUid( imageUid );
     if ( ! activeAnnotUid )
     {
@@ -2074,93 +2046,6 @@ void renderAnnotationsHeader(
         return;
     }
 
-
-    // Annotation display name:
-    std::string displayName = activeAnnot->getDisplayName();
-    if ( ImGui::InputText( "Name", &displayName ) )
-    {
-        activeAnnot->setDisplayName( displayName );
-    }
-    ImGui::SameLine(); helpMarker( "Edit the name of the annotation" );
-
-
-    // Annotation file name:
-    std::string fileName = activeAnnot->getFileName();
-    ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine(); helpMarker( "File storing the annotation in Scalar Vector Graphics (SVG) format" );
-
-
-    // Remove the annotation:
-    bool removeAnnot = false;
-    static bool doNotAskAagain = false;
-
-    const bool clickedRemoveButton = ImGui::Button( "Remove" );
-
-    if ( ImGui::IsItemHovered() )
-    {
-        ImGui::SetTooltip( "Remove the annotation. The file will not be deleted." );
-    }
-
-    if ( clickedRemoveButton )
-    {
-        if ( ! doNotAskAagain && ! ImGui::IsPopupOpen( "Remove Annotation" ) )
-        {
-            ImGui::OpenPopup( "Remove Annotation", ImGuiWindowFlags_AlwaysAutoResize );
-        }
-        else if ( doNotAskAagain )
-        {
-            removeAnnot = true;
-        }
-    }
-
-
-    const ImVec2 center( ImGui::GetIO().DisplaySize.x * 0.5f,
-                         ImGui::GetIO().DisplaySize.y * 0.5f );
-
-    ImGui::SetNextWindowPos( center, ImGuiCond_Appearing, ImVec2( 0.5f, 0.5f ) );
-
-    if ( ImGui::BeginPopupModal( "Remove Annotation", nullptr, ImGuiWindowFlags_AlwaysAutoResize ) )
-    {
-        ImGui::Text( "Are you sure that you want to remove annotation '%s'?",
-                     activeAnnot->getDisplayName().c_str() );
-        ImGui::Separator();
-
-        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2(0, 0) );
-        ImGui::Checkbox( "Don't ask again", &doNotAskAagain );
-        ImGui::PopStyleVar();
-
-
-        if ( ImGui::Button( "Yes", ImVec2( 80, 0 ) ) )
-        {
-            removeAnnot = true;
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::SetItemDefaultFocus();
-
-        ImGui::SameLine();
-        if ( ImGui::Button( "No", ImVec2( 80, 0 ) ) )
-        {
-            removeAnnot = false;
-            ImGui::CloseCurrentPopup();
-        }
-
-        ImGui::EndPopup();
-    }
-
-    if ( removeAnnot )
-    {
-        if ( appData.removeAnnotation( *activeAnnotUid ) )
-        {
-            spdlog::info( "Removed annotation {}", *activeAnnotUid );
-            return;
-        }
-        else
-        {
-            spdlog::error( "Unable to remove annotation {}", *activeAnnotUid );
-        }
-    }
-
-    ImGui::Separator();
 
 
     ImGui::Text( "Layer order: " );
@@ -2210,13 +2095,135 @@ void renderAnnotationsHeader(
     /*** ImGuiStyleVar_ItemSpacing ***/
     ImGui::PopStyleVar( 1 );
 
+    ImGui::Spacing();
+
+
+
+    if ( ! annotUids.empty() )
+    {
+        // Save annotations to SVG and save settings to project file:
+        const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
+                    sk_saveAnnotButtonText.c_str(), sk_saveAnnotDialogTitle,
+                    sk_saveAnnotDialogFilters );
+
+        if ( ImGui::IsItemHovered() ) ImGui::SetTooltip( "Save annotations to an SVG file" );
+
+    //    if ( selectedFile )
+    //    {
+    //        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
+    //        {
+    //            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
+
+    //            /// @todo How to handle changing the file name?
+    //            activeAnnot->setFileName( *selectedFile );
+    //        }
+    //        else
+    //        {
+    //            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
+    //        }
+    //    }
+
+        ImGui::SameLine();
+    }
+
+
+    // Remove the annotation:
+    bool removeAnnot = false;
+    static bool doNotAskAagain = false;
+
+    const bool clickedRemoveButton = ImGui::Button( sk_removeAnnotButtonText.c_str() );
+
+    if ( ImGui::IsItemHovered() )
+    {
+        ImGui::SetTooltip( "Remove the annotation. The file will not be deleted." );
+    }
+
+    if ( clickedRemoveButton )
+    {
+        if ( ! doNotAskAagain && ! ImGui::IsPopupOpen( "Remove Annotation" ) )
+        {
+            ImGui::OpenPopup( "Remove Annotation", ImGuiWindowFlags_AlwaysAutoResize );
+        }
+        else if ( doNotAskAagain )
+        {
+            removeAnnot = true;
+        }
+    }
+
+
+    const ImVec2 center( ImGui::GetIO().DisplaySize.x * 0.5f,
+                         ImGui::GetIO().DisplaySize.y * 0.5f );
+
+    ImGui::SetNextWindowPos( center, ImGuiCond_Appearing, ImVec2( 0.5f, 0.5f ) );
+
+    if ( ImGui::BeginPopupModal( "Remove Annotation", nullptr,
+                                 ImGuiWindowFlags_AlwaysAutoResize ) )
+    {
+        ImGui::Text( "Are you sure that you want to remove annotation '%s'?",
+                     activeAnnot->getDisplayName().c_str() );
+        ImGui::Separator();
+
+        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2(0, 0) );
+        ImGui::Checkbox( "Do not ask again", &doNotAskAagain );
+        ImGui::PopStyleVar();
+
+
+        if ( ImGui::Button( "Yes", ImVec2( 80, 0 ) ) )
+        {
+            removeAnnot = true;
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::SetItemDefaultFocus();
+
+        ImGui::SameLine();
+        if ( ImGui::Button( "No", ImVec2( 80, 0 ) ) )
+        {
+            removeAnnot = false;
+            ImGui::CloseCurrentPopup();
+        }
+
+        ImGui::EndPopup();
+    }
+
+    if ( removeAnnot )
+    {
+        if ( appData.removeAnnotation( *activeAnnotUid ) )
+        {
+            spdlog::info( "Removed annotation {}", *activeAnnotUid );
+            return;
+        }
+        else
+        {
+            spdlog::error( "Unable to remove annotation {}", *activeAnnotUid );
+        }
+    }
+
+
+
+    ImGui::Separator();
+
+
+    // Annotation display name:
+    std::string displayName = activeAnnot->getDisplayName();
+    if ( ImGui::InputText( "Name", &displayName ) )
+    {
+        activeAnnot->setDisplayName( displayName );
+    }
+    ImGui::SameLine(); helpMarker( "Edit the name of the annotation" );
+
+
+    // Annotation file name:
+    std::string fileName = activeAnnot->getFileName();
+    ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
+    ImGui::SameLine();
+    helpMarker( "File storing the annotation in Scalar Vector Graphics (SVG) format" );
+
 
     ImGui::Separator();
     ImGui::Spacing();
 
 
-    ImGui::Text( "Boundary:" );
-
+    // Boundary:
     bool isClosed = activeAnnot->isClosed();
     if ( ImGui::RadioButton( "Open", ! isClosed ) )
     {
@@ -2224,12 +2231,35 @@ void renderAnnotationsHeader(
     }
 
     ImGui::SameLine();
-    if ( ImGui::RadioButton( "Closed", isClosed ) )
+    if ( ImGui::RadioButton( "Closed boundary", isClosed ) )
     {
         activeAnnot->setClosed( true );
     }
-    ImGui::SameLine(); helpMarker( "Set whether the annotation polygon boundary is open or closed" );
+    ImGui::SameLine();
+    helpMarker( "Set whether the annotation polygon boundary is open or closed" );
 
+
+    // Smoothing:
+    bool smooth = activeAnnot->isSmoothed();
+    if ( ImGui::Checkbox( "Smooth", &smooth ) )
+    {
+        activeAnnot->setSmoothed( smooth );
+    }
+    ImGui::SameLine(); helpMarker( "Smooth the annotation boundary" );
+
+    if ( activeAnnot->isSmoothed() )
+    {
+        float smoothing = activeAnnot->getSmoothingFactor();
+        if ( mySliderF32( "Smoothing", &smoothing, 0.0f, 0.2f, "%0.2f" ) )
+        {
+            activeAnnot->setSmoothingFactor( smoothing );
+        }
+        ImGui::SameLine(); helpMarker( "Smoothing factor" );
+    }
+
+
+    ImGui::Spacing();
+    ImGui::Separator();
     ImGui::Spacing();
 
 
@@ -2296,9 +2326,22 @@ void renderAnnotationsHeader(
     }
     ImGui::SameLine(); helpMarker( "Annotation line color" );
 
+    const bool showFillColorButton = ( activeAnnot->isClosed() && activeAnnot->isFilled() );
 
-    if ( activeAnnot->isClosed() && activeAnnot->isFilled() )
+    if ( showFillColorButton )
     {
+        ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_LEVEL_DOWN ) )
+        {
+            glm::vec4 fillColor{ annotLineColor };
+            fillColor.a = activeAnnot->getFillColor().a;
+            activeAnnot->setFillColor( fillColor );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Match fill color to line color" );
+        }
+
         // Fill color:
         glm::vec4 annotFillColor = activeAnnot->getFillColor();
         if ( ImGui::ColorEdit4( "Fill color", glm::value_ptr( annotFillColor ), sk_annotColorEditFlags ) )
@@ -2307,11 +2350,12 @@ void renderAnnotationsHeader(
         }
         ImGui::SameLine(); helpMarker( "Annotation fill color" );
     }
+
+
     ImGui::Spacing();
-
-
     ImGui::Separator();
     ImGui::Spacing();
+
 
     // Plane normal vector and offset:
     ImGui::Text( "Annotation plane (Subject space):" );
@@ -2320,11 +2364,15 @@ void renderAnnotationsHeader(
 
     glm::vec4 annotPlaneEq = activeAnnot->getSubjectPlaneEquation();
     ImGui::InputFloat3( "Normal", glm::value_ptr( annotPlaneEq ), coordFormat );
-    ImGui::SameLine(); helpMarker( "Annotation plane normal vector (x, y, z) in image Subject space" );
+    ImGui::SameLine();
+    helpMarker( "Annotation plane normal vector (x, y, z) in image Subject space" );
 
     ImGui::InputFloat( "Offset (mm)", &annotPlaneEq[3], 0.0f, 0.0f, coordFormat );
-    ImGui::SameLine(); helpMarker( "Offset distance (mm) of annotation plane from the image Subject space origin" );
-    ImGui::Spacing();
+    ImGui::SameLine();
+    helpMarker( "Offset distance (mm) of annotation plane from the image Subject space origin" );
+
+    /// @todo Don ot draw the separator for the last header of a window
+//    ImGui::Separator();
 
     ImGui::PopID(); /** PopID imageUid **/
 }

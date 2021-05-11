@@ -1,10 +1,11 @@
 #include "logic/states/AnnotationStateMachine.h"
+#include "logic/states/AnnotationStates.h"
+#include "logic/states/FsmList.hpp"
 
 #include "common/DataHelper.h"
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
-#include "logic/states/FsmList.hpp"
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
@@ -44,7 +45,6 @@ bool AnnotationStateMachine::checkAppData()
     if ( ! ms_appData )
     {
         spdlog::error( "AppData is null" );
-//        transit<AnnotationOffState>();
         return false;
     }
     return true;
@@ -139,7 +139,7 @@ void AnnotationStateMachine::unhoverAnnotation()
     synchronizeAnnotationHighlights();
 }
 
-bool AnnotationStateMachine::createNewGrowingAnnotation( const ViewHit& hit )
+bool AnnotationStateMachine::createNewGrowingPolygon( const ViewHit& hit )
 {
     if ( ! checkAppData() ) return false;
     if ( ! checkViewSelection( hit ) ) return false;
@@ -147,10 +147,12 @@ bool AnnotationStateMachine::createNewGrowingAnnotation( const ViewHit& hit )
     // Annotate on the active image
     const Image* activeImage = checkActiveImage( hit );
     if ( ! activeImage ) return false;
+
     const auto activeImageUid = ms_appData->activeImageUid();
 
-    // Compute the plane equation in Subject space. Use the World position after the view
-    // offset has been applied, so that the user can annotate in any view of a lightbox layout.
+    // Compute the plane equation in Subject space. Use the World position after
+    // the view offset has been applied, so that the user can annotate in any view
+    // of a lightbox layout.
     const auto [subjectPlaneEquation, subjectPlanePoint] =
             math::computeSubjectPlaneEquation(
                 activeImage->transformations().subject_T_worldDef(),
@@ -199,12 +201,13 @@ bool AnnotationStateMachine::createNewGrowingAnnotation( const ViewHit& hit )
     ms_growingAnnotUid = annotUid;
 
     // Select the annotation
-    selectAnnotationAndVertex( *annotUid, std::nullopt );
+    const std::optional<size_t> noSelectedVertex;
+    selectAnnotationAndVertex( *annotUid, noSelectedVertex );
 
     return true;
 }
 
-bool AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
+bool AnnotationStateMachine::addVertexToGrowingPolygon( const ViewHit& hit )
 {
     static constexpr size_t FIRST_VERTEX_INDEX = 0;
 
@@ -222,8 +225,6 @@ bool AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
     const Image* activeImage = checkActiveImage( hit );
     if ( ! activeImage ) return false;
 
-    // Compute the plane equation in Subject space. Use the World position after the view
-    // offset has been applied, so that the user can annotate in any view of a lightbox layout.
     const auto [subjectPlaneEquation, subjectPlanePoint] =
             math::computeSubjectPlaneEquation(
                 activeImage->transformations().subject_T_worldDef(),
@@ -232,7 +233,8 @@ bool AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
     Annotation* growingAnnot = ms_appData->annotation( *ms_growingAnnotUid );
     if ( ! growingAnnot )
     {
-        spdlog::error( "Null annotation {}", *ms_growingAnnotUid );
+        spdlog::warn( "Growing annotation {} is no longer valid", *ms_growingAnnotUid );
+        transit<StandbyState>();
         return false;
     }
 
@@ -252,7 +254,7 @@ bool AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
         const size_t currentVertexIndex =
                 growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size();
 
-        // Loop over vertices near this hit
+        // Loop over vertices near the mouse hit
         for ( const auto& vertex : hitVertices )
         {
             if ( *ms_growingAnnotUid == vertex.first &&
@@ -309,29 +311,30 @@ bool AnnotationStateMachine::addVertexToGrowingAnnotation( const ViewHit& hit )
     return true;
 }
 
-void AnnotationStateMachine::completeGrowingAnnotation( bool closeAnnotation )
+void AnnotationStateMachine::completeGrowingPoylgon( bool closePolgon )
 {
     if ( ! checkAppData() ) return;
 
     if ( ! ms_growingAnnotUid )
     {
-        // No growing annotation to complete/close
+        // No growing annotation to complete
         return;
     }
 
-    if ( closeAnnotation )
+    if ( closePolgon )
     {
         Annotation* growingAnnot = ms_appData->annotation( *ms_growingAnnotUid );
         if ( ! growingAnnot )
         {
-            spdlog::error( "Null annotation {}", *ms_growingAnnotUid );
+            spdlog::warn( "Growing annotation {} is no longer valid", *ms_growingAnnotUid );
+            transit<StandbyState>();
             return;
         }
 
-        const bool hasMoreThanThreeVertices =
+        const bool hasThreeOrMoreVertices =
                 ( growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size() >= 3 );
 
-        if ( hasMoreThanThreeVertices )
+        if ( hasThreeOrMoreVertices )
         {
             growingAnnot->setClosed( true );
             growingAnnot->setFilled( true );
@@ -344,34 +347,42 @@ void AnnotationStateMachine::completeGrowingAnnotation( bool closeAnnotation )
     transit<StandbyState>();
 }
 
-void AnnotationStateMachine::undoLastVertexOfGrowingAnnotation()
+void AnnotationStateMachine::undoLastVertexOfGrowingPolygon()
 {
     if ( ! checkAppData() ) return;
 
     if ( ! ms_growingAnnotUid )
     {
-        // No growing annotation to complete/close
+        // No growing annotation to undo
         return;
     }
 
     Annotation* growingAnnot = ms_appData->annotation( *ms_growingAnnotUid );
     if ( ! growingAnnot )
     {
-        spdlog::error( "Null annotation {}", *ms_growingAnnotUid );
+        spdlog::warn( "Growing annotation {} is no longer valid", *ms_growingAnnotUid );
+        transit<StandbyState>();
         return;
     }
 
     if ( growingAnnot->numBoundaries() > 0 )
     {
         const size_t numVertices = growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size();
-        if ( numVertices >= 1 )
+
+        if ( numVertices >= 2 )
         {
+            // There are at least two vertices, so remove the last one
             growingAnnot->polygon().removeVertexFromBoundary( OUTER_BOUNDARY, numVertices - 1 );
+        }
+        else
+        {
+            // There are 0 or 1 vertices, so remove the whole annotation
+            removeGrowingPolygon();
         }
     }
 }
 
-void AnnotationStateMachine::removeGrowingAnnotation()
+void AnnotationStateMachine::removeGrowingPolygon()
 {
     if ( ! checkAppData() ) return;
 
@@ -409,6 +420,7 @@ AnnotationStateMachine::findHitVertices( const ViewHit& hit )
 
     const Image* activeImage = checkActiveImage( hit );
     if ( ! activeImage ) return sk_empty;
+
     const auto activeImageUid = ms_appData->activeImageUid();
 
     // Number of mm per pixel in the x and y directions:
@@ -416,8 +428,6 @@ AnnotationStateMachine::findHitVertices( const ViewHit& hit )
                 ms_appData->windowData().viewport(),
                 hit.view->camera(), hit.view->viewClip_T_windowClip() );
 
-    // Compute the plane equation in Subject space. Use the World position after the view
-    // offset has been applied, so that the user can annotate in any view of a lightbox layout.
     const auto [subjectPlaneEquation, subjectPlanePoint] =
             math::computeSubjectPlaneEquation(
                 activeImage->transformations().subject_T_worldDef(),
@@ -433,14 +443,13 @@ AnnotationStateMachine::findHitVertices( const ViewHit& hit )
                 subjectPlaneEquation, planeDistanceThresh );
 
 
-    // Loop over all annotations and determine whether we're atop a vertex.
-
     // Closest distance found to a vertex so far
     float closestDistance_inPixels = std::numeric_limits<float>::max();
 
-    // Pairs of { annotationUid, vertex index }
+    // Pairs of {annotationUid, vertex index}
     std::vector< std::pair<uuids::uuid, size_t> > annotAndVertex;
 
+    // Loop over all annotations and determine whether we're atop a vertex:
     for ( const auto& annotUid : uidsOfAnnotsOnImageSlice )
     {
         Annotation* annot = ms_appData->annotation( annotUid );
@@ -572,476 +581,6 @@ void AnnotationStateMachine::selectAnnotationAndVertex(
     }
 
     synchronizeAnnotationHighlights();
-}
-
-
-
-/**************** AnnotationOffState *******************/
-
-void AnnotationOffState::entry()
-{
-//    spdlog::trace( "AnnotationOff::entry()" );
-
-    if ( ! ms_appData )
-    {
-        // The AppData pointer has not yet been set
-        return;
-    }
-
-    ms_growingAnnotUid = std::nullopt;
-    unhoverAnnotation();
-}
-
-void AnnotationOffState::react( const TurnOnAnnotationModeEvent& )
-{
-//    spdlog::trace( "AnnotationOffState::react( const TurnOnAnnotationMode& )::entry()" );
-    transit<ViewBeingSelectedState>();
-}
-
-
-
-/**************** ViewBeingSelectedState *******************/
-
-void ViewBeingSelectedState::entry()
-{
-    spdlog::trace( "ViewBeingSelectedState::entry()" );
-
-    ms_growingAnnotUid = std::nullopt;
-    unhoverAnnotation();
-}
-
-void ViewBeingSelectedState::react( const MousePressEvent& e )
-{
-    spdlog::trace( "ViewBeingSelectedState::react( const MousePressEvent& e )" );
-    selectView( e.hit );
-    transit<StandbyState>();
-}
-
-void ViewBeingSelectedState::react( const MouseMoveEvent& e )
-{
-//    spdlog::trace( "ViewBeingSelectedState::react( const MouseMoveEvent& e )" );
-    hoverView( e.hit );
-}
-
-void ViewBeingSelectedState::react( const TurnOffAnnotationModeEvent& )
-{
-    spdlog::trace( "ViewBeingSelectedState::react( const TurnOffAnnotationMode& )" );
-    transit<AnnotationOffState>();
-}
-
-
-
-/**************** StandbyState *******************/
-
-void StandbyState::entry()
-{
-    if ( ! ms_selectedViewUid )
-    {
-        spdlog::error( "Entered StandbyState without a selected view" );
-        transit<ViewBeingSelectedState>();
-        return;
-    }
-
-    ms_growingAnnotUid = std::nullopt;
-    unhoverAnnotation();
-}
-
-void StandbyState::exit()
-{
-}
-
-void StandbyState::react( const MousePressEvent& e )
-{
-    selectView( e.hit );
-
-//    deselect();
-//    selectVertex( vertex->first, vertex->second );
-}
-
-void StandbyState::react( const MouseReleaseEvent& /*e*/ )
-{
-}
-
-void StandbyState::react( const MouseMoveEvent& e )
-{
-    hoverView( e.hit );
-    hoverAnnotationAndVertex( e.hit );
-}
-
-void StandbyState::react( const TurnOffAnnotationModeEvent& )
-{
-//    spdlog::trace( "ReadyToEditState::react( const TurnOffAnnotationMode& )" );
-    transit<AnnotationOffState>();
-}
-
-void StandbyState::react( const CreateNewAnnotationEvent& )
-{
-//    spdlog::trace( "ReadyToEditState::react( const CreateNewAnnotation& )" );
-    transit<CreatingNewAnnotationState>();
-}
-
-
-
-/**************** CreatingNewAnnotationState *******************/
-
-void CreatingNewAnnotationState::entry()
-{
-//    spdlog::trace( "ReadyToCreateState::entry()" );
-
-    if ( ! ms_selectedViewUid )
-    {
-        spdlog::error( "Attempting to create a new annotation without a selected view" );
-        transit<ViewBeingSelectedState>();
-        return;
-    }
-
-    ms_growingAnnotUid = std::nullopt;
-    unhoverAnnotation();
-    deselectAnnotation();
-}
-
-void CreatingNewAnnotationState::exit()
-{
-    spdlog::trace( "ReadyToCreateState::exit()" );
-}
-
-/**
- * @brief ReadyToCreateState::react Create a new annotation with its first vertex
- * @param e
- * @todo Make the point selection STICKY, so that we can link annotations!
- */
-void CreatingNewAnnotationState::react( const MousePressEvent& e )
-{
-//    spdlog::trace( "CreatingNewAnnotationState::react( const MousePressEvent& e )" );
-
-    if ( e.buttonState.left )
-    {
-        if ( createNewGrowingAnnotation( e.hit ) &&
-             addVertexToGrowingAnnotation( e.hit ) )
-        {
-            transit<AddingVertexToNewAnnotationState>();
-        }
-    }
-}
-
-/// @todo Make a function for moving a vertex
-/// @todo This function should move the vertex that was added above
-void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
-{
-    hoverAnnotationAndVertex( e.hit );
-
-    /*
-    // Only create/edit points on the outer polygon boundary for now
-    static constexpr size_t OUTER_BOUNDARY = 0;
-
-    if ( ! ms_annotBeingCreatedUid )
-    {
-        spdlog::warn( "No active annotation for which to move first vertex" );
-        return;
-    }
-
-    spdlog::trace( "ReadyToCreateState::react( const MousePressEvent& e )" );
-
-    if ( ! checkAppData() ) return false;
-
-    if ( ! ms_selectedViewUid )
-    {
-        spdlog::error( "No selected in which to create annotation" );
-        transit<ViewBeingSelectedState>();
-        return;
-    }
-
-    if ( *ms_selectedViewUid != e.hit.viewUid )
-    {
-        // Mouse pointer is not in the view selected for creating annotation
-        spdlog::trace( "Mouse pointer is not in the view selected for creating annotation" );
-        return;
-    }
-    */
-}
-
-void CreatingNewAnnotationState::react( const MouseReleaseEvent& /*e*/ )
-{
-    /// @todo Transition states here
-    //transit<AddingVertexToNewAnnotationState>();
-}
-
-void CreatingNewAnnotationState::react( const TurnOffAnnotationModeEvent& )
-{
-//    spdlog::trace( "CreatingNewAnnotationState::react( const TurnOffAnnotationMode& )" );
-    transit<AnnotationOffState>();
-}
-
-void CreatingNewAnnotationState::react( const CompleteNewAnnotationEvent& )
-{
-//    spdlog::trace( "CreatingNewAnnotationState::react( const CompleteNewAnnotationEvent& )" );
-    completeGrowingAnnotation( false );
-}
-
-void CreatingNewAnnotationState::react( const CancelNewAnnotationEvent& )
-{
-//    spdlog::trace( "CreatingNewAnnotationState::react( const CancelNewAnnotationEvent& )" );
-    removeGrowingAnnotation();
-}
-
-
-/**************** AddingVertexToNewAnnotationState *******************/
-
-void AddingVertexToNewAnnotationState::entry()
-{
-    spdlog::trace( "AddingVertexToNewAnnotationState::entry()" );
-
-    if ( ! ms_selectedViewUid )
-    {
-        spdlog::error( "Entered AddingVertexToNewAnnotationState without a selected view" );
-        transit<ViewBeingSelectedState>();
-        return;
-    }
-
-    if ( ! ms_growingAnnotUid )
-    {
-        spdlog::error( "Entered AddingVertexToNewAnnotationState without an annotation having been created" );
-        transit<CreatingNewAnnotationState>();
-        return;
-    }
-}
-
-void AddingVertexToNewAnnotationState::exit()
-{
-    spdlog::trace( "AddingVertexToNewAnnotationState::exit()" );
-    ms_growingAnnotUid = std::nullopt;
-}
-
-/**
- * @brief AddingVertexToNewAnnotationState::react Add a vertex to the active annotation
- * @param e
- */
-void AddingVertexToNewAnnotationState::react( const MousePressEvent& e )
-{
-    if ( e.buttonState.left )
-    {
-        addVertexToGrowingAnnotation( e.hit );
-    }
-}
-
-void AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )
-{
-//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )" );
-
-    hoverAnnotationAndVertex( e.hit );
-
-    if ( e.buttonState.left )
-    {
-        addVertexToGrowingAnnotation( e.hit );
-    }
-}
-
-void AddingVertexToNewAnnotationState::react( const MouseReleaseEvent& /*e*/ )
-{
-//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const MouseReleaseEvent& e )" );
-}
-
-void AddingVertexToNewAnnotationState::react( const TurnOffAnnotationModeEvent& )
-{
-//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const TurnOffAnnotationMode& )" );
-    transit<AnnotationOffState>();
-}
-
-void AddingVertexToNewAnnotationState::react( const CompleteNewAnnotationEvent& )
-{
-//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const CompleteNewAnnotationEvent& )" );
-    completeGrowingAnnotation( false );
-}
-
-void AddingVertexToNewAnnotationState::react( const CloseNewAnnotationEvent& )
-{
-//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const CloseNewAnnotationEvent& )" );
-    completeGrowingAnnotation( true );
-}
-
-void AddingVertexToNewAnnotationState::react( const UndoVertexEvent& )
-{
-//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const UndoVertexEvent& )" );
-    undoLastVertexOfGrowingAnnotation();
-}
-
-void AddingVertexToNewAnnotationState::react( const CancelNewAnnotationEvent& )
-{
-//    spdlog::trace( "AddingVertexToNewAnnotationState::react( const CancelNewAnnotationEvent& )" );
-    removeGrowingAnnotation();
-}
-
-
-
-/**************** VertexSelectedState *******************/
-
-void VertexSelectedState::entry()
-{
-//    spdlog::trace( "VertexSelectedState::entry()" );
-}
-
-void VertexSelectedState::exit()
-{
-//    spdlog::trace( "VertexSelectedState::exit()" );
-}
-
-void VertexSelectedState::react( const MousePressEvent& /*e*/ )
-{
-//    spdlog::trace( "VertexSelectedState::react( const MousePressEvent& e )" );
-}
-
-void VertexSelectedState::react( const MouseReleaseEvent& /*e*/ )
-{
-//    spdlog::trace( "VertexSelectedState::react( const MouseReleaseEvent& e )" );
-}
-
-void VertexSelectedState::react( const MouseMoveEvent& /*e*/ )
-{
-//    spdlog::trace( "VertexSelectedState::react( const MouseMoveEvent& e )" );
-}
-
-void VertexSelectedState::react( const TurnOffAnnotationModeEvent& )
-{
-//    spdlog::trace( "VertexSelectedState::react( const TurnOffAnnotationMode& )" );
-    transit<AnnotationOffState>();
-}
-
-void VertexSelectedState::react( const CreateNewAnnotationEvent& )
-{
-}
-
-
-
-bool isInStateWhereAnnotationSelectionsAreVisible()
-{
-    if ( ASM::is_in_state<StandbyState>() )
-    {
-        return true;
-    }
-    return false;
-}
-
-bool isInStateWhereVertexSelectionsAreVisible()
-{
-    if ( ASM::is_in_state<StandbyState>() ||
-         ASM::is_in_state<CreatingNewAnnotationState>() ||
-         ASM::is_in_state<AddingVertexToNewAnnotationState>() )
-    {
-        return true;
-    }
-    return false;
-}
-
-bool isInStateWhereViewsCanScroll()
-{
-    if ( ASM::is_in_state<AnnotationOffState>() ||
-         ASM::is_in_state<ViewBeingSelectedState>() ||
-         ASM::is_in_state<StandbyState>() ||
-         ASM::is_in_state<CreatingNewAnnotationState>() )
-    {
-        return true;
-    }
-    return false;
-}
-
-bool isInStateWhereToolbarVisible()
-{
-    if ( ASM::is_in_state<AnnotationOffState>() ||
-         ASM::is_in_state<ViewBeingSelectedState>() )
-    {
-        return false;
-    }
-    return true;
-}
-
-bool isInStateWhereViewSelectionsVisible()
-{
-    if ( ASM::is_in_state<AnnotationOffState>() )
-    {
-        return false;
-    }
-    return true;
-}
-
-bool showToolbarCreateButton()
-{
-    if ( ASM::is_in_state<state::StandbyState>() )
-    {
-        return true;
-    }
-    return false;
-}
-
-bool showToolbarCompleteButton()
-{
-    if ( ! ASM::growingAnnotUid() )
-    {
-        return false;
-    }
-
-    // Need a valid annotation with at least 1 vertex in order to complete it:
-    Annotation* annot = ASM::appData()->annotation( *ASM::growingAnnotUid() );
-
-    if ( ! annot )
-    {
-        return false;
-    }
-
-    if ( 0 == annot->polygon().numVertices() )
-    {
-        return false;
-    }
-
-    if ( ASM::is_in_state<state::CreatingNewAnnotationState>() ||
-         ASM::is_in_state<state::AddingVertexToNewAnnotationState>() )
-    {
-        return true;
-    }
-
-    return false;
-}
-
-bool showToolbarCloseButton()
-{
-    if ( ! ASM::growingAnnotUid() )
-    {
-        return false;
-    }
-
-    // Need a valid annotation with at least 3 vertices in order to close it:
-    Annotation* annot = ASM::appData()->annotation( *ASM::growingAnnotUid() );
-    if ( ! annot )
-    {
-        return false;
-    }
-
-    if ( annot->polygon().numVertices() < 3 )
-    {
-        return false;
-    }
-
-    if ( ASM::is_in_state<state::CreatingNewAnnotationState>() ||
-         ASM::is_in_state<state::AddingVertexToNewAnnotationState>() )
-    {
-        return true;
-    }
-
-    return false;
-}
-
-bool showToolbarUndoButton()
-{
-    return showToolbarCompleteButton();
-}
-
-bool showToolbarCancelButton()
-{
-    if ( ASM::is_in_state<state::CreatingNewAnnotationState>() ||
-         ASM::is_in_state<state::AddingVertexToNewAnnotationState>() )
-    {
-        return true;
-    }
-    return false;
 }
 
 } // namespace state
