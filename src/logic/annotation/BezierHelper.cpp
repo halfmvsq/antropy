@@ -37,12 +37,12 @@ computeBezierCommands( const std::vector<glm::vec2>& points, float smoothing, bo
 
     const int N = static_cast<int>( points.size() );
 
-    for ( int i = 0; i < ( closed ? N + 1 : N ); ++i )
+    for ( int i = 0; i <= ( closed ? N : N - 1 ); ++i )
     {
         const glm::vec2 curr = points[ glm::clamp( i % N, 0, N - 1 ) ];
-        const glm::vec2 m2 = points[ glm::clamp( closed ? (i - 2) % N : (i - 2), 0, N - 1 ) ];
-        const glm::vec2 m1 = points[ glm::clamp( closed ? (i - 1) % N : (i - 1), 0, N - 1 ) ];
-        const glm::vec2 p1 = points[ glm::clamp( closed ? (i + 1) % N : (i + 1), 0, N - 1 ) ];
+        const glm::vec2 m2 = points[ glm::clamp( closed ? (i - 2 + N) % N : (i - 2), 0, N - 1 ) ];
+        const glm::vec2 m1 = points[ glm::clamp( closed ? (i - 1 + N) % N : (i - 1), 0, N - 1 ) ];
+        const glm::vec2 p1 = points[ glm::clamp( closed ? (i + 1 + N) % N : (i + 1), 0, N - 1 ) ];
 
         commands.emplace_back(
                     computeControlPoint( m2, m1, curr, false, smoothing ),
