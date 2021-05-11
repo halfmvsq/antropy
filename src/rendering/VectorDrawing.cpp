@@ -884,16 +884,8 @@ void drawAnnotations(
                     }
                 }
 
-                // If the annotation is a closed, then create a line back to the first vertex:
-                if ( annot->isClosed() )
-                {
-//                    const glm::vec2 miewportPos = convertAnnotationPlaneVertexToMiewport(
-//                                *img, *annot, annotPlaneVertices.front() );
-
-//                    nvgLineTo( nvg, miewportPos.x, miewportPos.y );
-
-//                    nvgClosePath( nvg );
-                }
+                // Note: unlike for non-smoothed boundaries, the Bezier commands already account
+                // for closed polygons. There is no need to draw a vertex back to the beggining.
             }
             else
             {
