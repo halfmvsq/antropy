@@ -573,8 +573,6 @@ void AnnotationStateMachine::moveSelectedVertex( const ViewHit& hit )
 
     // Check if the point is near another vertex of an annotation. Use this existing
     // vertex position for the new one, so that we can create sealed annotations.
-
-    /// @todo Only seems to work when moving the LAST vertex of the polygon
     for ( const auto& hitVertex : hitVertices )
     {
         if ( *annotUid == hitVertex.first &&
@@ -671,12 +669,11 @@ AnnotationStateMachine::findHitVertices( const ViewHit& hit )
                 *ms_appData, *activeImageUid,
                 subjectPlaneEquation, planeDistanceThresh );
 
-
-    // Closest distance found to a vertex so far
     float closestDistance_inPixels = std::numeric_limits<float>::max();
+    size_t indexOfClosest = 0;
 
     // Pairs of {annotationUid, vertex index}
-    std::vector< std::pair<uuids::uuid, size_t> > annotAndVertex;
+    std::vector< std::pair<uuids::uuid, size_t> > annotsAndVertices;
 
     // Loop over all annotations and determine whether we're atop a vertex:
     for ( const auto& annotUid : uidsOfAnnotsOnImageSlice )
@@ -700,18 +697,28 @@ AnnotationStateMachine::findHitVertices( const ViewHit& hit )
             const glm::vec2 dist_inMM = glm::abs( annotPoint - hoveredPoint );
             const float dist_inPixels = glm::length( dist_inMM / mmPerPixel );
 
-            if ( dist_inPixels < sk_distThresh_inPixels &&
-                 dist_inPixels < closestDistance_inPixels )
+            if ( dist_inPixels < sk_distThresh_inPixels )
             {
-                annotAndVertex.emplace_back( std::make_pair( annotUid, vertexIndex ) );
-                closestDistance_inPixels = dist_inPixels;
+                annotsAndVertices.emplace_back( std::make_pair( annotUid, vertexIndex ) );
+
+                if ( dist_inPixels < closestDistance_inPixels )
+                {
+                    closestDistance_inPixels = dist_inPixels;
+                    indexOfClosest = annotsAndVertices.size() - 1;
+                }
             }
 
             ++vertexIndex;
         }
     }
 
-    return annotAndVertex;
+    if ( 0 != indexOfClosest && indexOfClosest < annotsAndVertices.size() )
+    {
+        // Put the closest vertex in the first position
+        std::swap( annotsAndVertices[0], annotsAndVertices[indexOfClosest] );
+    }
+
+    return annotsAndVertices;
 }
 
 void AnnotationStateMachine::synchronizeAnnotationHighlights()

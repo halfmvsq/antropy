@@ -189,7 +189,8 @@ protected:
     /**
      * @brief Find vertices in annotations of the active image near the mouse hit
      * @param[in] hit Mouse hit
-     * @return Pairs of {annotation uid, vertex index} for the found vertices
+     * @return Pairs of {annotation uid, vertex index} for the found vertices.
+     * The closest vertex is returned in the first element of the vector.
      */
     std::vector< std::pair<uuids::uuid, size_t> >
     findHitVertices( const ViewHit& hit );

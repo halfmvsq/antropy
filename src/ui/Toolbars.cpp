@@ -1403,7 +1403,7 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_cancel = std::string( ICON_FK_UNDO ) + " Undo";
+                static const std::string sk_cancel = std::string( ICON_FK_UNDO ) + " Undo vertex";
 
                 if ( ImGui::Button( sk_cancel.c_str() ) )
                 {
@@ -1459,7 +1459,7 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_remove = std::string( ICON_FK_TIMES ) + " Remove";
+                static const std::string sk_remove = std::string( ICON_FK_TIMES ) + " Remove vertex";
 
                 if ( ImGui::Button( sk_remove.c_str() ) )
                 {
