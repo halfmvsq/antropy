@@ -90,7 +90,7 @@ public:
     Layout& currentLayout();
 
     /// Add a grid layout
-    void addGridLayout( int width, int height, bool offsetViews, bool isLightbox );
+    void addGridLayout( size_t width, size_t height, bool offsetViews, bool isLightbox );
 
     /// Add a lightbox grid layout with enough views to hold a given number of slices
     void addLightboxLayoutForImage( size_t numSlices );

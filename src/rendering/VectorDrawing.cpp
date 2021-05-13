@@ -499,15 +499,17 @@ void drawAnatomicalLabels(
                     label.miewportLabelPositions[1],
                     miewportMinCorner + inwardFontShift, miewportMaxCorner - inwardFontShift ) + vertFontShift;
 
+        const size_t idx = static_cast<size_t>( label.labelIndex );
+
         nvgFontBlur( nvg, 2.0f );
         nvgFillColor( nvg, s_black );
-        nvgText( nvg, miewportPositivePos.x, miewportPositivePos.y, sk_labels[label.labelIndex].c_str(), nullptr );
-        nvgText( nvg, miewportNegativePos.x, miewportNegativePos.y, sk_labels[label.labelIndex + 3].c_str(), nullptr );
+        nvgText( nvg, miewportPositivePos.x, miewportPositivePos.y, sk_labels[idx].c_str(), nullptr );
+        nvgText( nvg, miewportNegativePos.x, miewportNegativePos.y, sk_labels[idx + 3].c_str(), nullptr );
 
         nvgFontBlur( nvg, 0.0f );
         nvgFillColor( nvg, nvgRGBAf( color.r, color.g, color.b, color.a ) );
-        nvgText( nvg, miewportPositivePos.x, miewportPositivePos.y, sk_labels[label.labelIndex].c_str(), nullptr );
-        nvgText( nvg, miewportNegativePos.x, miewportNegativePos.y, sk_labels[label.labelIndex + 3].c_str(), nullptr );
+        nvgText( nvg, miewportPositivePos.x, miewportPositivePos.y, sk_labels[idx].c_str(), nullptr );
+        nvgText( nvg, miewportNegativePos.x, miewportNegativePos.y, sk_labels[idx + 3].c_str(), nullptr );
     }
 
     nvgResetScissor( nvg );
@@ -753,8 +755,14 @@ void drawAnnotations(
     // Color of selected vertices, edges, and the selection bounding box:
     static const glm::vec4 sk_green{ 0.0f, 1.0f, 0.0f, 0.75f };
 
-    // Stroke width of selected vertices, edges, and the selection bounding box:
-    static constexpr float sk_selectionStrokeWidth = 1.0f;
+    // Stroke width of selected vertices and edges:
+    static constexpr float sk_vertexSelectionStrokeWidth = 2.0f;
+
+    // Stroke width of selection bounding box:
+    static constexpr float sk_bboxSelectionStrokeWidth = 1.0f;
+
+    // Radius of selection bounding box corners
+    static constexpr float sk_rectCornerRadius = 4.0f;
 
     // Radius of polygon vertices
     static constexpr float sk_vertexRadius = 3.0f;
@@ -972,7 +980,7 @@ void drawAnnotations(
 
             // Highlight vertices with circles:
             if ( showSelections &&
-                 state::isInStateWhereVertexSelectionsAreVisible() )
+                 state::isInStateWhereVertexHighlightsAreVisible() )
             {
                 for ( const auto& highlightedVertex : annot->highlightedVertices() )
                 {
@@ -989,7 +997,7 @@ void drawAnnotations(
 
                         const float radius = std::max( sk_vertexSelectionRadius, annot->getLineThickness() );
 
-                        nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
+                        nvgStrokeWidth( nvg, sk_vertexSelectionStrokeWidth );
                         nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
 
                         nvgBeginPath( nvg );
@@ -1002,12 +1010,10 @@ void drawAnnotations(
 
             // Draw the annotation outer boundary bounding box:
             if ( showSelections &&
-                 state::isInStateWhereAnnotationSelectionsAreVisible() &&
+                 state::isInStateWhereAnnotationHighlightsAreVisible() &&
                  annot->isHighlighted() )
             {
-                static constexpr float sk_rectCornerRadius = 4.0f;
-
-                nvgStrokeWidth( nvg, sk_selectionStrokeWidth );
+                nvgStrokeWidth( nvg, sk_bboxSelectionStrokeWidth );
                 nvgStrokeColor( nvg, nvgRGBAf( sk_green.r, sk_green.g, sk_green.b, sk_green.a ) );
 
                 nvgBeginPath( nvg );
@@ -1090,9 +1096,10 @@ void drawCrosshairs(
         else
         {
             // Oblique views get stippled crosshairs:
-            for ( int line = 0; line < 2; ++line )
+            for ( size_t line = 0; line < 2; ++line )
             {
-                const uint32_t numLines = glm::distance( hits[line], pos.miewportXhairCenterPos ) / sk_stippleLen;
+                const uint32_t numLines = static_cast<uint32_t>(
+                            glm::distance( hits[line], pos.miewportXhairCenterPos ) / sk_stippleLen );
 
                 nvgBeginPath( nvg );
                 for ( uint32_t i = 0; i <= numLines; ++i )

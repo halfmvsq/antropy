@@ -19,7 +19,9 @@ void AnnotationOffState::entry()
     ms_hoveredViewUid = std::nullopt;
     ms_selectedViewUid = std::nullopt;
     ms_growingAnnotUid = std::nullopt;
+
     unhoverAnnotation();
+    deselect( true, false );
 }
 
 void AnnotationOffState::react( const TurnOnAnnotationModeEvent& )
@@ -47,6 +49,13 @@ void ViewBeingSelectedState::react( const MousePressEvent& e )
 void ViewBeingSelectedState::react( const MouseMoveEvent& e )
 {
     hoverView( e.hit );
+}
+
+void ViewBeingSelectedState::react( const MouseReleaseEvent& )
+{
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void ViewBeingSelectedState::react( const TurnOffAnnotationModeEvent& )
@@ -78,12 +87,20 @@ void StandbyState::react( const MousePressEvent& e )
 {
     selectView( e.hit );
 
-//    deselect();
-//    selectVertex( vertex->first, vertex->second );
+    if ( e.buttonState.left )
+    {
+        if ( selectAnnotationAndVertex( e.hit ) )
+        {
+            transit<VertexSelectedState>();
+        }
+    }
 }
 
 void StandbyState::react( const MouseReleaseEvent& /*e*/ )
 {
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void StandbyState::react( const MouseMoveEvent& e )
@@ -116,7 +133,7 @@ void CreatingNewAnnotationState::entry()
 
     ms_growingAnnotUid = std::nullopt;
     unhoverAnnotation();
-    deselectAnnotation();
+    deselect( true, true );
 }
 
 void CreatingNewAnnotationState::exit()
@@ -135,8 +152,6 @@ void CreatingNewAnnotationState::react( const MousePressEvent& e )
     }
 }
 
-/// @todo Make a function for moving a vertex
-/// @todo This function should move the vertex that was added above
 void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
 {
     hoverAnnotationAndVertex( e.hit );
@@ -173,8 +188,9 @@ void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
 
 void CreatingNewAnnotationState::react( const MouseReleaseEvent& /*e*/ )
 {
-    /// @todo Transition states here
-    //transit<AddingVertexToNewAnnotationState>();
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void CreatingNewAnnotationState::react( const TurnOffAnnotationModeEvent& )
@@ -184,7 +200,8 @@ void CreatingNewAnnotationState::react( const TurnOffAnnotationModeEvent& )
 
 void CreatingNewAnnotationState::react( const CompleteNewAnnotationEvent& )
 {
-    completeGrowingPoylgon( false );
+    static constexpr bool sk_doNotClosePolygon = false;
+    completeGrowingPoylgon( sk_doNotClosePolygon );
 }
 
 void CreatingNewAnnotationState::react( const CancelNewAnnotationEvent& )
@@ -228,7 +245,6 @@ void AddingVertexToNewAnnotationState::react( const MousePressEvent& e )
 
 void AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )
 {
-
     hoverAnnotationAndVertex( e.hit );
 
     if ( e.buttonState.left )
@@ -239,6 +255,9 @@ void AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )
 
 void AddingVertexToNewAnnotationState::react( const MouseReleaseEvent& /*e*/ )
 {
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void AddingVertexToNewAnnotationState::react( const TurnOffAnnotationModeEvent& )
@@ -248,12 +267,14 @@ void AddingVertexToNewAnnotationState::react( const TurnOffAnnotationModeEvent& 
 
 void AddingVertexToNewAnnotationState::react( const CompleteNewAnnotationEvent& )
 {
-    completeGrowingPoylgon( false );
+    static constexpr bool sk_doNotClosePolygon = false;
+    completeGrowingPoylgon( sk_doNotClosePolygon );
 }
 
 void AddingVertexToNewAnnotationState::react( const CloseNewAnnotationEvent& )
 {
-    completeGrowingPoylgon( true );
+    static constexpr bool sk_closePolygon = true;
+    completeGrowingPoylgon( sk_closePolygon );
 }
 
 void AddingVertexToNewAnnotationState::react( const UndoVertexEvent& )
@@ -271,22 +292,39 @@ void AddingVertexToNewAnnotationState::react( const CancelNewAnnotationEvent& )
 
 void VertexSelectedState::entry()
 {
+//    spdlog::debug( "enter selected" );
 }
 
 void VertexSelectedState::exit()
 {
+//    spdlog::debug( "exit selected" );
 }
 
-void VertexSelectedState::react( const MousePressEvent& /*e*/ )
+void VertexSelectedState::react( const MousePressEvent& e )
 {
+    if ( e.buttonState.left )
+    {
+        if ( selectAnnotationAndVertex( e.hit ) )
+        {
+            transit<VertexSelectedState>();
+        }
+        else
+        {
+            transit<StandbyState>();
+        }
+    }
 }
 
 void VertexSelectedState::react( const MouseReleaseEvent& /*e*/ )
 {
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
-void VertexSelectedState::react( const MouseMoveEvent& /*e*/ )
+void VertexSelectedState::react( const MouseMoveEvent& e )
 {
+    hoverAnnotationAndVertex( e.hit );
 }
 
 void VertexSelectedState::react( const TurnOffAnnotationModeEvent& )
@@ -294,8 +332,9 @@ void VertexSelectedState::react( const TurnOffAnnotationModeEvent& )
     transit<AnnotationOffState>();
 }
 
-void VertexSelectedState::react( const CreateNewAnnotationEvent& )
+void VertexSelectedState::react( const RemoveSelectedVertexEvent& )
 {
+    removeSelectedVertex();
 }
 
 } // namespace state

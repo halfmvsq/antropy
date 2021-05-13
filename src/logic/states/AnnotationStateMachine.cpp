@@ -24,6 +24,7 @@ namespace state
 {
 
 AppData* ASM::ms_appData = nullptr;
+std::function< void() > ASM::ms_renderUiCallback = nullptr;
 
 std::optional<uuids::uuid> ASM::ms_hoveredViewUid = std::nullopt;
 std::optional<uuids::uuid> ASM::ms_selectedViewUid = std::nullopt;
@@ -108,25 +109,32 @@ void AnnotationStateMachine::selectView( const ViewHit& hit )
 {
     if ( ms_selectedViewUid && *ms_selectedViewUid != hit.viewUid )
     {
-        deselectAnnotation();
+        deselect( true, false );
         unhoverAnnotation();
     }
 
     ms_selectedViewUid = hit.viewUid;
 }
 
-void AnnotationStateMachine::deselectAnnotation()
+void AnnotationStateMachine::deselect( bool deselectVertex, bool deselectAnnotation )
 {
     if ( ! checkAppData() ) return;
 
-    ms_selectedVertex = std::nullopt;
-
-    const auto activeImageUid = ms_appData->activeImageUid();
-    if ( ! activeImageUid ) return;
-
-    if ( ! ms_appData->assignActiveAnnotationUidToImage( *activeImageUid, std::nullopt ) )
+    if ( deselectVertex )
     {
-        spdlog::error( "Unable to remove active annotation from image {}", *activeImageUid );
+        ms_selectedVertex = std::nullopt;
+    }
+
+    if ( deselectAnnotation )
+    {
+        const auto activeImageUid = ms_appData->activeImageUid();
+        if ( ! activeImageUid ) return;
+
+        if ( ! ms_appData->assignActiveAnnotationUidToImage( *activeImageUid, std::nullopt ) )
+        {
+            spdlog::error( "Unable to remove active annotation from image {}", *activeImageUid );
+        }
+
     }
 
     synchronizeAnnotationHighlights();
@@ -202,7 +210,7 @@ bool AnnotationStateMachine::createNewGrowingPolygon( const ViewHit& hit )
 
     // Select the annotation
     const std::optional<size_t> noSelectedVertex;
-    selectAnnotationAndVertex( *annotUid, noSelectedVertex );
+    setSelectedAnnotationAndVertex( *annotUid, noSelectedVertex );
 
     return true;
 }
@@ -382,6 +390,19 @@ void AnnotationStateMachine::undoLastVertexOfGrowingPolygon()
     }
 }
 
+void AnnotationStateMachine::removeSelectedVertex()
+{
+    if ( ! checkAppData() ) return;
+
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid ) return;
+
+    const auto annotUid = ms_appData->imageToActiveAnnotationUid( *activeImageUid );
+    if ( ! annotUid ) return;
+
+
+}
+
 void AnnotationStateMachine::removeGrowingPolygon()
 {
     if ( ! checkAppData() ) return;
@@ -398,7 +419,7 @@ void AnnotationStateMachine::removeGrowingPolygon()
     }
 
     ms_growingAnnotUid = std::nullopt;
-    deselectAnnotation();
+    deselect( true, true );
     transit<StandbyState>();
 }
 
@@ -545,20 +566,46 @@ void AnnotationStateMachine::hoverAnnotationAndVertex( const ViewHit& hit )
     // Clear current hover
     ms_hoveredAnnotUid = std::nullopt;
     ms_hoveredVertex = std::nullopt;
-    synchronizeAnnotationHighlights();
 
     const auto hitVertices = findHitVertices( hit );
 
     if ( ! hitVertices.empty() )
     {
-        // Set hover for first vertex that was hit
+        // Set hover for first vertex/annotation that was hit
         ms_hoveredAnnotUid = hitVertices[0].first;
         ms_hoveredVertex = hitVertices[0].second;
-        synchronizeAnnotationHighlights();
     }
+
+    synchronizeAnnotationHighlights();
 }
 
-void AnnotationStateMachine::selectAnnotationAndVertex(
+bool AnnotationStateMachine::selectAnnotationAndVertex( const ViewHit& hit )
+{
+    if ( ! checkAppData() ) return false;
+    if ( ! checkViewSelection( hit ) ) return false;
+
+    bool selectedVertex = false;
+
+    // Clear current vertex selection
+    // Note: do not clear the active annotation
+    ms_selectedVertex = std::nullopt;
+
+    const auto hitVertices = findHitVertices( hit );
+
+    if ( ! hitVertices.empty() )
+    {
+        // Select first vertex that was hit
+        /// @todo Allow selecting more than one vertex.
+        /// Add/subtract from current selection using shift modifier.
+        setSelectedAnnotationAndVertex( hitVertices[0].first, hitVertices[0].second );
+        selectedVertex = true;
+    }
+
+    synchronizeAnnotationHighlights();
+    return selectedVertex;
+}
+
+void AnnotationStateMachine::setSelectedAnnotationAndVertex(
         const uuids::uuid& annotUid,
         const std::optional<size_t>& vertexIndex )
 {

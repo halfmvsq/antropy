@@ -2371,6 +2371,16 @@ void renderAnnotationsHeader(
     ImGui::SameLine();
     helpMarker( "Offset distance (mm) of annotation plane from the image Subject space origin" );
 
+
+    // Number of vertices
+    static constexpr size_t OUTER_BOUNDARY = 0;
+    if ( activeAnnot->polygon().numBoundaries() > 0 )
+    {
+        ImGui::Spacing();
+        ImGui::Text( "Polygon has %ld vertices", activeAnnot->polygon().getBoundaryVertices( OUTER_BOUNDARY ).size() );
+    }
+
+
     /// @todo Don ot draw the separator for the last header of a window
 //    ImGui::Separator();
 

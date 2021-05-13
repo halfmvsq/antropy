@@ -9,20 +9,22 @@
 namespace state
 {
 
-bool isInStateWhereAnnotationSelectionsAreVisible()
+bool isInStateWhereAnnotationHighlightsAreVisible()
 {
-    if ( ASM::is_in_state<StandbyState>() )
+    if ( ASM::is_in_state<StandbyState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
     {
         return true;
     }
     return false;
 }
 
-bool isInStateWhereVertexSelectionsAreVisible()
+bool isInStateWhereVertexHighlightsAreVisible()
 {
     if ( ASM::is_in_state<StandbyState>() ||
          ASM::is_in_state<CreatingNewAnnotationState>() ||
-         ASM::is_in_state<AddingVertexToNewAnnotationState>() )
+         ASM::is_in_state<AddingVertexToNewAnnotationState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
     {
         return true;
     }
@@ -135,6 +137,15 @@ bool showToolbarCancelButton()
 {
     if ( ASM::is_in_state<CreatingNewAnnotationState>() ||
          ASM::is_in_state<AddingVertexToNewAnnotationState>() )
+    {
+        return true;
+    }
+    return false;
+}
+
+bool showToolbarRemoveSelectedVertexButton()
+{
+    if ( ASM::is_in_state<VertexSelectedState>() )
     {
         return true;
     }

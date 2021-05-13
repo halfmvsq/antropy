@@ -28,6 +28,7 @@ class ViewBeingSelectedState : public AnnotationStateMachine
 
     void react( const MousePressEvent& ) override;
     void react( const MouseMoveEvent& ) override;
+    void react( const MouseReleaseEvent& ) override;
 
     void react( const TurnOffAnnotationModeEvent& ) override;
 };
@@ -87,6 +88,9 @@ class AddingVertexToNewAnnotationState : public AnnotationStateMachine
     void react( const CancelNewAnnotationEvent& ) override;
 };
 
+/**
+ * @brief State where the user has selected a vertex
+ */
 class VertexSelectedState : public AnnotationStateMachine
 {
     void entry() override;
@@ -97,7 +101,7 @@ class VertexSelectedState : public AnnotationStateMachine
     void react( const MouseMoveEvent& ) override;
 
     void react( const TurnOffAnnotationModeEvent& ) override;
-    void react( const CreateNewAnnotationEvent& ) override;
+    void react( const RemoveSelectedVertexEvent& ) override;
 };
 
 } // namespace state

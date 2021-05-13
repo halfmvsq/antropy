@@ -7,6 +7,8 @@
 
 #include <tinyfsm.hpp>
 #include <uuid.h>
+
+#include <functional>
 #include <optional>
 
 class AppData;
@@ -42,6 +44,13 @@ public:
      * @param[in] appData
      */
     static void setAppData( AppData* appData ) { ms_appData = appData; }
+
+    /**
+     * @brief Set callbacks used by state machine
+     * @param renderUi Function that triggers rendering one frame of the UI
+     */
+    static void setCallbacks( std::function< void() > renderUi )
+    { ms_renderUiCallback = renderUi; }
 
     /**
      * @brief Get a non-const pointer to the application data
@@ -81,6 +90,7 @@ protected:
     virtual void react( const CloseNewAnnotationEvent& ) {}
     virtual void react( const UndoVertexEvent& ) {}
     virtual void react( const CancelNewAnnotationEvent& ) {}
+    virtual void react( const RemoveSelectedVertexEvent& ) {}
 
 
     /***** Start helper functions used in multiple states *****/
@@ -119,9 +129,11 @@ protected:
     void selectView( const ViewHit& hit );
 
     /**
-     * @brief If there is a selected annotation or vertex, then deselect them.
+     * @brief Deselect the vertex and/or annotation
+     * @param[in] deselectVertex
+     * @param[in] deselectAnnotation
      */
-    void deselectAnnotation();
+    void deselect( bool deselectVertex, bool deselectAnnotation );
 
     /**
      * @brief If there is a hovered annotation or vertex, then unhover them.
@@ -157,6 +169,13 @@ protected:
     void undoLastVertexOfGrowingPolygon();
 
     /**
+     * @brief Removes the selected vertex of the active/selected annotation polygon
+     * and moves the selection to the prior vertex, if one exists. If the polygon has no
+     * vertices following removal, then the whole annotation is removed.
+     */
+    void removeSelectedVertex();
+
+    /**
      * @brief Remove the currently growing annotation and deselect it.
      */
     void removeGrowingPolygon();
@@ -170,11 +189,11 @@ protected:
     findHitVertices( const ViewHit& hit );
 
     /**
-     * @brief Select an annotation and (optionally) one of its vertices
+     * @brief Set the selected annotation and (optionally) one of its vertices
      * @param[in] annotUid UID of annotation to select
      * @param[in] vertexIndex Index of vertex to select
      */
-    void selectAnnotationAndVertex(
+    void setSelectedAnnotationAndVertex(
             const uuids::uuid& annotUid,
             const std::optional<size_t>& vertexIndex );
 
@@ -184,11 +203,21 @@ protected:
      */
     void hoverAnnotationAndVertex( const ViewHit& hit );
 
+    /**
+     * @brief Set/clear the selected state of the annotation and vertex near the hit
+     * @param[in] hit Mouse hit
+     * @return true iff a vertex was selected by the hit
+     */
+    bool selectAnnotationAndVertex( const ViewHit& hit );
+
     /***** End helper functions used in multiple states *****/
 
 
     /// Hold a pointer to the application data object
     static AppData* ms_appData;
+
+    /// Function that triggers rendering of one frame of the UI
+    static std::function< void() > ms_renderUiCallback;
 
     /// Hovered (putatively selected) view UID
     static std::optional<uuids::uuid> ms_hoveredViewUid;
@@ -200,6 +229,7 @@ protected:
     static std::optional<uuids::uuid> ms_growingAnnotUid;
 
     /// The index of the selected vertex of the active annotation and that can be edited
+    /// @todo Allow selecting more than one vertex of the active annotation
     static std::optional<size_t> ms_selectedVertex;
 
     /// The annotation that is currently hovered

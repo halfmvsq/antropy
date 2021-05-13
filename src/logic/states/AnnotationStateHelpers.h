@@ -5,10 +5,10 @@ namespace state
 {
 
 /// Are annotation selections/highlights visible?
-bool isInStateWhereAnnotationSelectionsAreVisible();
+bool isInStateWhereAnnotationHighlightsAreVisible();
 
 /// Are vertex selections/highlights visible?
-bool isInStateWhereVertexSelectionsAreVisible();
+bool isInStateWhereVertexHighlightsAreVisible();
 
 /// Can views scroll in the current state?
 bool isInStateWhereViewsCanScroll();
@@ -25,6 +25,7 @@ bool showToolbarCompleteButton(); // Complete current annotation
 bool showToolbarCloseButton(); // Close current annotation
 bool showToolbarCancelButton(); // Cancel current annotation
 bool showToolbarUndoButton(); // Undo last vertex
+bool showToolbarRemoveSelectedVertexButton(); // Remove selected vertex
 
 } // namespace state
 

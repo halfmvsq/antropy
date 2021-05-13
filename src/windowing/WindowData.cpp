@@ -288,8 +288,8 @@ Layout createTriTopBottomLayout( size_t numRows )
 
 
 Layout createGridLayout(
-        int width,
-        int height,
+        size_t width,
+        size_t height,
         bool offsetViews,
         bool isLightbox,
         const camera::CameraType& cameraType )
@@ -325,15 +325,18 @@ Layout createGridLayout(
     ViewOffsetSetting offsetSetting;
     offsetSetting.m_offsetMode = ViewOffsetMode::RelativeToRefImageScrolls;
 
-    for ( int j = 0; j < height; ++j )
+    for ( size_t j = 0; j < height; ++j )
     {
-        for ( int i = 0; i < width; ++i )
+        for ( size_t i = 0; i < width; ++i )
         {
             const float l = -1.0f + static_cast<float>( i ) * w;
             const float b = -1.0f + static_cast<float>( j ) * h;
 
-            const int counter = width * j + i;
-            offsetSetting.m_relativeOffsetSteps = ( offsetViews ? ( counter - width * height / 2 ) : 0 );
+            const int counter = static_cast<int>( width * j + i );
+
+            offsetSetting.m_relativeOffsetSteps = ( offsetViews )
+                    ? ( counter - static_cast<int>( width * height ) / 2 )
+                    : 0;
 
             auto view = std::make_shared<View>(
                         glm::vec4{ l, b, w, h },
@@ -392,7 +395,7 @@ void WindowData::setupViews()
     updateAllViews();
 }
 
-void WindowData::addGridLayout( int width, int height, bool offsetViews, bool isLightbox )
+void WindowData::addGridLayout( size_t width, size_t height, bool offsetViews, bool isLightbox )
 {
     m_layouts.emplace_back( createGridLayout( width, height, offsetViews, isLightbox, camera::CameraType::Axial ) );
     updateAllViews();
@@ -407,7 +410,8 @@ void WindowData::addLightboxLayoutForImage( size_t numSlices )
     const auto div = std::div( static_cast<int>( numSlices ), w );
     const int h = div.quot + ( div.rem > 0 ? 1 : 0 );
 
-    addGridLayout( w, h, k_offsetViews, k_isLightbox );
+    addGridLayout( static_cast<size_t>( w ), static_cast<size_t>( h ),
+                   k_offsetViews, k_isLightbox );
 }
 
 void WindowData::addAxCorSagLayout( size_t numImages )

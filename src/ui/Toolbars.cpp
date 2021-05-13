@@ -1347,7 +1347,7 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_complete = std::string( ICON_FK_CHECK ) + " Complete";
+                static const std::string sk_complete = std::string( ICON_FK_CHECK ) + " Done";
 
                 if ( ImGui::Button( sk_complete.c_str() ) )
                 {
@@ -1447,6 +1447,64 @@ void renderAnnotationToolbar(
 
             needsSpace = true;
         }
+
+        if ( state::showToolbarRemoveSelectedVertexButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_remove = std::string( ICON_FK_TIMES ) + " Remove";
+
+                if ( ImGui::Button( sk_remove.c_str() ) )
+                {
+                    send_event( state::RemoveSelectedVertexEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Remove the annotation polygon vertex" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
+        /*
+        if ( state::showToolbarRemoveSelectedAnnotationButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_remove = std::string( ICON_FK_TRASH_O ) + " Remove";
+
+                if ( ImGui::Button( sk_remove.c_str() ) )
+                {
+                    send_event( state::RemoveSelectedVertexEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Remove the annotation polygon vertex" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+        */
 
 
 #if 0

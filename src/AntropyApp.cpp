@@ -148,11 +148,12 @@ void AntropyApp::init()
     if ( auto* state = state::fsm_list::current_state_ptr )
     {
         state->setAppData( &m_data );
+        state->setCallbacks( [this](){ m_imgui.render(); } );
     }
     else
     {
         spdlog::error( "Null annotation state machine" );
-        throw_debug( "Null annotation state machine" );
+        throw_debug( "Null annotation state machine" )
     }
 
     // Initialize rendering
@@ -205,8 +206,7 @@ void AntropyApp::run()
         {
             static constexpr bool k_offsetViews = false;
             static constexpr bool k_isLightbox = false;
-            m_data.windowData().addGridLayout(
-                        m_data.numImages(), 1, k_offsetViews, k_isLightbox );
+            m_data.windowData().addGridLayout( m_data.numImages(), 1, k_offsetViews, k_isLightbox );
         }
 
         m_data.windowData().addAxCorSagLayout( m_data.numImages() );

@@ -74,6 +74,9 @@ struct UndoVertexEvent : public tinyfsm::Event {};
 /// User wants to cancel creating the new annotation that is currently in progress
 struct CancelNewAnnotationEvent : public tinyfsm::Event {};
 
+/// User wants to remove the currently selected annotation vertex
+struct RemoveSelectedVertexEvent : public tinyfsm::Event {};
+
 } // namespace state
 
 #endif // ANNOTATION_EVENTS_H
