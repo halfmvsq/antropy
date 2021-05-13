@@ -17,6 +17,8 @@ namespace
 // Only create/edit points on the outer polygon boundary for now
 static constexpr size_t OUTER_BOUNDARY = 0;
 
+static constexpr size_t FIRST_VERTEX_INDEX = 0;
+
 }
 
 
@@ -217,8 +219,6 @@ bool AnnotationStateMachine::createNewGrowingPolygon( const ViewHit& hit )
 
 bool AnnotationStateMachine::addVertexToGrowingPolygon( const ViewHit& hit )
 {
-    static constexpr size_t FIRST_VERTEX_INDEX = 0;
-
     if ( ! checkAppData() ) return false;
     if ( ! checkViewSelection( hit ) ) return false;
 
@@ -274,6 +274,7 @@ bool AnnotationStateMachine::addVertexToGrowingPolygon( const ViewHit& hit )
 
             if ( *ms_growingAnnotUid == vertex.first &&
                  FIRST_VERTEX_INDEX == vertex.second &&
+                 ! growingAnnot->isClosed() &&
                  hasMoreThanTwoVertices )
             {
                 // The point is near the annotation's first vertex and the annotation
@@ -349,6 +350,8 @@ void AnnotationStateMachine::completeGrowingPoylgon( bool closePolgon )
         }
     }
 
+    spdlog::info( "Finished creating annotation {}", *ms_growingAnnotUid );
+
     // Done with growing this annotation:
     ms_growingAnnotUid = std::nullopt;
 
@@ -394,13 +397,218 @@ void AnnotationStateMachine::removeSelectedVertex()
 {
     if ( ! checkAppData() ) return;
 
+    if ( ! ms_selectedVertex )
+    {
+        spdlog::warn( "There is no selected vertex to remove" );
+        return;
+    }
+
     const auto activeImageUid = ms_appData->activeImageUid();
     if ( ! activeImageUid ) return;
 
     const auto annotUid = ms_appData->imageToActiveAnnotationUid( *activeImageUid );
-    if ( ! annotUid ) return;
+    if ( ! annotUid )
+    {
+        transit<StandbyState>();
+        return;
+    }
+
+    Annotation* annot = ms_appData->annotation( *annotUid );
+    if ( ! annot )
+    {
+        spdlog::warn( "Annotation {} is not valid", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    if ( 0 == annot->numBoundaries() )
+    {
+        spdlog::warn( "Annotation {} has no boundaries", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    const size_t numVertices = annot->getBoundaryVertices( OUTER_BOUNDARY ).size();
+
+    bool removeAnnotation = false;
+
+    if ( numVertices >= 2 )
+    {
+        // There are at least two vertices, so remove the last one
+        if ( annot->polygon().removeVertexFromBoundary( OUTER_BOUNDARY, *ms_selectedVertex ) )
+        {
+            const size_t newNumVertices = numVertices - 1;
+
+            size_t nextVertexToSelect = 0ul;
+
+            if ( *ms_selectedVertex >= 1 )
+            {
+                nextVertexToSelect = *ms_selectedVertex - 1ul;
+            }
+            else if ( 0 == *ms_selectedVertex && annot->isClosed() )
+            {
+                // Wrap around the closed polygon
+                nextVertexToSelect = numVertices - 2ul;
+            }
+            else if ( 0 == *ms_selectedVertex && *ms_selectedVertex <= newNumVertices - 1 )
+            {
+                nextVertexToSelect = *ms_selectedVertex;
+            }
+
+            setSelectedAnnotationAndVertex( *annotUid, nextVertexToSelect );
+        }
+    }
+    else if ( 1 == numVertices && 0 == *ms_selectedVertex )
+    {
+        // The selected vertex is the only one left, so remove the annotation
+        removeAnnotation = true;
+    }
+    else if ( 0 == numVertices )
+    {
+        // This should not happen
+        spdlog::warn( "The polygon has no vertices, so removing it." );
+        removeAnnotation = true;
+    }
+
+    if ( removeAnnotation )
+    {
+        if ( ms_appData->removeAnnotation( *annotUid ) )
+        {
+            spdlog::info( "Removed annotation {}", *annotUid );
+            transit<StandbyState>();
+            deselect( true, true );
+        }
+        else
+        {
+            spdlog::error( "Unable to remove annotation {}", *annotUid );
+        }
+    }
+}
+
+void AnnotationStateMachine::moveSelectedVertex( const ViewHit& hit )
+{
+    if ( ! checkAppData() ) return;
+    if ( ! checkActiveImage( hit ) ) return;
+
+    if ( ! hit.view ) return;
+
+    if ( ! ms_selectedVertex )
+    {
+        spdlog::warn( "There is no selected vertex to move" );
+        return;
+    }
+
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid ) return;
+
+    const auto annotUid = ms_appData->imageToActiveAnnotationUid( *activeImageUid );
+    if ( ! annotUid )
+    {
+        transit<StandbyState>();
+        return;
+    }
+
+    Annotation* annot = ms_appData->annotation( *annotUid );
+    if ( ! annot )
+    {
+        spdlog::warn( "Annotation {} is not valid", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    if ( 0 == annot->numBoundaries() )
+    {
+        spdlog::warn( "Annotation {} has no boundaries", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    const std::optional<glm::vec2> existingVertex =
+            annot->polygon().getBoundaryVertex( OUTER_BOUNDARY, *ms_selectedVertex );
+
+    if ( ! existingVertex )
+    {
+        spdlog::warn( "Invalid vertex {} to move for annotation {}", *ms_selectedVertex, *annotUid );
+        transit<StandbyState>();
+        return;
+    }
 
 
+    const Image* activeImage = checkActiveImage( hit );
+    if ( ! activeImage ) return;
+
+    const auto [subjectPlaneEquation, subjectPlanePoint] =
+            math::computeSubjectPlaneEquation(
+                activeImage->transformations().subject_T_worldDef(),
+                -hit.worldFrontAxis, glm::vec3{ hit.worldPos_offsetApplied } );
+
+    const auto hitVertices = findHitVertices( hit );
+
+    const size_t N = annot->getBoundaryVertices( OUTER_BOUNDARY ).size();
+    const bool hasMoreThanTwoVertices = ( N >= 2 );
+
+    // Check whether we should close the polygon due to this move
+    if ( annot->numBoundaries() > 0 && ! annot->isClosed() && hasMoreThanTwoVertices )
+    {
+        for ( const auto& hitVertex : hitVertices )
+        {
+            if ( *annotUid == hitVertex.first &&
+                 hitVertex.second == *ms_selectedVertex )
+            {
+                // Ignore a hit to the selected/moving vertex itself
+                continue;
+            }
+
+            const bool firstHitLast = ( FIRST_VERTEX_INDEX == *ms_selectedVertex ) && ( N - 1 == hitVertex.second );
+            const bool lastHitFirst = ( N - 1 == *ms_selectedVertex ) && ( FIRST_VERTEX_INDEX == hitVertex.second );
+
+            if ( firstHitLast || lastHitFirst )
+            {
+                annot->setClosed( true );
+                annot->setFilled( true );
+                return;
+            }
+        }
+    }
+
+    // Check if the point is near another vertex of an annotation. Use this existing
+    // vertex position for the new one, so that we can create sealed annotations.
+
+    /// @todo Only seems to work when moving the LAST vertex of the polygon
+    for ( const auto& hitVertex : hitVertices )
+    {
+        if ( *annotUid == hitVertex.first &&
+             hitVertex.second == *ms_selectedVertex )
+        {
+            // Ignore a hit to the selected/moving vertex itself
+            continue;
+        }
+
+        Annotation* otherAnnot = ms_appData->annotation( hitVertex.first );
+        if ( ! otherAnnot )
+        {
+            spdlog::error( "Null annotation {}", hitVertex.first );
+            continue;
+        }
+
+        if ( const auto planePoint2d = otherAnnot->polygon().getBoundaryVertex(
+                 OUTER_BOUNDARY, hitVertex.second ) )
+        {
+            // Move to the existing point
+            annot->polygon().setBoundaryVertex( OUTER_BOUNDARY, *ms_selectedVertex, *planePoint2d );
+            return;
+        }
+    }
+
+    // The prior checks fell through, so move vertex to the new point after projection
+    // to the subject image plane:
+    const glm::vec2 annotPlanePoint = annot->projectSubjectPointToAnnotationPlane( subjectPlanePoint );
+
+    if ( ! annot->polygon().setBoundaryVertex( OUTER_BOUNDARY, *ms_selectedVertex, annotPlanePoint ) )
+    {
+        spdlog::error( "Unable to move point {} of annotation {}",
+                       glm::to_string( hit.worldPos_offsetApplied ), *annotUid );
+    }
 }
 
 void AnnotationStateMachine::removeGrowingPolygon()
@@ -618,7 +826,27 @@ void AnnotationStateMachine::setSelectedAnnotationAndVertex(
     {
         if ( vertexIndex )
         {
-            ms_selectedVertex = *vertexIndex;
+            const Annotation* annot = ms_appData->annotation( annotUid );
+
+            if ( annot && annot->numBoundaries() > 0 )
+            {
+                if ( annot->getBoundaryVertices( OUTER_BOUNDARY ).size() > *vertexIndex )
+                {
+                    // It's a valid vertex index:
+                    ms_selectedVertex = *vertexIndex;
+                    synchronizeAnnotationHighlights();
+                }
+                else
+                {
+                    spdlog::warn( "Cannot select invalid vertex at index {} for annotation {}",
+                                  *vertexIndex, annotUid );
+                }
+            }
+        }
+        else
+        {
+            // Remove the selection
+            ms_selectedVertex = std::nullopt;
         }
     }
     else
@@ -626,8 +854,6 @@ void AnnotationStateMachine::setSelectedAnnotationAndVertex(
         spdlog::error( "Unable to assign active annotation {} to image {}",
                        annotUid, *activeImageUid );
     }
-
-    synchronizeAnnotationHighlights();
 }
 
 } // namespace state

@@ -36,7 +36,8 @@ bool isInStateWhereViewsCanScroll()
     if ( ASM::is_in_state<AnnotationOffState>() ||
          ASM::is_in_state<ViewBeingSelectedState>() ||
          ASM::is_in_state<StandbyState>() ||
-         ASM::is_in_state<CreatingNewAnnotationState>() )
+         ASM::is_in_state<CreatingNewAnnotationState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
     {
         return true;
     }
@@ -64,7 +65,8 @@ bool isInStateWhereViewSelectionsVisible()
 
 bool showToolbarCreateButton()
 {
-    if ( ASM::is_in_state<StandbyState>() )
+    if ( ASM::is_in_state<StandbyState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
     {
         return true;
     }

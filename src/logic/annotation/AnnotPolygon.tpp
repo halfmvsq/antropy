@@ -130,11 +130,49 @@ public:
     {
         if ( boundary >= m_vertices.size() )
         {
-            spdlog::error( "1. Invalid polygon boundary index {}", boundary );
+            spdlog::error( "Invalid polygon boundary index {}", boundary );
             return false;
         }
 
         m_vertices.at( boundary ) = std::move( vertices );
+        m_triangulation.clear();
+        m_currentUid = generateRandomUuid();
+
+        if ( 0 == boundary )
+        {
+            computeAABBox();
+            computeCentroid();
+            computeBezier();
+        }
+
+        return true;
+    }
+
+
+    /// Set a new vertex for a given boundary, where 0 refers to the outer boundary;
+    /// boundaries >= 1 are for holes.
+    bool setBoundaryVertex( size_t boundary, size_t vertexIndex, const PointType& vertex )
+    {
+        if ( boundary >= m_vertices.size() )
+        {
+            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            return false;
+        }
+
+        std::list<PointType>& boundaryVertices = m_vertices.at( boundary );
+
+        if ( vertexIndex >= boundaryVertices.size() )
+        {
+            spdlog::error( "Invalid vertex index {} to set for boundary",
+                           vertexIndex, boundary );
+            return false;
+        }
+
+        auto iter = std::begin( boundaryVertices );
+        std::advance( iter, vertexIndex );
+
+        *iter = vertex;
+
         m_triangulation.clear();
         m_currentUid = generateRandomUuid();
 

@@ -176,6 +176,12 @@ protected:
     void removeSelectedVertex();
 
     /**
+     * @brief Move the selected vertex according to the mouse movement
+     * @param[in] hit Mouse hit
+     */
+    void moveSelectedVertex( const ViewHit& hit );
+
+    /**
      * @brief Remove the currently growing annotation and deselect it.
      */
     void removeGrowingPolygon();

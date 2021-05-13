@@ -44,6 +44,10 @@ void ViewBeingSelectedState::react( const MousePressEvent& e )
 {
     selectView( e.hit );
     transit<StandbyState>();
+
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void ViewBeingSelectedState::react( const MouseMoveEvent& e )
@@ -53,9 +57,6 @@ void ViewBeingSelectedState::react( const MouseMoveEvent& e )
 
 void ViewBeingSelectedState::react( const MouseReleaseEvent& )
 {
-    /// @note If this is not call, the UI may not update until the next mouse event following the
-    /// \c MousePressEvent that should trigger the UI change
-    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void ViewBeingSelectedState::react( const TurnOffAnnotationModeEvent& )
@@ -94,13 +95,14 @@ void StandbyState::react( const MousePressEvent& e )
             transit<VertexSelectedState>();
         }
     }
+
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void StandbyState::react( const MouseReleaseEvent& /*e*/ )
 {
-    /// @note If this is not call, the UI may not update until the next mouse event following the
-    /// \c MousePressEvent that should trigger the UI change
-    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void StandbyState::react( const MouseMoveEvent& e )
@@ -150,6 +152,10 @@ void CreatingNewAnnotationState::react( const MousePressEvent& e )
             transit<AddingVertexToNewAnnotationState>();
         }
     }
+
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
@@ -188,9 +194,6 @@ void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
 
 void CreatingNewAnnotationState::react( const MouseReleaseEvent& /*e*/ )
 {
-    /// @note If this is not call, the UI may not update until the next mouse event following the
-    /// \c MousePressEvent that should trigger the UI change
-    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void CreatingNewAnnotationState::react( const TurnOffAnnotationModeEvent& )
@@ -232,7 +235,6 @@ void AddingVertexToNewAnnotationState::entry()
 
 void AddingVertexToNewAnnotationState::exit()
 {
-    ms_growingAnnotUid = std::nullopt;
 }
 
 void AddingVertexToNewAnnotationState::react( const MousePressEvent& e )
@@ -241,6 +243,10 @@ void AddingVertexToNewAnnotationState::react( const MousePressEvent& e )
     {
         addVertexToGrowingPolygon( e.hit );
     }
+
+    /// @note If this is not call, the UI may not update until the next mouse event following the
+    /// \c MousePressEvent that should trigger the UI change
+    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )
@@ -255,9 +261,6 @@ void AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )
 
 void AddingVertexToNewAnnotationState::react( const MouseReleaseEvent& /*e*/ )
 {
-    /// @note If this is not call, the UI may not update until the next mouse event following the
-    /// \c MousePressEvent that should trigger the UI change
-    if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
 void AddingVertexToNewAnnotationState::react( const TurnOffAnnotationModeEvent& )
@@ -292,39 +295,41 @@ void AddingVertexToNewAnnotationState::react( const CancelNewAnnotationEvent& )
 
 void VertexSelectedState::entry()
 {
-//    spdlog::debug( "enter selected" );
 }
 
 void VertexSelectedState::exit()
 {
-//    spdlog::debug( "exit selected" );
+    deselect( true, false );
 }
 
 void VertexSelectedState::react( const MousePressEvent& e )
 {
     if ( e.buttonState.left )
     {
-        if ( selectAnnotationAndVertex( e.hit ) )
+        if ( ! selectAnnotationAndVertex( e.hit ) )
         {
-            transit<VertexSelectedState>();
-        }
-        else
-        {
+            // Did not select a vertex
             transit<StandbyState>();
         }
     }
-}
 
-void VertexSelectedState::react( const MouseReleaseEvent& /*e*/ )
-{
     /// @note If this is not call, the UI may not update until the next mouse event following the
     /// \c MousePressEvent that should trigger the UI change
     if ( ms_renderUiCallback ) ms_renderUiCallback();
 }
 
+void VertexSelectedState::react( const MouseReleaseEvent& /*e*/ )
+{
+}
+
 void VertexSelectedState::react( const MouseMoveEvent& e )
 {
     hoverAnnotationAndVertex( e.hit );
+
+    if ( e.buttonState.left )
+    {
+        moveSelectedVertex( e.hit );
+    }
 }
 
 void VertexSelectedState::react( const TurnOffAnnotationModeEvent& )
