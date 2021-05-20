@@ -3,6 +3,8 @@
 #include "logic/states/FsmList.hpp"
 
 #include "common/DataHelper.h"
+#include "common/MathFuncs.h"
+
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
 #include "logic/camera/MathUtility.h"
@@ -609,6 +611,68 @@ void AnnotationStateMachine::moveSelectedVertex( const ViewHit& hit )
     }
 }
 
+void AnnotationStateMachine::moveSelectedPolygon(
+        const ViewHit& prevHit, const ViewHit& currHit )
+{
+    if ( ! checkAppData() ) return;
+    if ( ! checkActiveImage( currHit ) ) return;
+
+    if ( ! currHit.view ) return;
+
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid ) return;
+
+    const auto annotUid = ms_appData->imageToActiveAnnotationUid( *activeImageUid );
+    if ( ! annotUid )
+    {
+        transit<StandbyState>();
+        return;
+    }
+
+    Annotation* annot = ms_appData->annotation( *annotUid );
+    if ( ! annot )
+    {
+        spdlog::warn( "Annotation {} is not valid", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    if ( 0 == annot->numBoundaries() )
+    {
+        spdlog::warn( "Annotation {} has no boundaries", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    const Image* activeImage = checkActiveImage( currHit );
+    if ( ! activeImage ) return;
+
+    const auto [subjectPlaneEquationPrev, subjectPlanePointPrev] =
+            math::computeSubjectPlaneEquation(
+                activeImage->transformations().subject_T_worldDef(),
+                -prevHit.worldFrontAxis, glm::vec3{ prevHit.worldPos_offsetApplied } );
+
+    const auto [subjectPlaneEquationCurr, subjectPlanePointCurr] =
+            math::computeSubjectPlaneEquation(
+                activeImage->transformations().subject_T_worldDef(),
+                -currHit.worldFrontAxis, glm::vec3{ currHit.worldPos_offsetApplied } );
+
+    const glm::vec2 annotPlanePointPrev = annot->projectSubjectPointToAnnotationPlane( subjectPlanePointPrev );
+    const glm::vec2 annotPlanePointCurr = annot->projectSubjectPointToAnnotationPlane( subjectPlanePointCurr );
+
+    const glm::vec2 delta = annotPlanePointCurr - annotPlanePointPrev;
+
+    const std::vector< glm::vec2 >& existingVertices = annot->getBoundaryVertices( OUTER_BOUNDARY );
+
+    for ( size_t i = 0; i < existingVertices.size(); ++i )
+    {
+        if ( ! annot->polygon().setBoundaryVertex( OUTER_BOUNDARY, i, existingVertices[i] + delta ) )
+        {
+            spdlog::error( "Unable to move annotation {}", *annotUid );
+        }
+    }
+}
+
 void AnnotationStateMachine::removeGrowingPolygon()
 {
     if ( ! checkAppData() ) return;
@@ -721,6 +785,62 @@ AnnotationStateMachine::findHitVertices( const ViewHit& hit )
     return annotsAndVertices;
 }
 
+std::vector< uuids::uuid >
+AnnotationStateMachine::findHitPolygon( const ViewHit& hit )
+{
+    static const std::vector< uuids::uuid > sk_empty;
+
+    if ( ! checkAppData() ) return sk_empty;
+
+    if ( ! hit.view )
+    {
+        spdlog::error( "Null view" );
+        return sk_empty;
+    }
+
+    const Image* activeImage = checkActiveImage( hit );
+    if ( ! activeImage ) return sk_empty;
+
+    const auto activeImageUid = ms_appData->activeImageUid();
+
+    const auto [subjectPlaneEquation, subjectPlanePoint] =
+            math::computeSubjectPlaneEquation(
+                activeImage->transformations().subject_T_worldDef(),
+                -hit.worldFrontAxis, glm::vec3{ hit.worldPos_offsetApplied } );
+
+    // Use the image slice scroll distance as the threshold for plane distances
+    const float planeDistanceThresh = 0.5f * data::sliceScrollDistance(
+                hit.worldFrontAxis, *activeImage );
+
+    // Find all annotations for the active image that match this plane
+    const auto uidsOfAnnotsOnImageSlice = data::findAnnotationsForImage(
+                *ms_appData, *activeImageUid,
+                subjectPlaneEquation, planeDistanceThresh );
+
+    std::vector< uuids::uuid > annots;
+
+    // Loop over all annotations and determine whether we're atop one of the polygons:
+    for ( const auto& annotUid : uidsOfAnnotsOnImageSlice )
+    {
+        Annotation* annot = ms_appData->annotation( annotUid );
+        if ( ! annot )
+        {
+            spdlog::error( "Null annotation {}", annotUid );
+            continue;
+        }
+
+        if ( 0 == annot->numBoundaries() ) continue;
+
+        if ( math::pnpoly( annot->getBoundaryVertices( OUTER_BOUNDARY ),
+                           annot->projectSubjectPointToAnnotationPlane( subjectPlanePoint ) ) )
+        {
+            annots.emplace_back( annotUid );
+        }
+    }
+
+    return annots;
+}
+
 void AnnotationStateMachine::synchronizeAnnotationHighlights()
 {
     if ( ! checkAppData() ) return;
@@ -802,8 +922,14 @@ bool AnnotationStateMachine::selectAnnotationAndVertex( const ViewHit& hit )
     bool selectedVertex = false;
 
     // Clear current vertex selection
-    // Note: do not clear the active annotation
     ms_selectedVertex = std::nullopt;
+
+    // Note: do not clear the active annotation
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid ) return false;
+
+    // Deselect the annotation
+    ms_appData->assignActiveAnnotationUidToImage( *activeImageUid, std::nullopt );
 
     const auto hitVertices = findHitVertices( hit );
 
@@ -818,6 +944,32 @@ bool AnnotationStateMachine::selectAnnotationAndVertex( const ViewHit& hit )
 
     synchronizeAnnotationHighlights();
     return selectedVertex;
+}
+
+bool AnnotationStateMachine::selectAnnotation( const ViewHit& hit )
+{
+    if ( ! checkAppData() ) return false;
+    if ( ! checkViewSelection( hit ) ) return false;
+
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid ) return false;
+
+    // Deselect the annotation
+    ms_appData->assignActiveAnnotationUidToImage( *activeImageUid, std::nullopt );
+
+    bool selectedPolygon = false;
+
+    const auto hitPolygons = findHitPolygon( hit );
+
+    if ( ! hitPolygons.empty() )
+    {
+        // Select the last (top-most) polygon that was hit:
+        setSelectedAnnotationAndVertex( hitPolygons.back(), std::nullopt );
+        selectedPolygon = true;
+    }
+
+    synchronizeAnnotationHighlights();
+    return selectedPolygon;
 }
 
 void AnnotationStateMachine::setSelectedAnnotationAndVertex(

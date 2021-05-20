@@ -846,7 +846,7 @@ void drawAnnotations(
             // Annotation vertices in 2D annotation plane coordinates:
             if ( 0 == annot->numBoundaries() ) continue;
 
-            const std::list<glm::vec2>& annotPlaneVertices =
+            const std::vector<glm::vec2>& annotPlaneVertices =
                     annot->getBoundaryVertices( OUTER_BOUNDARY );
 
             if ( annotPlaneVertices.empty() ) continue;

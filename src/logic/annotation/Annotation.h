@@ -52,11 +52,11 @@ public:
     AnnotPolygon<float, 2>& polygon();
     const AnnotPolygon<float, 2>& polygon() const;
 
-    const std::vector< std::list<glm::vec2> >& getAllVertices() const;
+    const std::vector< std::vector<glm::vec2> >& getAllVertices() const;
 
     size_t numBoundaries() const;
 
-    const std::list<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
+    const std::vector<glm::vec2>& getBoundaryVertices( size_t boundary ) const;
 
     const std::vector< std::tuple< glm::vec2, glm::vec2, glm::vec2 > >& getBezierCommands() const;
 

@@ -42,7 +42,7 @@ void ViewBeingSelectedState::entry()
 
 void ViewBeingSelectedState::react( const MousePressEvent& e )
 {
-    selectView( e.hit );
+    selectView( e.m_currHit );
     transit<StandbyState>();
 
     /// @note If this is not call, the UI may not update until the next mouse event following the
@@ -52,7 +52,7 @@ void ViewBeingSelectedState::react( const MousePressEvent& e )
 
 void ViewBeingSelectedState::react( const MouseMoveEvent& e )
 {
-    hoverView( e.hit );
+    hoverView( e.m_currHit );
 }
 
 void ViewBeingSelectedState::react( const MouseReleaseEvent& )
@@ -86,13 +86,17 @@ void StandbyState::exit()
 
 void StandbyState::react( const MousePressEvent& e )
 {
-    selectView( e.hit );
+    selectView( e.m_currHit );
 
     if ( e.buttonState.left )
     {
-        if ( selectAnnotationAndVertex( e.hit ) )
+        if ( selectAnnotationAndVertex( e.m_currHit ) )
         {
             transit<VertexSelectedState>();
+        }
+        else
+        {
+            selectAnnotation( e.m_currHit );
         }
     }
 
@@ -107,8 +111,13 @@ void StandbyState::react( const MouseReleaseEvent& /*e*/ )
 
 void StandbyState::react( const MouseMoveEvent& e )
 {
-    hoverView( e.hit );
-    hoverAnnotationAndVertex( e.hit );
+    hoverView( e.m_currHit );
+    hoverAnnotationAndVertex( e.m_currHit );
+
+    if ( e.buttonState.left )
+    {
+        moveSelectedPolygon( e.m_prevHit, e.m_currHit );
+    }
 }
 
 void StandbyState::react( const TurnOffAnnotationModeEvent& )
@@ -146,8 +155,8 @@ void CreatingNewAnnotationState::react( const MousePressEvent& e )
 {
     if ( e.buttonState.left )
     {
-        if ( createNewGrowingPolygon( e.hit ) &&
-             addVertexToGrowingPolygon( e.hit ) )
+        if ( createNewGrowingPolygon( e.m_currHit ) &&
+             addVertexToGrowingPolygon( e.m_currHit ) )
         {
             transit<AddingVertexToNewAnnotationState>();
         }
@@ -160,7 +169,7 @@ void CreatingNewAnnotationState::react( const MousePressEvent& e )
 
 void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
 {
-    hoverAnnotationAndVertex( e.hit );
+    hoverAnnotationAndVertex( e.m_currHit );
 
     /*
     // Only create/edit points on the outer polygon boundary for now
@@ -183,7 +192,7 @@ void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
         return;
     }
 
-    if ( *ms_selectedViewUid != e.hit.viewUid )
+    if ( *ms_selectedViewUid != e.m_currHit.viewUid )
     {
         // Mouse pointer is not in the view selected for creating annotation
         spdlog::trace( "Mouse pointer is not in the view selected for creating annotation" );
@@ -241,7 +250,7 @@ void AddingVertexToNewAnnotationState::react( const MousePressEvent& e )
 {
     if ( e.buttonState.left )
     {
-        addVertexToGrowingPolygon( e.hit );
+        addVertexToGrowingPolygon( e.m_currHit );
     }
 
     /// @note If this is not call, the UI may not update until the next mouse event following the
@@ -251,11 +260,11 @@ void AddingVertexToNewAnnotationState::react( const MousePressEvent& e )
 
 void AddingVertexToNewAnnotationState::react( const MouseMoveEvent& e )
 {
-    hoverAnnotationAndVertex( e.hit );
+    hoverAnnotationAndVertex( e.m_currHit );
 
     if ( e.buttonState.left )
     {
-        addVertexToGrowingPolygon( e.hit );
+        addVertexToGrowingPolygon( e.m_currHit );
     }
 }
 
@@ -306,9 +315,11 @@ void VertexSelectedState::react( const MousePressEvent& e )
 {
     if ( e.buttonState.left )
     {
-        if ( ! selectAnnotationAndVertex( e.hit ) )
+        if ( ! selectAnnotationAndVertex( e.m_currHit ) )
         {
-            // Did not select a vertex
+            // Did not select a vertex, so try selecting an annotation and
+            // go to stand-by state
+            selectAnnotation( e.m_currHit );
             transit<StandbyState>();
         }
     }
@@ -324,11 +335,11 @@ void VertexSelectedState::react( const MouseReleaseEvent& /*e*/ )
 
 void VertexSelectedState::react( const MouseMoveEvent& e )
 {
-    hoverAnnotationAndVertex( e.hit );
+    hoverAnnotationAndVertex( e.m_currHit );
 
     if ( e.buttonState.left )
     {
-        moveSelectedVertex( e.hit );
+        moveSelectedVertex( e.m_currHit );
     }
 }
 

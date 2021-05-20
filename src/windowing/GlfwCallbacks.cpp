@@ -147,7 +147,8 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
 
     // Send event to annotation state machine
     send_event( state::MouseMoveEvent(
-                    *currHit_invalidOutsideView, s_mouseButtonState, s_modifierState ) );
+                    *s_prevHit, *currHit_invalidOutsideView,
+                    s_mouseButtonState, s_modifierState ) );
 
     CallbackHandler& handler = app->callbackHandler();
 
@@ -374,7 +375,8 @@ void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
     case GLFW_PRESS:
     {
         send_event( state::MousePressEvent(
-                        *hit_invalidOutsideView, s_mouseButtonState, s_modifierState ) );
+                        *hit_invalidOutsideView,
+                        s_mouseButtonState, s_modifierState ) );
         break;
     }
     case GLFW_RELEASE:
@@ -383,7 +385,8 @@ void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
         app->appData().windowData().setActiveViewUid( std::nullopt );
 
         send_event( state::MouseReleaseEvent(
-                        *hit_invalidOutsideView, s_mouseButtonState, s_modifierState ) );
+                        *hit_invalidOutsideView,
+                        s_mouseButtonState, s_modifierState ) );
         break;
     }
     default: break;

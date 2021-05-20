@@ -182,6 +182,13 @@ protected:
     void moveSelectedVertex( const ViewHit& hit );
 
     /**
+     * @brief Move the selected polygon according to the mouse movement
+     * @param[in] prevHit Previous mouse hit
+     * @param[in] currHit Current mouse hit
+     */
+    void moveSelectedPolygon( const ViewHit& prevHit, const ViewHit& currHit );
+
+    /**
      * @brief Remove the currently growing annotation and deselect it.
      */
     void removeGrowingPolygon();
@@ -194,6 +201,13 @@ protected:
      */
     std::vector< std::pair<uuids::uuid, size_t> >
     findHitVertices( const ViewHit& hit );
+
+    /**
+     * @brief Find polygons of the active image under the mouse hit
+     * @param[in] hit Mouse hit
+     * @return Vector of annotation UIDs, from top-most to bottom-most layer.
+     */
+    std::vector< uuids::uuid > findHitPolygon( const ViewHit& hit );
 
     /**
      * @brief Set the selected annotation and (optionally) one of its vertices
@@ -216,6 +230,13 @@ protected:
      * @return true iff a vertex was selected by the hit
      */
     bool selectAnnotationAndVertex( const ViewHit& hit );
+
+    /**
+     * @brief Set/clear the selected state of the annotation under the hit
+     * @param[in] hit Mouse hit
+     * @return True iff an annotation polygon was selected by the hit
+     */
+    bool selectAnnotation( const ViewHit& hit );
 
     /***** End helper functions used in multiple states *****/
 

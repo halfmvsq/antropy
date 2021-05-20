@@ -16,7 +16,6 @@
 #include <uuid.h>
 
 #include <limits>
-#include <list>
 #include <optional>
 #include <tuple>
 #include <vector>
@@ -66,7 +65,7 @@ public:
 
     /// Set all vertices of the polygon. The first list defines the main (outer) polygon boundary;
     /// subsequent lists define boundaries of holes within the outer boundary.
-    void setAllVertices( std::vector< std::list<PointType> > vertices )
+    void setAllVertices( std::vector< std::vector<PointType> > vertices )
     {
         m_vertices = std::move( vertices );
         m_triangulation.clear();
@@ -80,7 +79,7 @@ public:
 
     /// Get all vertices from all boundaries. The first list contains vertices of the outer boundary;
     /// subsequent lists contain vertices of holes.
-    const std::vector< std::list<PointType> >& getAllVertices() const
+    const std::vector< std::vector<PointType> >& getAllVertices() const
     {
         return m_vertices;
     }
@@ -126,7 +125,7 @@ public:
 
     /// Set vertices for a given boundary, where 0 refers to the outer boundary;
     /// boundaries >= 1 are for holes.
-    bool setBoundaryVertices( size_t boundary, std::list<PointType> vertices )
+    bool setBoundaryVertices( size_t boundary, std::vector<PointType> vertices )
     {
         if ( boundary >= m_vertices.size() )
         {
@@ -159,7 +158,7 @@ public:
             return false;
         }
 
-        std::list<PointType>& boundaryVertices = m_vertices.at( boundary );
+        std::vector<PointType>& boundaryVertices = m_vertices.at( boundary );
 
         if ( vertexIndex >= boundaryVertices.size() )
         {
@@ -168,10 +167,7 @@ public:
             return false;
         }
 
-        auto iter = std::begin( boundaryVertices );
-        std::advance( iter, vertexIndex );
-
-        *iter = vertex;
+        boundaryVertices[vertexIndex] = vertex;
 
         m_triangulation.clear();
         m_currentUid = generateRandomUuid();
@@ -196,7 +192,7 @@ public:
             if ( 0 == boundary )
             {
                 // Allow adding the outer boundary:
-                m_vertices.emplace_back( std::list<PointType>{ vertex } );
+                m_vertices.emplace_back( std::vector<PointType>{ vertex } );
                 spdlog::info( "Added new polygon boundary with index {}", boundary );
             }
             else
@@ -226,7 +222,7 @@ public:
 
 
     /// Set the vertices of the outer boundary only.
-    void setOuterBoundary( std::list<PointType> vertices )
+    void setOuterBoundary( std::vector<PointType> vertices )
     {
         if ( m_vertices.size() >= 1 )
         {
@@ -255,7 +251,7 @@ public:
         }
         else
         {
-            m_vertices.emplace_back( std::list<PointType>{ vertex } );
+            m_vertices.emplace_back( std::vector<PointType>{ vertex } );
         }
 
         m_triangulation.clear();
@@ -312,7 +308,7 @@ public:
 
     /// Add a hole to the polygon. The operation only succeeds if the polygon has at least
     /// an outer boundary.
-    bool addHole( std::list<PointType> vertices )
+    bool addHole( std::vector<PointType> vertices )
     {
         if ( m_vertices.size() >= 1 )
         {
@@ -329,9 +325,9 @@ public:
     /// Get all vertices of a given boundary, where 0 refers to the outer boundary;
     /// boundaries >= 1 are holes.
     /// @return Empty list if invalid boundary
-    const std::list<PointType>& getBoundaryVertices( size_t boundary ) const
+    const std::vector<PointType>& getBoundaryVertices( size_t boundary ) const
     {
-        static const std::list< AnnotPolygon::PointType > sk_emptyBoundary;
+        static const std::vector< AnnotPolygon::PointType > sk_emptyBoundary;
 
         if ( boundary >= m_vertices.size() )
         {
@@ -383,9 +379,7 @@ public:
             return std::nullopt;
         }
 
-        auto iter = std::begin( vertices );
-        std::advance( iter, i );
-        return *iter;
+        return vertices[i];
     }
 
 
@@ -400,9 +394,7 @@ public:
         {
             if ( j < boundary.size() )
             {
-                auto iter = std::begin( boundary );
-                std::advance( iter, j );
-                return *iter;
+                return boundary[j];
             }
             else
             {
@@ -583,18 +575,16 @@ private:
 
         if ( 2 == Dim && m_smoothed )
         {
-            const std::vector< glm::vec2 > v(
-                        std::begin( m_vertices[0] ), std::end( m_vertices[0] ) );
-
-            m_bezierCommands = computeBezierCommands( v, m_smoothingFactor, m_closed );
+            m_bezierCommands = computeBezierCommands(
+                        m_vertices[0], m_smoothingFactor, m_closed );
         }
     }
 
 
-    /// Polygon stored as vector of lists of points. The first list defines the outer polygon
-    /// boundary; subsequent lists define holes in the main polygon. Any winding order for the
+    /// Polygon stored as vector of vectors of points. The first vector defines the outer polygon
+    /// boundary; subsequent vectors define holes in the main polygon. Any winding order for the
     /// outer boundary and holes is valid.
-    std::vector< std::list<PointType> > m_vertices;
+    std::vector< std::vector<PointType> > m_vertices;
 
     /// Bezier commands for the outer boundary. Only updated if \c m_smoothingFactor > 0
     std::vector< std::tuple< glm::vec2, glm::vec2, glm::vec2 > > m_bezierCommands;

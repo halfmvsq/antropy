@@ -13,12 +13,15 @@ namespace state
 /// MouseEvent is a base class for mouse press, release, and move events.
 struct MouseEvent : public tinyfsm::Event
 {
-    MouseEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
-        : hit( h ), buttonState( b ), modifierState( m ) {}
+    MouseEvent( const ViewHit& prevHit, const ViewHit& currHit,
+                const ButtonState& b, const ModifierState& m )
+        : m_prevHit( prevHit ), m_currHit( currHit ),
+          buttonState( b ), modifierState( m ) {}
 
     virtual ~MouseEvent() = default;
 
-    const ViewHit hit; //!< View hit information for this event
+    const ViewHit m_prevHit; //!< Previous view hit information
+    const ViewHit m_currHit; //!< Current view hit information
     const ButtonState buttonState; //!< Mouse button state
     const ModifierState modifierState; //!< Keyboard modifier state
 };
@@ -27,8 +30,8 @@ struct MouseEvent : public tinyfsm::Event
 /// Mouse pointer pressed
 struct MousePressEvent : public MouseEvent
 {
-    MousePressEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
-        : MouseEvent( h, b, m ) {}
+    MousePressEvent( const ViewHit& currHit, const ButtonState& b, const ModifierState& m )
+        : MouseEvent( currHit, currHit, b, m ) {}
 
     ~MousePressEvent() override = default;
 };
@@ -36,8 +39,8 @@ struct MousePressEvent : public MouseEvent
 /// Mouse pointer released
 struct MouseReleaseEvent : public MouseEvent
 {
-    MouseReleaseEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
-        : MouseEvent( h, b, m ) {}
+    MouseReleaseEvent( const ViewHit& currHit, const ButtonState& b, const ModifierState& m )
+        : MouseEvent( currHit, currHit, b, m ) {}
 
     ~MouseReleaseEvent() override = default;
 };
@@ -45,8 +48,9 @@ struct MouseReleaseEvent : public MouseEvent
 /// Mouse pointer moved
 struct MouseMoveEvent : public MouseEvent
 {
-    MouseMoveEvent( const ViewHit& h, const ButtonState& b, const ModifierState& m )
-        : MouseEvent( h, b, m ) {}
+    MouseMoveEvent( const ViewHit& prevHit, const ViewHit& currHit,
+                    const ButtonState& b, const ModifierState& m )
+        : MouseEvent( prevHit, currHit, b, m ) {}
 
     ~MouseMoveEvent() override = default;
 };

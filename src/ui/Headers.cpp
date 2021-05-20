@@ -2047,7 +2047,6 @@ void renderAnnotationsHeader(
     }
 
 
-
     ImGui::Text( "Layer order: " );
 
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
@@ -2197,7 +2196,6 @@ void renderAnnotationsHeader(
             spdlog::error( "Unable to remove annotation {}", *activeAnnotUid );
         }
     }
-
 
 
     ImGui::Separator();

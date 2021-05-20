@@ -440,7 +440,8 @@ bool AppData::removeAnnotation( const uuids::uuid& annotUid )
     }
 
     // Remove it as the active annotation
-    for ( auto it = std::begin( m_imageToActiveAnnotation ); it != std::end( m_imageToActiveDef ); )
+    for ( auto it = std::begin( m_imageToActiveAnnotation );
+          it != std::end( m_imageToActiveDef ); )
     {
         if ( annotUid == it->second )
         {
