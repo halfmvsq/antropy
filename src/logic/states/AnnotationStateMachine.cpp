@@ -106,10 +106,18 @@ bool AnnotationStateMachine::checkViewSelection( const ViewHit& hit )
 
 void AnnotationStateMachine::hoverView( const ViewHit& hit )
 {
-    ms_hoveredViewUid = hit.viewUid;
+    if ( hit.view && ( camera::CameraType::ThreeD != hit.view->cameraType() ) )
+    {
+        ms_hoveredViewUid = hit.viewUid;
+    }
+    else
+    {
+        // Do not hover 3D views
+        ms_hoveredViewUid = std::nullopt;
+    }
 }
 
-void AnnotationStateMachine::selectView( const ViewHit& hit )
+bool AnnotationStateMachine::selectView( const ViewHit& hit )
 {
     if ( ms_selectedViewUid && *ms_selectedViewUid != hit.viewUid )
     {
@@ -117,7 +125,14 @@ void AnnotationStateMachine::selectView( const ViewHit& hit )
         unhoverAnnotation();
     }
 
-    ms_selectedViewUid = hit.viewUid;
+    if ( hit.view && ( camera::CameraType::ThreeD != hit.view->cameraType() ) )
+    {
+        ms_selectedViewUid = hit.viewUid;
+        return true;
+    }
+
+    // Do not select 3D views
+    return false;
 }
 
 void AnnotationStateMachine::deselect( bool deselectVertex, bool deselectAnnotation )
@@ -395,6 +410,150 @@ void AnnotationStateMachine::undoLastVertexOfGrowingPolygon()
     }
 }
 
+void AnnotationStateMachine::insertVertex()
+{
+    if ( ! checkAppData() ) return;
+
+    if ( ! ms_selectedVertex )
+    {
+        spdlog::warn( "There is no selected vertex after which to insert a new vertex" );
+        return;
+    }
+
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid ) return;
+
+    const auto annotUid = ms_appData->imageToActiveAnnotationUid( *activeImageUid );
+    if ( ! annotUid )
+    {
+        transit<StandbyState>();
+        return;
+    }
+
+    Annotation* annot = ms_appData->annotation( *annotUid );
+    if ( ! annot )
+    {
+        spdlog::warn( "Annotation {} is not valid", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    if ( 0 == annot->numBoundaries() )
+    {
+        spdlog::warn( "Annotation {} has no boundaries", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    const size_t N = annot->getBoundaryVertices( OUTER_BOUNDARY ).size();
+
+    if ( *ms_selectedVertex >= N )
+    {
+        spdlog::warn( "Invalid vertex {} for annotation {}", *ms_selectedVertex, *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    if ( 0 == N )
+    {
+        spdlog::warn( "Boundary {} of annotation {} has no vertices", OUTER_BOUNDARY, *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    const std::optional<glm::vec2> selectedVertex =
+            annot->polygon().getBoundaryVertex( OUTER_BOUNDARY, *ms_selectedVertex );
+
+    if ( ! selectedVertex )
+    {
+        spdlog::warn( "Invalid vertex {} for annotation {}", *ms_selectedVertex, *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    if ( N - 1 == *ms_selectedVertex )
+    {
+        // Selected the last vertex
+        glm::vec2 newVertex;
+
+        if ( 1 == N )
+        {
+            // Selected the last and only vertex. Add a new vertex with a small offset.
+            newVertex = *selectedVertex + glm::vec2{ 5.0f, 5.0f };
+        }
+        else if ( ! annot->isClosed() )
+        {
+            // Selected the last vertex and the annotation is not closed. There is a previous vertex,
+            // so insert a new vertex after the last vertex that continues the line from the previous vertex.
+            const size_t prevVertexIndex = *ms_selectedVertex - 1;
+
+            const std::optional<glm::vec2> prevVertex =
+                    annot->polygon().getBoundaryVertex( OUTER_BOUNDARY, prevVertexIndex );
+
+            if ( ! prevVertex )
+            {
+                spdlog::warn( "Invalid vertex {} for annotation {}", prevVertexIndex, *annotUid );
+                transit<StandbyState>();
+                return;
+            }
+
+            newVertex = *selectedVertex + ( *selectedVertex - *prevVertex );
+        }
+        else if ( annot->isClosed() )
+        {
+            // Selected the last vertex and the annotation is closed. Insert a new vertex in between the
+            // last vertex and the first vertex.
+            static constexpr size_t firstVertexIndex = 0;
+
+            const std::optional<glm::vec2> firstVetex =
+                    annot->polygon().getBoundaryVertex( OUTER_BOUNDARY, firstVertexIndex );
+
+            if ( ! firstVetex )
+            {
+                spdlog::warn( "Invalid vertex {} for annotation {}", firstVertexIndex, *annotUid );
+                transit<StandbyState>();
+                return;
+            }
+
+            newVertex = 0.5f * ( *selectedVertex + *firstVetex );
+        }
+
+        annot->addPlanePointToBoundary( OUTER_BOUNDARY, newVertex );
+
+        const size_t newSelectedVertex = *ms_selectedVertex + 1;
+        setSelectedAnnotationAndVertex( *annotUid, newSelectedVertex );
+    }
+    else if ( N - 1 > *ms_selectedVertex )
+    {
+        // Selected a vertex that is not the last one. Insert a new vertex at the midpoint
+        // between the selected vertex and the next vertex.
+
+        const size_t nextVertexIndex = *ms_selectedVertex + 1;
+
+        const std::optional<glm::vec2> nextVertex =
+                annot->polygon().getBoundaryVertex( OUTER_BOUNDARY, nextVertexIndex );
+
+        if ( ! nextVertex )
+        {
+            spdlog::warn( "Invalid vertex {} for annotation {}", nextVertexIndex, *annotUid );
+            transit<StandbyState>();
+            return;
+        }
+
+        const glm::vec2 newVertex = 0.5f * ( *selectedVertex + *nextVertex );
+
+        if ( annot->insertPlanePointIntoBoundary( OUTER_BOUNDARY, nextVertexIndex, newVertex ) )
+        {
+            const size_t newSelectedVertex = *ms_selectedVertex + 1;
+            setSelectedAnnotationAndVertex( *annotUid, newSelectedVertex );
+        }
+        else
+        {
+            spdlog::error( "Unable to insert vertex into annotation {}", *annotUid );
+        }
+    }
+}
+
 void AnnotationStateMachine::removeSelectedVertex()
 {
     if ( ! checkAppData() ) return;
@@ -611,6 +770,37 @@ void AnnotationStateMachine::moveSelectedVertex( const ViewHit& hit )
     }
 }
 
+void AnnotationStateMachine::removeSelectedPolygon()
+{
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid ) return;
+
+    const auto annotUid = ms_appData->imageToActiveAnnotationUid( *activeImageUid );
+    if ( ! annotUid )
+    {
+        return;
+    }
+
+    Annotation* annot = ms_appData->annotation( *annotUid );
+    if ( ! annot )
+    {
+        spdlog::warn( "Annotation {} is not valid", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    if ( ms_appData->removeAnnotation( *annotUid ) )
+    {
+        spdlog::info( "Removed annotation {}", *annotUid );
+        transit<StandbyState>();
+        deselect( true, true );
+    }
+    else
+    {
+        spdlog::error( "Unable to remove annotation {}", *annotUid );
+    }
+}
+
 void AnnotationStateMachine::moveSelectedPolygon(
         const ViewHit& prevHit, const ViewHit& currHit )
 {
@@ -662,11 +852,11 @@ void AnnotationStateMachine::moveSelectedPolygon(
 
     const glm::vec2 delta = annotPlanePointCurr - annotPlanePointPrev;
 
-    const std::vector< glm::vec2 >& existingVertices = annot->getBoundaryVertices( OUTER_BOUNDARY );
+    const std::vector< glm::vec2 >& vertices = annot->getBoundaryVertices( OUTER_BOUNDARY );
 
-    for ( size_t i = 0; i < existingVertices.size(); ++i )
+    for ( size_t i = 0; i < vertices.size(); ++i )
     {
-        if ( ! annot->polygon().setBoundaryVertex( OUTER_BOUNDARY, i, existingVertices[i] + delta ) )
+        if ( ! annot->polygon().setBoundaryVertex( OUTER_BOUNDARY, i, vertices[i] + delta ) )
         {
             spdlog::error( "Unable to move annotation {}", *annotUid );
         }

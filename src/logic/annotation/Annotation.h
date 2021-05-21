@@ -64,6 +64,16 @@ public:
     void addPlanePointToBoundary( size_t boundary, const glm::vec2& planePoint );
 
     /**
+     * @brief insertPlanePointIntoBoundary
+     * @param boundary
+     * @param vertexIndex
+     * @param vertex
+     * @return True iff the vertex was inserted at position \c vertexIndex
+     */
+    bool insertPlanePointIntoBoundary( size_t boundary, size_t vertexIndex, const glm::vec2& vertex );
+
+
+    /**
      * @brief Add a 3D Subject point to the annotation polygon.
      * @param[in] boundary Boundary to add point to
      * @param[in] subjectPoint 3D point in Subject space to project

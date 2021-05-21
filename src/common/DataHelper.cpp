@@ -504,4 +504,25 @@ std::string getAnnotationSubjectPlaneName( const Annotation& annotation )
     return sk_oblique;
 }
 
+
+bool isAnnotationSelected( const AppData& appData )
+{
+    const auto activeImageUid = appData.activeImageUid();
+    if ( ! activeImageUid ) return false;
+
+    const auto annotUid = appData.imageToActiveAnnotationUid( *activeImageUid );
+    if ( ! annotUid )
+    {
+        return false;
+    }
+
+    if ( ! appData.annotation( *annotUid ) )
+    {
+        spdlog::warn( "Annotation {} is not valid", *annotUid );
+        return false;
+    }
+
+    return true;
+}
+
 } // namespace data

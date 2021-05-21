@@ -69,13 +69,6 @@ public:
     void doSegment( const ViewHit& hit, bool swapFgAndBg );
 
     /**
-     * @brief doAnnotate
-     * @param windowLastPos
-     * @param windowCurrPos
-     */
-    void doAnnotate( const ViewHit& hit );
-
-    /**
      * @brief Adjust image window/level
      * @param windowLastPos
      * @param windowCurrPos

@@ -2340,6 +2340,7 @@ void renderAnnotationsHeader(
             ImGui::SetTooltip( "Match fill color to line color" );
         }
 
+
         // Fill color:
         glm::vec4 annotFillColor = activeAnnot->getFillColor();
         if ( ImGui::ColorEdit4( "Fill color", glm::value_ptr( annotFillColor ), sk_annotColorEditFlags ) )
@@ -2347,6 +2348,19 @@ void renderAnnotationsHeader(
             activeAnnot->setFillColor( annotFillColor );
         }
         ImGui::SameLine(); helpMarker( "Annotation fill color" );
+
+
+        ImGui::SameLine();
+        if ( ImGui::Button( ICON_FK_LEVEL_UP ) )
+        {
+            glm::vec4 lineColor{ annotFillColor };
+            lineColor.a = activeAnnot->getLineColor().a;
+            activeAnnot->setLineColor( lineColor );
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Match line color to fill color" );
+        }
     }
 
 

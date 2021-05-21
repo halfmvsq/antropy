@@ -137,6 +137,12 @@ void Annotation::addPlanePointToBoundary(
     m_polygon.addVertexToBoundary( boundary, planePoint );
 }
 
+bool Annotation::insertPlanePointIntoBoundary(
+        size_t boundary, size_t vertexIndex, const glm::vec2& vertex )
+{
+    return m_polygon.insertVertexIntoBoundary( boundary, vertexIndex, vertex );
+}
+
 std::optional<glm::vec2> Annotation::addSubjectPointToBoundary(
         size_t boundary, const glm::vec3& subjectPoint )
 {

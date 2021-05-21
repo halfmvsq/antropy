@@ -42,7 +42,7 @@ void ViewBeingSelectedState::entry()
 
 void ViewBeingSelectedState::react( const MousePressEvent& e )
 {
-    selectView( e.m_currHit );
+    if ( ! selectView( e.m_currHit ) ) return;
     transit<StandbyState>();
 
     /// @note If this is not call, the UI may not update until the next mouse event following the
@@ -86,7 +86,7 @@ void StandbyState::exit()
 
 void StandbyState::react( const MousePressEvent& e )
 {
-    selectView( e.m_currHit );
+    if ( ! selectView( e.m_currHit ) ) return;
 
     if ( e.buttonState.left )
     {
@@ -128,6 +128,11 @@ void StandbyState::react( const TurnOffAnnotationModeEvent& )
 void StandbyState::react( const CreateNewAnnotationEvent& )
 {
     transit<CreatingNewAnnotationState>();
+}
+
+void StandbyState::react( const RemoveSelectedAnnotationEvent& )
+{
+    removeSelectedPolygon();
 }
 
 
@@ -348,9 +353,19 @@ void VertexSelectedState::react( const TurnOffAnnotationModeEvent& )
     transit<AnnotationOffState>();
 }
 
+void VertexSelectedState::react( const InsertVertexEvent& )
+{
+    insertVertex();
+}
+
 void VertexSelectedState::react( const RemoveSelectedVertexEvent& )
 {
     removeSelectedVertex();
+}
+
+void VertexSelectedState::react( const RemoveSelectedAnnotationEvent& )
+{
+    removeSelectedPolygon();
 }
 
 } // namespace state

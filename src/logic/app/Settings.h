@@ -61,8 +61,8 @@ public:
     float brushSizeInMm() const;
     void setBrushSizeInMm( float size );
 
-    bool crosshairsMoveWithAnnotationPointCreation() const;
-    void setCrosshairsMoveWithAnnotationPointCreation( bool set );
+    bool crosshairsMoveWhileAnnotating() const;
+    void setCrosshairsMoveWhileAnnotating( bool set );
 
     bool lockAnatomicalCoordinateAxesWithReferenceImage() const;
     void setLockAnatomicalCoordinateAxesWithReferenceImage( bool lock );
@@ -88,7 +88,7 @@ private:
     /* End segmentation drawing variables */
 
     /// Crosshairs move to the position of every new point added to an annotation
-    bool m_crosshairsMoveWithAnnotationPointCreation;
+    bool m_crosshairsMoveWhileAnnotating;
 
     /// When the reference image rotates, do the anatomical coordinate axes (LPS, RAI)
     /// and crosshairs rotate, too? When this option is true, the rotation of the

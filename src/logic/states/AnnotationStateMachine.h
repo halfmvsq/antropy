@@ -90,7 +90,9 @@ protected:
     virtual void react( const CloseNewAnnotationEvent& ) {}
     virtual void react( const UndoVertexEvent& ) {}
     virtual void react( const CancelNewAnnotationEvent& ) {}
+    virtual void react( const InsertVertexEvent& ) {}
     virtual void react( const RemoveSelectedVertexEvent& ) {}
+    virtual void react( const RemoveSelectedAnnotationEvent& ) {}
 
 
     /***** Start helper functions used in multiple states *****/
@@ -125,8 +127,9 @@ protected:
     /**
      * @brief Select the view hit by the mouse
      * @param[in] hit Mouse hit
+     * @return True iff a view was selected
      */
-    void selectView( const ViewHit& hit );
+    bool selectView( const ViewHit& hit );
 
     /**
      * @brief Deselect the vertex and/or annotation
@@ -169,6 +172,12 @@ protected:
     void undoLastVertexOfGrowingPolygon();
 
     /**
+     * @brief Inserts a vertex into the active/selected annotation polygon after the
+     * currently selected vertex. Moves the selection to the newly inserted vertex.
+     */
+    void insertVertex();
+
+    /**
      * @brief Removes the selected vertex of the active/selected annotation polygon
      * and moves the selection to the prior vertex, if one exists. If the polygon has no
      * vertices following removal, then the whole annotation is removed.
@@ -180,6 +189,11 @@ protected:
      * @param[in] hit Mouse hit
      */
     void moveSelectedVertex( const ViewHit& hit );
+
+    /**
+     * @brief Removes the selected polygon of the active image.
+     */
+    void removeSelectedPolygon();
 
     /**
      * @brief Move the selected polygon according to the mouse movement

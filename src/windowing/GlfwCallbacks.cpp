@@ -199,12 +199,24 @@ void cursorPosCallback( GLFWwindow* window, double mindowCursorPosX, double mind
 
         if ( s_mouseButtonState.left )
         {
-            if ( app->appData().settings().crosshairsMoveWithAnnotationPointCreation() )
+            if ( app->appData().settings().crosshairsMoveWhileAnnotating() &&
+                 state::isInStateWhereCrosshairsCanMove() )
             {
                 handler.doCrosshairsMove( *currHit_invalidOutsideView );
             }
-
-            handler.doAnnotate( *currHit_invalidOutsideView );
+        }
+        else if ( s_mouseButtonState.right )
+        {
+            if ( ! currHit_withOverride ) break;
+            handler.doCameraZoomDrag(
+                        *s_startHit, *s_prevHit, *currHit_withOverride,
+                        ZoomBehavior::ToCrosshairs,
+                        syncZoomsForAllViews( s_modifierState ) );
+        }
+        else if ( s_mouseButtonState.middle )
+        {
+            if ( ! currHit_withOverride ) break;
+            handler.doCameraTranslate2d( *s_startHit, *s_prevHit, *currHit_withOverride );
         }
         break;
     }
@@ -381,7 +393,6 @@ void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
     }
     case GLFW_RELEASE:
     {
-        // app->state().setMouseMode( MouseMode::Nothing );
         app->appData().windowData().setActiveViewUid( std::nullopt );
 
         send_event( state::MouseReleaseEvent(

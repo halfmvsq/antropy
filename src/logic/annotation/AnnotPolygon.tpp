@@ -2,8 +2,6 @@
 #define POLYGON_TPP
 
 #include "common/AABB.h"
-#include "common/UuidUtility.h"
-
 #include "logic/annotation/BezierHelper.h"
 
 #include <spdlog/spdlog.h>
@@ -12,8 +10,6 @@
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/string_cast.hpp>
-
-#include <uuid.h>
 
 #include <limits>
 #include <optional>
@@ -55,7 +51,6 @@ public:
           m_smoothed( false ),
           m_smoothingFactor( 0.1f ),
           m_triangulation(),
-//          m_currentUid(),
           m_aabb( std::nullopt ),
           m_centroid( 0 )
     {}
@@ -69,7 +64,6 @@ public:
     {
         m_vertices = std::move( vertices );
         m_triangulation.clear();
-//        m_currentUid = generateRandomUuid();
 
         computeAABBox();
         computeCentroid();
@@ -135,7 +129,6 @@ public:
 
         m_vertices.at( boundary ) = std::move( vertices );
         m_triangulation.clear();
-//        m_currentUid = generateRandomUuid();
 
         if ( 0 == boundary )
         {
@@ -170,7 +163,6 @@ public:
         boundaryVertices[vertexIndex] = vertex;
 
         m_triangulation.clear();
-//        m_currentUid = generateRandomUuid();
 
         if ( 0 == boundary )
         {
@@ -204,11 +196,38 @@ public:
         }
         else
         {
-            m_vertices[boundary].emplace_back( std::move( vertex ) );
+            m_vertices[boundary].emplace_back( vertex );
         }
 
         m_triangulation.clear();
-//        m_currentUid = generateRandomUuid();
+
+        if ( 0 == boundary )
+        {
+            computeAABBox();
+            updateCentroid();
+            computeBezier();
+        }
+
+        return true;
+    }
+
+
+    /// Insert a vertex into a given boundary after a given vertex, where 0 refers to the outer boundary;
+    /// boundaries >= 1 are for holes.
+    bool insertVertexIntoBoundary( size_t boundary, size_t vertexIndex, const PointType& vertex )
+    {
+        if ( boundary >= m_vertices.size() )
+        {
+            spdlog::error( "Unable to insert vertex {} into invalid boundary {}",
+                           glm::to_string( vertex ), boundary );
+            return false;
+        }
+        else if ( vertexIndex < m_vertices[boundary].size() )
+        {
+            m_vertices[boundary].insert( std::begin( m_vertices[boundary] ) + vertexIndex, vertex );
+        }
+
+        m_triangulation.clear();
 
         if ( 0 == boundary )
         {
@@ -234,7 +253,6 @@ public:
         }
 
         m_triangulation.clear();
-//        m_currentUid = generateRandomUuid();
 
         computeAABBox();
         computeCentroid();
@@ -255,7 +273,6 @@ public:
         }
 
         m_triangulation.clear();
-//        m_currentUid = generateRandomUuid();
 
         computeAABBox();
         updateCentroid();
@@ -293,7 +310,6 @@ public:
         m_vertices.at( boundary ).erase( iter );
 
         m_triangulation.clear();
-//        m_currentUid = generateRandomUuid();
 
         if ( 0 == boundary )
         {
@@ -314,7 +330,6 @@ public:
         {
             m_vertices.emplace_back( std::move( vertices ) );
             m_triangulation.clear();
-//            m_currentUid = generateRandomUuid();
             return true;
         }
 
@@ -428,7 +443,6 @@ public:
     void setTriangulation( std::vector<size_t> indices )
     {
         m_triangulation = std::move( indices );
-//        m_currentUid = generateRandomUuid();
     }
 
 
@@ -468,22 +482,6 @@ public:
         // Every three indices make a triangle
         return m_triangulation.size() / 3;
     }
-
-
-    /// Get the unique ID that is re-generated every time anything changes for this polygon,
-    /// including vertices and triangulation.
-//    uuids::uuid getCurrentUid() const
-//    {
-//        return m_currentUid;
-//    }
-
-
-    /// Return true iff this polygon equals (in terms of both vertices and triangulation)
-    /// another polygon. The comparison is done based on unique IDs of the polygons.
-//    bool equals( const AnnotPolygon& otherPolygon ) const
-//    {
-//        return ( m_currentUid == otherPolygon.getCurrentUid() );
-//    }
 
 
 private:
@@ -596,10 +594,6 @@ private:
     /// Vector of indices that refer to the vertices of the input polygon.
     /// Three consecutive indices form a clockwise triangle.
     std::vector<size_t> m_triangulation;
-
-    /// A unique ID that is re-generated every time anything changes for this polygon,
-    /// including vertices and triangulation.
-//    uuids::uuid m_currentUid;
 
     /// Axis-aligned bounding box of the polygon; set to none if the polygon is empty.
     std::optional<AABBoxType> m_aabb;

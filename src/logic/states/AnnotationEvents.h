@@ -30,7 +30,8 @@ struct MouseEvent : public tinyfsm::Event
 /// Mouse pointer pressed
 struct MousePressEvent : public MouseEvent
 {
-    MousePressEvent( const ViewHit& currHit, const ButtonState& b, const ModifierState& m )
+    MousePressEvent( const ViewHit& currHit,
+                     const ButtonState& b, const ModifierState& m )
         : MouseEvent( currHit, currHit, b, m ) {}
 
     ~MousePressEvent() override = default;
@@ -39,7 +40,8 @@ struct MousePressEvent : public MouseEvent
 /// Mouse pointer released
 struct MouseReleaseEvent : public MouseEvent
 {
-    MouseReleaseEvent( const ViewHit& currHit, const ButtonState& b, const ModifierState& m )
+    MouseReleaseEvent( const ViewHit& currHit,
+                       const ButtonState& b, const ModifierState& m )
         : MouseEvent( currHit, currHit, b, m ) {}
 
     ~MouseReleaseEvent() override = default;
@@ -78,8 +80,14 @@ struct UndoVertexEvent : public tinyfsm::Event {};
 /// User wants to cancel creating the new annotation that is currently in progress
 struct CancelNewAnnotationEvent : public tinyfsm::Event {};
 
+/// User wants to insert a new vertex following the currently selected annotation vertex
+struct InsertVertexEvent : public tinyfsm::Event {};
+
 /// User wants to remove the currently selected annotation vertex
 struct RemoveSelectedVertexEvent : public tinyfsm::Event {};
+
+/// User wants to remove the currently selected annotation
+struct RemoveSelectedAnnotationEvent : public tinyfsm::Event {};
 
 } // namespace state
 

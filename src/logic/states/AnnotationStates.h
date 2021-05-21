@@ -51,6 +51,7 @@ class StandbyState : public AnnotationStateMachine
 
     void react( const TurnOffAnnotationModeEvent& ) override;
     void react( const CreateNewAnnotationEvent& ) override;
+    void react( const RemoveSelectedAnnotationEvent& ) override;
 };
 
 /**
@@ -102,7 +103,9 @@ class VertexSelectedState : public AnnotationStateMachine
     void react( const MouseMoveEvent& ) override;
 
     void react( const TurnOffAnnotationModeEvent& ) override;
+    void react( const InsertVertexEvent& ) override;
     void react( const RemoveSelectedVertexEvent& ) override;
+    void react( const RemoveSelectedAnnotationEvent& ) override;
 };
 
 } // namespace state

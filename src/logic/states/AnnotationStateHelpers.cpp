@@ -2,6 +2,8 @@
 #include "logic/states/AnnotationStateMachine.h"
 #include "logic/states/AnnotationStates.h"
 
+#include "common/DataHelper.h"
+
 #include "logic/annotation/Annotation.h"
 #include "logic/app/Data.h"
 
@@ -21,10 +23,9 @@ bool isInStateWhereAnnotationHighlightsAreVisible()
 
 bool isInStateWhereVertexHighlightsAreVisible()
 {
-    if ( ASM::is_in_state<StandbyState>() ||
+    if ( isInStateWhereAnnotationHighlightsAreVisible() ||
          ASM::is_in_state<CreatingNewAnnotationState>() ||
-         ASM::is_in_state<AddingVertexToNewAnnotationState>() ||
-         ASM::is_in_state<VertexSelectedState>() )
+         ASM::is_in_state<AddingVertexToNewAnnotationState>() )
     {
         return true;
     }
@@ -38,6 +39,19 @@ bool isInStateWhereViewsCanScroll()
          ASM::is_in_state<StandbyState>() ||
          ASM::is_in_state<CreatingNewAnnotationState>() ||
          ASM::is_in_state<VertexSelectedState>() )
+    {
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @todo There are many edge cases to capture here.
+ * For now, crosshairs movement is disabled while annotating.
+  */
+bool isInStateWhereCrosshairsCanMove()
+{
+    if ( ASM::is_in_state<AnnotationOffState>() )
     {
         return true;
     }
@@ -145,11 +159,30 @@ bool showToolbarCancelButton()
     return false;
 }
 
+bool showToolbarInsertVertexButton()
+{
+    if ( ASM::is_in_state<VertexSelectedState>() )
+    {
+        return true;
+    }
+    return false;
+}
+
 bool showToolbarRemoveSelectedVertexButton()
 {
     if ( ASM::is_in_state<VertexSelectedState>() )
     {
         return true;
+    }
+    return false;
+}
+
+bool showToolbarRemoveSelectedAnnotationButton()
+{
+    if ( ASM::is_in_state<StandbyState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
+    {
+        return ( ASM::appData() && data::isAnnotationSelected( *ASM::appData() ) );
     }
     return false;
 }

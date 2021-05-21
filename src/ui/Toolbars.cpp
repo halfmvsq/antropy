@@ -1315,8 +1315,65 @@ void renderAnnotationToolbar(
 
         bool needsSpace = false;
 
+
+        if ( state::showToolbarInsertVertexButton() )
+        {
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_remove = std::string( ICON_FK_PLUS_SQUARE_O ) + " Insert vertex";
+
+                if ( ImGui::Button( sk_remove.c_str() ) )
+                {
+                    send_event( state::InsertVertexEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Insert a vertex after the selected polygon vertex" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
+        if ( state::showToolbarRemoveSelectedVertexButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_remove = std::string( ICON_FK_MINUS_SQUARE_O ) + " Remove vertex";
+
+                if ( ImGui::Button( sk_remove.c_str() ) )
+                {
+                    send_event( state::RemoveSelectedVertexEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Remove the selected polygon vertex" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
         if ( state::showToolbarCreateButton() )
         {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
@@ -1327,7 +1384,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Create a new annotation polygon" );
+                    ImGui::SetTooltip( "%s", "Create a new polygon" );
                 }
                 ++id;
             }
@@ -1355,7 +1412,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Complete the annotation polygon" );
+                    ImGui::SetTooltip( "%s", "Complete the polygon" );
                 }
                 ++id;
             }
@@ -1383,7 +1440,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Close the annotation polygon" );
+                    ImGui::SetTooltip( "%s", "Close the polygon" );
                 }
                 ++id;
             }
@@ -1411,7 +1468,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Undo the last annotation polygon vertex" );
+                    ImGui::SetTooltip( "%s", "Undo the last polygon vertex" );
                 }
                 ++id;
             }
@@ -1439,7 +1496,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Cancel creating the annotation polygon" );
+                    ImGui::SetTooltip( "%s", "Cancel creating the polygon" );
                 }
                 ++id;
             }
@@ -1448,35 +1505,6 @@ void renderAnnotationToolbar(
             needsSpace = true;
         }
 
-        if ( state::showToolbarRemoveSelectedVertexButton() )
-        {
-            if ( needsSpace )
-            {
-                if ( isHoriz ) ImGui::SameLine();
-                ImGui::Dummy( buttonSpace );
-            }
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushID( id );
-            {
-                static const std::string sk_remove = std::string( ICON_FK_TIMES ) + " Remove vertex";
-
-                if ( ImGui::Button( sk_remove.c_str() ) )
-                {
-                    send_event( state::RemoveSelectedVertexEvent() );
-                }
-                if ( ImGui::IsItemHovered() )
-                {
-                    ImGui::SetTooltip( "%s", "Remove the annotation polygon vertex" );
-                }
-                ++id;
-            }
-            ImGui::PopID();
-
-            needsSpace = true;
-        }
-
-        /*
         if ( state::showToolbarRemoveSelectedAnnotationButton() )
         {
             if ( needsSpace )
@@ -1488,15 +1516,15 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_remove = std::string( ICON_FK_TRASH_O ) + " Remove";
+                static const std::string sk_remove = std::string( ICON_FK_TRASH_O ) + " Remove polygon";
 
                 if ( ImGui::Button( sk_remove.c_str() ) )
                 {
-                    send_event( state::RemoveSelectedVertexEvent() );
+                    send_event( state::RemoveSelectedAnnotationEvent() );
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Remove the annotation polygon vertex" );
+                    ImGui::SetTooltip( "%s", "Remove the selected polygon" );
                 }
                 ++id;
             }
@@ -1504,7 +1532,6 @@ void renderAnnotationToolbar(
 
             needsSpace = true;
         }
-        */
 
 
 #if 0
