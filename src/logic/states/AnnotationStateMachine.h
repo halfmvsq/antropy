@@ -186,9 +186,10 @@ protected:
 
     /**
      * @brief Move the selected vertex according to the mouse movement
-     * @param[in] hit Mouse hit
+     * @param[in] prevHit Previous mouse hit
+     * @param[in] currHit Current mouse hit
      */
-    void moveSelectedVertex( const ViewHit& hit );
+    void moveSelectedVertex( const ViewHit& prevHit, const ViewHit& currHit );
 
     /**
      * @brief Removes the selected polygon of the active image.

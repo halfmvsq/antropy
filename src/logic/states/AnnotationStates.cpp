@@ -175,35 +175,6 @@ void CreatingNewAnnotationState::react( const MousePressEvent& e )
 void CreatingNewAnnotationState::react( const MouseMoveEvent& e )
 {
     hoverAnnotationAndVertex( e.m_currHit );
-
-    /*
-    // Only create/edit points on the outer polygon boundary for now
-    static constexpr size_t OUTER_BOUNDARY = 0;
-
-    if ( ! ms_annotBeingCreatedUid )
-    {
-        spdlog::warn( "No active annotation for which to move first vertex" );
-        return;
-    }
-
-    spdlog::trace( "ReadyToCreateState::react( const MousePressEvent& e )" );
-
-    if ( ! checkAppData() ) return false;
-
-    if ( ! ms_selectedViewUid )
-    {
-        spdlog::error( "No selected in which to create annotation" );
-        transit<ViewBeingSelectedState>();
-        return;
-    }
-
-    if ( *ms_selectedViewUid != e.m_currHit.viewUid )
-    {
-        // Mouse pointer is not in the view selected for creating annotation
-        spdlog::trace( "Mouse pointer is not in the view selected for creating annotation" );
-        return;
-    }
-    */
 }
 
 void CreatingNewAnnotationState::react( const MouseReleaseEvent& /*e*/ )
@@ -322,8 +293,7 @@ void VertexSelectedState::react( const MousePressEvent& e )
     {
         if ( ! selectAnnotationAndVertex( e.m_currHit ) )
         {
-            // Did not select a vertex, so try selecting an annotation and
-            // go to stand-by state
+            // Did not select a vertex, so try selecting an annotation and go to stand-by state
             selectAnnotation( e.m_currHit );
             transit<StandbyState>();
         }
@@ -344,7 +314,7 @@ void VertexSelectedState::react( const MouseMoveEvent& e )
 
     if ( e.buttonState.left )
     {
-        moveSelectedVertex( e.m_currHit );
+        moveSelectedVertex( e.m_prevHit, e.m_currHit );
     }
 }
 

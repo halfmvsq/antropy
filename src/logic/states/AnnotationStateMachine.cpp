@@ -646,12 +646,20 @@ void AnnotationStateMachine::removeSelectedVertex()
     }
 }
 
-void AnnotationStateMachine::moveSelectedVertex( const ViewHit& hit )
+void AnnotationStateMachine::moveSelectedVertex( const ViewHit& prevHit, const ViewHit& currHit )
 {
     if ( ! checkAppData() ) return;
-    if ( ! checkActiveImage( hit ) ) return;
+    if ( ! checkActiveImage( currHit ) ) return;
 
-    if ( ! hit.view ) return;
+    if ( ! currHit.view ) return;
+
+    // Don't move the vertex unless the mouse has moved
+    if ( glm::all( glm::epsilonEqual(
+                       prevHit.worldPos_offsetApplied,
+                       currHit.worldPos_offsetApplied, glm::epsilon<float>() ) ) )
+    {
+        return;
+    }
 
     if ( ! ms_selectedVertex )
     {
@@ -695,15 +703,15 @@ void AnnotationStateMachine::moveSelectedVertex( const ViewHit& hit )
     }
 
 
-    const Image* activeImage = checkActiveImage( hit );
+    const Image* activeImage = checkActiveImage( currHit );
     if ( ! activeImage ) return;
 
     const auto [subjectPlaneEquation, subjectPlanePoint] =
             math::computeSubjectPlaneEquation(
                 activeImage->transformations().subject_T_worldDef(),
-                -hit.worldFrontAxis, glm::vec3{ hit.worldPos_offsetApplied } );
+                -currHit.worldFrontAxis, glm::vec3{ currHit.worldPos_offsetApplied } );
 
-    const auto hitVertices = findHitVertices( hit );
+    const auto hitVertices = findHitVertices( currHit );
 
     const size_t N = annot->getBoundaryVertices( OUTER_BOUNDARY ).size();
     const bool hasMoreThanTwoVertices = ( N >= 2 );
@@ -766,7 +774,7 @@ void AnnotationStateMachine::moveSelectedVertex( const ViewHit& hit )
     if ( ! annot->polygon().setBoundaryVertex( OUTER_BOUNDARY, *ms_selectedVertex, annotPlanePoint ) )
     {
         spdlog::error( "Unable to move point {} of annotation {}",
-                       glm::to_string( hit.worldPos_offsetApplied ), *annotUid );
+                       glm::to_string( currHit.worldPos_offsetApplied ), *annotUid );
     }
 }
 
