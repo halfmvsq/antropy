@@ -10,6 +10,7 @@
 #include <functional>
 #include <optional>
 
+class Annotation;
 class Image;
 
 
@@ -58,6 +59,8 @@ void fillSegmentationWithPolygon(
 
         int64_t labelToPaint,
         int64_t labelToReplace,
+
+        const Annotation* annot,
 
         const std::function< void (
             const ComponentType& memoryComponentType, const glm::uvec3& offset,

@@ -69,7 +69,8 @@ public:
     void doSegment( const ViewHit& hit, bool swapFgAndBg );
 
     /**
-     * @brief paintActiveSegmentationWithAnnotation
+     * @brief Paint the active segmentation of the active image with the
+     * filled active annotation polygon. Do all of this in the annotation plane.
      */
     void paintActiveSegmentationWithAnnotation();
 

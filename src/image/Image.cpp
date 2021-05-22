@@ -954,12 +954,12 @@ bool Image::setValue( uint32_t component, int i, int j, int k, int64_t value )
 
     switch ( m_header.memoryComponentType() )
     {
-    case ComponentType::Int8:    m_data_int8.at(c)[offset] = static_cast<int8_t>( value ); return true;
-    case ComponentType::UInt8:   m_data_uint8.at(c)[offset] = static_cast<uint8_t>( value ); return true;
-    case ComponentType::Int16:   m_data_int16.at(c)[offset] = static_cast<int16_t>( value ); return true;
-    case ComponentType::UInt16:  m_data_uint16.at(c)[offset] = static_cast<uint16_t>( value ); return true;
-    case ComponentType::Int32:   m_data_int32.at(c)[offset] = static_cast<int32_t>( value ); return true;
-    case ComponentType::UInt32:  m_data_uint32.at(c)[offset] = static_cast<uint32_t>( value ); return true;
+    case ComponentType::Int8: m_data_int8.at(c)[offset] = static_cast<int8_t>( value ); return true;
+    case ComponentType::UInt8: m_data_uint8.at(c)[offset] = static_cast<uint8_t>( value ); return true;
+    case ComponentType::Int16: m_data_int16.at(c)[offset] = static_cast<int16_t>( value ); return true;
+    case ComponentType::UInt16: m_data_uint16.at(c)[offset] = static_cast<uint16_t>( value ); return true;
+    case ComponentType::Int32: m_data_int32.at(c)[offset] = static_cast<int32_t>( value ); return true;
+    case ComponentType::UInt32: m_data_uint32.at(c)[offset] = static_cast<uint32_t>( value ); return true;
     case ComponentType::Float32: m_data_float32.at(c)[offset] = static_cast<float>( value ); return true;
     default: return false;
     }
@@ -981,12 +981,12 @@ bool Image::setValue( uint32_t component, int i, int j, int k, double value )
 
     switch ( m_header.memoryComponentType() )
     {
-    case ComponentType::Int8:    m_data_int8.at(c)[offset] = static_cast<int8_t>( value ); return true;
-    case ComponentType::UInt8:   m_data_uint8.at(c)[offset] = static_cast<uint8_t>( value ); return true;
-    case ComponentType::Int16:   m_data_int16.at(c)[offset] = static_cast<int16_t>( value ); return true;
-    case ComponentType::UInt16:  m_data_uint16.at(c)[offset] = static_cast<uint16_t>( value ); return true;
-    case ComponentType::Int32:   m_data_int32.at(c)[offset] = static_cast<int32_t>( value ); return true;
-    case ComponentType::UInt32:  m_data_uint32.at(c)[offset] = static_cast<uint32_t>( value ); return true;
+    case ComponentType::Int8: m_data_int8.at(c)[offset] = static_cast<int8_t>( value ); return true;
+    case ComponentType::UInt8: m_data_uint8.at(c)[offset] = static_cast<uint8_t>( value ); return true;
+    case ComponentType::Int16: m_data_int16.at(c)[offset] = static_cast<int16_t>( value ); return true;
+    case ComponentType::UInt16: m_data_uint16.at(c)[offset] = static_cast<uint16_t>( value ); return true;
+    case ComponentType::Int32: m_data_int32.at(c)[offset] = static_cast<int32_t>( value ); return true;
+    case ComponentType::UInt32: m_data_uint32.at(c)[offset] = static_cast<uint32_t>( value ); return true;
     case ComponentType::Float32: m_data_float32.at(c)[offset] = static_cast<float>( value ); return true;
     default: return false;
     }

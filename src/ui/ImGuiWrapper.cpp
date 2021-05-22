@@ -6,8 +6,6 @@
 #include "ui/Widgets.h"
 #include "ui/Windows.h"
 
-#include "common/DataHelper.h"
-
 #include "logic/app/CallbackHandler.h"
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"

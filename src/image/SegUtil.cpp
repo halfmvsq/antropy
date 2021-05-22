@@ -1,6 +1,7 @@
 #include "image/SegUtil.h"
 #include "image/Image.h"
 
+#include "logic/annotation/Annotation.h"
 #include "logic/camera/MathUtility.h"
 
 #include <glm/glm.hpp>
@@ -372,4 +373,28 @@ void paintSegmentation(
     }
 
     updateSegTexture( seg->header().memoryComponentType(), dataOffset, dataSize, voxelValues.data() );
+}
+
+
+void fillSegmentationWithPolygon(
+        Image* /*seg*/,
+        const glm::ivec3& /*segDims*/,
+        const glm::vec3& /*segSpacing*/,
+
+        int64_t /*labelToPaint*/,
+        int64_t /*labelToReplace*/,
+
+        const Annotation* annot,
+
+        const std::function< void (
+            const ComponentType& memoryComponentType, const glm::uvec3& offset,
+            const glm::uvec3& size, const int64_t* data ) >& /*updateSegTexture*/ )
+{
+    /// @todo Implement algorithm for filling smoothed polygons.
+
+    if ( ! annot->isClosed() || annot->isSmoothed() )
+    {
+        spdlog::warn( "Cannot fill annotation polygon that is not closed and not smoothed." );
+        return;
+    }
 }

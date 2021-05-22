@@ -443,20 +443,51 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
 
 void CallbackHandler::paintActiveSegmentationWithAnnotation()
 {
-//    auto paintActiveAnnotation = [this]()
-//    {
-//        const auto selectedAnnotUid = data::getSelectedAnnotation( m_appData );
+    const auto activeImageUid = m_appData.activeImageUid();
+    if ( ! activeImageUid ) return;
 
-//        if ( const Annotation* annot = m_appData.annotation( *selectedAnnotUid ) )
-//        {
-//            // Only fill closed, non-smoothed annotation polygons
-//            /// @todo Implement algorithm for filling smoothed polygons.
-//            if ( annot->isClosed() && ! annot->isSmoothed() )
-//            {
+    const auto activeSegUid = m_appData.imageToActiveSegUid( *activeImageUid );
+    if ( ! activeSegUid ) return;
 
-//            }
-//        }
-//    };
+    Image* seg = m_appData.seg( *activeSegUid );
+    if ( ! seg ) return;
+
+    const auto activeAnnotUid = m_appData.imageToActiveAnnotationUid( *activeImageUid );
+    if ( ! activeAnnotUid ) return;
+
+    const Annotation* annot = m_appData.annotation( *activeAnnotUid );
+    if ( ! annot ) return;
+
+    /// @todo Implement algorithm for filling smoothed polygons.
+
+    if ( ! annot->isClosed() )
+    {
+        spdlog::warn( "Annotation {} is not closed and so cannot be filled to paint segmentation {}",
+                      *activeAnnotUid, *activeSegUid );
+        return;
+    }
+
+    if ( annot->isSmoothed() )
+    {
+        spdlog::warn( "Annotation {} is smoothed and so cannot be filled to paint segmentation {}",
+                      *activeAnnotUid, *activeSegUid );
+        return;
+    }
+
+    const int64_t labelToPaint = static_cast<int64_t>( m_appData.settings().foregroundLabel() );
+    const int64_t labelToReplace = static_cast<int64_t>( m_appData.settings().backgroundLabel() );
+
+    auto updateSegTexture = [this, &activeSegUid]
+            ( const ComponentType& memoryComponentType, const glm::uvec3& dataOffset,
+              const glm::uvec3& dataSize, const int64_t* data )
+    {
+        if ( ! activeSegUid ) return;
+        m_rendering.updateSegTexture( *activeSegUid, memoryComponentType, dataOffset, dataSize, data );
+    };
+
+    fillSegmentationWithPolygon(
+                seg, seg->header().pixelDimensions(), seg->header().spacing(),
+                labelToPaint, labelToReplace, annot, updateSegTexture );
 }
 
 void CallbackHandler::doWindowLevel( const ViewHit& prevHit, const ViewHit& currHit )
