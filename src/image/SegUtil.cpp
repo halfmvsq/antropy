@@ -8,7 +8,7 @@
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/component_wise.hpp>
 #include <glm/gtx/hash.hpp>
-#include <glm/gtx/string_cast.hpp>
+//#include <glm/gtx/string_cast.hpp>
 
 #include <spdlog/spdlog.h>
 #include <spdlog/fmt/ostr.h>
@@ -42,7 +42,7 @@ paintBrush2d(
         bool brushIsRound )
 {
     // Set of unique voxels to change:
-    std::unordered_set< glm::ivec3 > voxelToChange;
+    std::unordered_set< glm::ivec3 > voxelsToChange;
 
     // Min/max corners of the set of voxels to change:
     glm::ivec3 minVoxel{ std::numeric_limits<int>::max() };
@@ -62,13 +62,13 @@ paintBrush2d(
     // Queue of voxels to test for intersection with view plane
     std::queue< glm::ivec3 > voxelsToTest;
 
-    // Set of voxels that have been sent off for testing
+    // Set of voxels that have been sent off for testing:
     std::unordered_set< glm::ivec3 > voxelsProcessed;
 
-    // Set of voxels that intersect with view plane and that should be painted:
+    // Set of voxels that intersect with view plane and that should be painted
     std::unordered_set< glm::ivec3 > voxelsToPaint;
 
-    // Set of voxels that do not intersect with view plane or that should not be painted:
+    // Set of voxels that do not intersect with view plane or that should not be painted
     std::unordered_set< glm::ivec3 > voxelsToIgnore;
 
     // Insert the first voxel as a voxel to test, if it's inside the segmentation.
@@ -90,7 +90,7 @@ paintBrush2d(
         const glm::ivec3 q = voxelsToTest.front();
         voxelsToTest.pop();
 
-        // Check if the voxel is inside the brush:
+        // Check if the voxel is inside the brush
         const glm::vec3 d = q - roundedPixelPos;
 
         if ( ! brushIsRound )
@@ -149,13 +149,13 @@ paintBrush2d(
     // Create a unique set of voxels to change:
     for ( const auto& p : voxelsToPaint )
     {
-        voxelToChange.insert( p );
+        voxelsToChange.insert( p );
 
         minVoxel = glm::min( minVoxel, p );
         maxVoxel = glm::max( maxVoxel, p );
     }
 
-    return std::make_tuple( voxelToChange, minVoxel, maxVoxel );
+    return std::make_tuple( voxelsToChange, minVoxel, maxVoxel );
 }
 
 
@@ -214,9 +214,9 @@ paintBrush3d(
                 else
                 {
                     // Round brush: additional check that voxel is inside the sphere of radius N
-                    if ( ( ii * ii / ( mmToVoxelSpacings[0]*mmToVoxelSpacings[0] ) +
-                           jj * jj / ( mmToVoxelSpacings[1]*mmToVoxelSpacings[1] ) +
-                           kk * kk / ( mmToVoxelSpacings[2]*mmToVoxelSpacings[2] ) ) <= radius_f * radius_f )
+                    if ( ( ii * ii / ( mmToVoxelSpacings[0] * mmToVoxelSpacings[0] ) +
+                           jj * jj / ( mmToVoxelSpacings[1] * mmToVoxelSpacings[1] ) +
+                           kk * kk / ( mmToVoxelSpacings[2] * mmToVoxelSpacings[2] ) ) <= radius_f * radius_f )
                     {
                         voxelToChange.insert( p );
                         changed = true;
@@ -239,7 +239,6 @@ paintBrush3d(
 
 
 void paintSegmentation(
-        const uuids::uuid& segUid,
         Image* seg,
         const glm::ivec3& segDims,
         const glm::vec3& segSpacing,
@@ -256,9 +255,9 @@ void paintSegmentation(
         const glm::ivec3& roundedPixelPos,
         const glm::vec4& voxelViewPlane,
 
-        const std::function< void ( const uuids::uuid& segUid, const Image* seg,
-                                    const glm::uvec3& offset, const glm::uvec3& size,
-                                    const int64_t* data ) >& updateSegTexture )
+        const std::function< void (
+            const ComponentType& memoryComponentType, const glm::uvec3& offset,
+            const glm::uvec3& size, const int64_t* data ) >& updateSegTexture )
 {
     static constexpr size_t sk_comp = 0;
     static const glm::ivec3 sk_voxelOne{ 1, 1, 1 };
@@ -276,9 +275,9 @@ void paintSegmentation(
     if ( brushIsIsotropic )
     {
         // Compute factors that account for anisotropic spacing:
-        constexpr bool k_isotropicAlongMaxSpacingAxis = false;
+        static constexpr bool sk_isotropicAlongMaxSpacingAxis = false;
 
-        const float spacing = ( k_isotropicAlongMaxSpacingAxis )
+        const float spacing = ( sk_isotropicAlongMaxSpacingAxis )
                 ? glm::compMax( segSpacing )
                 : glm::compMin( segSpacing );
 
@@ -290,7 +289,7 @@ void paintSegmentation(
     }
 
     // Set of unique voxels to change:
-    std::unordered_set< glm::ivec3 > voxelToChange;
+    std::unordered_set< glm::ivec3 > voxelsToChange;
 
     // Min/max corners of the set of voxels to change
     glm::ivec3 maxVoxel{ std::numeric_limits<int>::lowest() };
@@ -298,13 +297,15 @@ void paintSegmentation(
 
     if ( brushIs3d )
     {
-        std::tie( voxelToChange, minVoxel, maxVoxel ) = paintBrush3d(
-                    segDims, roundedPixelPos, mmToVoxelSpacings, mmToVoxelCoeffs, brushSizeInVoxels, brushIsRound );
+        std::tie( voxelsToChange, minVoxel, maxVoxel ) = paintBrush3d(
+                    segDims, roundedPixelPos, mmToVoxelSpacings, mmToVoxelCoeffs,
+                    brushSizeInVoxels, brushIsRound );
     }
     else
     {
-        std::tie( voxelToChange, minVoxel, maxVoxel ) = paintBrush2d(
-                    voxelViewPlane, segDims, roundedPixelPos, mmToVoxelSpacings, brushSizeInVoxels, brushIsRound );
+        std::tie( voxelsToChange, minVoxel, maxVoxel ) = paintBrush2d(
+                    voxelViewPlane, segDims, roundedPixelPos, mmToVoxelSpacings,
+                    brushSizeInVoxels, brushIsRound );
     }
 
     // Create a rectangular block of contiguous voxel value data that will be set in the texture:
@@ -320,7 +321,7 @@ void paintSegmentation(
                 const glm::ivec3 p{ i, j, k };
                 voxelPositions.emplace_back( p );
 
-                if ( voxelToChange.count( p ) > 0 )
+                if ( voxelsToChange.count( p ) > 0 )
                 {
                     // Marked to change, so paint it:
                     if ( brushReplacesBgWithFg )
@@ -373,5 +374,5 @@ void paintSegmentation(
         seg->setValue( sk_comp, voxelPositions[i].x, voxelPositions[i].y, voxelPositions[i].z, voxelValues[i] );
     }
 
-    updateSegTexture( segUid, seg, dataOffset, dataSize, voxelValues.data() );
+    updateSegTexture( seg->header().memoryComponentType(), dataOffset, dataSize, voxelValues.data() );
 }

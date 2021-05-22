@@ -344,16 +344,6 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
 
     if ( ! hit.view ) return;
 
-    auto updateSegTexture = [this]
-            ( const uuids::uuid& segUid, const Image* seg,
-              const glm::uvec3& dataOffset, const glm::uvec3& dataSize,
-              const int64_t* data )
-    {
-        if ( ! seg ) return;
-        m_rendering.updateSegTexture( segUid, seg->header().memoryComponentType(),
-                                      dataOffset, dataSize, data );
-    };
-
     const auto activeImageUid = m_appData.activeImageUid();
     if ( ! activeImageUid ) return;
 
@@ -434,8 +424,15 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
         // View plane equation:
         const glm::vec4 voxelViewPlane = math::makePlane( voxelViewPlaneNormal, pixelPos3 );
 
+        auto updateSegTexture = [this, &segUid]
+                ( const ComponentType& memoryComponentType, const glm::uvec3& dataOffset,
+                  const glm::uvec3& dataSize, const int64_t* data )
+        {
+            m_rendering.updateSegTexture( segUid, memoryComponentType, dataOffset, dataSize, data );
+        };
+
         paintSegmentation(
-                    segUid, seg, dims, spacing,
+                    seg, dims, spacing,
                     labelToPaint, labelToReplace,
                     settings.replaceBackgroundWithForeground(),
                     settings.useRoundBrush(), settings.use3dBrush(), settings.useIsotropicBrush(),

@@ -1,6 +1,8 @@
 #ifndef SEG_UTILITY_H
 #define SEG_UTILITY_H
 
+#include "common/Types.h"
+
 #include <uuid.h>
 
 #include <glm/fwd.hpp>
@@ -11,8 +13,23 @@
 class Image;
 
 
+/**
+ * @brief paintSegmentation
+ * @param seg
+ * @param segDims
+ * @param segSpacing
+ * @param labelToPaint
+ * @param labelToReplace
+ * @param brushReplacesBgWithFg
+ * @param brushIsRound
+ * @param brushIs3d
+ * @param brushIsIsotropic
+ * @param brushSizeInVoxels
+ * @param roundedPixelPos
+ * @param voxelViewPlane
+ * @param updateSegTexture
+ */
 void paintSegmentation(
-        const uuids::uuid& segUid,
         Image* seg,
         const glm::ivec3& segDims,
         const glm::vec3& segSpacing,
@@ -29,8 +46,8 @@ void paintSegmentation(
         const glm::ivec3& roundedPixelPos,
         const glm::vec4& voxelViewPlane,
 
-        const std::function< void ( const uuids::uuid& segUid, const Image* seg,
-                                    const glm::uvec3& offset, const glm::uvec3& size,
-                                    const int64_t* data ) >& updateSegTexture );
+        const std::function< void (
+            const ComponentType& memoryComponentType, const glm::uvec3& offset,
+            const glm::uvec3& size, const int64_t* data ) >& updateSegTexture );
 
 #endif // SEG_UTILITY_H
