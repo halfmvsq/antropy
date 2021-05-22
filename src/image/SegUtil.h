@@ -17,8 +17,6 @@ class Image;
 /**
  * @brief paintSegmentation
  * @param seg
- * @param segDims
- * @param segSpacing
  * @param labelToPaint
  * @param labelToReplace
  * @param brushReplacesBgWithFg
@@ -32,8 +30,6 @@ class Image;
  */
 void paintSegmentation(
         Image* seg,
-        const glm::ivec3& segDims,
-        const glm::vec3& segSpacing,
 
         int64_t labelToPaint,
         int64_t labelToReplace,
@@ -54,13 +50,11 @@ void paintSegmentation(
 
 void fillSegmentationWithPolygon(
         Image* seg,
-        const glm::ivec3& segDims,
-        const glm::vec3& segSpacing,
+        const Annotation* annot,
 
         int64_t labelToPaint,
         int64_t labelToReplace,
-
-        const Annotation* annot,
+        bool brushReplacesBgWithFg,
 
         const std::function< void (
             const ComponentType& memoryComponentType, const glm::uvec3& offset,

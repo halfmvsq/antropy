@@ -401,7 +401,6 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
         Image* seg = m_appData.seg( segUid );
         if ( ! seg ) continue;
 
-        const glm::vec3 spacing{ seg->header().spacing() };
         const glm::ivec3 dims{ seg->header().pixelDimensions() };
 
         // Use the offset position, so that the user can paint in any offset view of a lightbox layout:
@@ -432,8 +431,7 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
         };
 
         paintSegmentation(
-                    seg, dims, spacing,
-                    labelToPaint, labelToReplace,
+                    seg, labelToPaint, labelToReplace,
                     settings.replaceBackgroundWithForeground(),
                     settings.useRoundBrush(), settings.use3dBrush(), settings.useIsotropicBrush(),
                     brushSize, roundedPixelPos,
@@ -474,9 +472,6 @@ void CallbackHandler::paintActiveSegmentationWithAnnotation()
         return;
     }
 
-    const int64_t labelToPaint = static_cast<int64_t>( m_appData.settings().foregroundLabel() );
-    const int64_t labelToReplace = static_cast<int64_t>( m_appData.settings().backgroundLabel() );
-
     auto updateSegTexture = [this, &activeSegUid]
             ( const ComponentType& memoryComponentType, const glm::uvec3& dataOffset,
               const glm::uvec3& dataSize, const int64_t* data )
@@ -486,8 +481,11 @@ void CallbackHandler::paintActiveSegmentationWithAnnotation()
     };
 
     fillSegmentationWithPolygon(
-                seg, seg->header().pixelDimensions(), seg->header().spacing(),
-                labelToPaint, labelToReplace, annot, updateSegTexture );
+                seg, annot,
+                static_cast<int64_t>( m_appData.settings().foregroundLabel() ),
+                static_cast<int64_t>( m_appData.settings().backgroundLabel() ),
+                m_appData.settings().replaceBackgroundWithForeground(),
+                updateSegTexture );
 }
 
 void CallbackHandler::doWindowLevel( const ViewHit& prevHit, const ViewHit& currHit )

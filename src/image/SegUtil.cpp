@@ -1,6 +1,8 @@
 #include "image/SegUtil.h"
 #include "image/Image.h"
 
+#include "common/MathFuncs.h"
+
 #include "logic/annotation/Annotation.h"
 #include "logic/camera/MathUtility.h"
 
@@ -233,78 +235,23 @@ paintBrush3d(
     return std::make_tuple( voxelToChange, minVoxel, maxVoxel );
 }
 
-} // anonymous
 
-
-void paintSegmentation(
-        Image* seg,
-        const glm::ivec3& segDims,
-        const glm::vec3& segSpacing,
+void updateSeg(
+        const std::unordered_set< glm::ivec3 >& voxelsToChange,
+        const glm::ivec3& minVoxel,
+        const glm::ivec3& maxVoxel,
 
         int64_t labelToPaint,
         int64_t labelToReplace,
-
         bool brushReplacesBgWithFg,
-        bool brushIsRound,
-        bool brushIs3d,
-        bool brushIsIsotropic,
-        int brushSizeInVoxels,
 
-        const glm::ivec3& roundedPixelPos,
-        const glm::vec4& voxelViewPlane,
-
+        Image* seg,
         const std::function< void (
             const ComponentType& memoryComponentType, const glm::uvec3& offset,
             const glm::uvec3& size, const int64_t* data ) >& updateSegTexture )
 {
     static constexpr size_t sk_comp = 0;
     static const glm::ivec3 sk_voxelOne{ 1, 1, 1 };
-
-    // Set the brush radius (not including the central voxel): Radius = (brush width - 1) / 2
-    // A single voxel brush has radius zero, a width 3 voxel brush has radius 1,
-    // a width 5 voxel brush has radius 2, etc.
-
-    // Coefficients that convert mm to voxel spacing:
-    std::array<float, 3> mmToVoxelSpacings{ 1.0f, 1.0f, 1.0f };
-
-    // Integer versions of the mm to voxel coefficients:
-    std::array<int, 3> mmToVoxelCoeffs{ 1, 1, 1 };
-
-    if ( brushIsIsotropic )
-    {
-        // Compute factors that account for anisotropic spacing:
-        static constexpr bool sk_isotropicAlongMaxSpacingAxis = false;
-
-        const float spacing = ( sk_isotropicAlongMaxSpacingAxis )
-                ? glm::compMax( segSpacing )
-                : glm::compMin( segSpacing );
-
-        for ( uint32_t i = 0; i < 3; ++i )
-        {
-            mmToVoxelSpacings[i] = spacing / segSpacing[static_cast<int>(i)];
-            mmToVoxelCoeffs[i] = std::max( static_cast<int>( std::ceil( mmToVoxelSpacings[i] ) ), 1 );
-        }
-    }
-
-    // Set of unique voxels to change:
-    std::unordered_set< glm::ivec3 > voxelsToChange;
-
-    // Min/max corners of the set of voxels to change
-    glm::ivec3 maxVoxel{ std::numeric_limits<int>::lowest() };
-    glm::ivec3 minVoxel{ std::numeric_limits<int>::max() };
-
-    if ( brushIs3d )
-    {
-        std::tie( voxelsToChange, minVoxel, maxVoxel ) = paintBrush3d(
-                    segDims, roundedPixelPos, mmToVoxelSpacings, mmToVoxelCoeffs,
-                    brushSizeInVoxels, brushIsRound );
-    }
-    else
-    {
-        std::tie( voxelsToChange, minVoxel, maxVoxel ) = paintBrush2d(
-                    voxelViewPlane, segDims, roundedPixelPos, mmToVoxelSpacings,
-                    brushSizeInVoxels, brushIsRound );
-    }
 
     // Create a rectangular block of contiguous voxel value data that will be set in the texture:
     std::vector< glm::ivec3 > voxelPositions;
@@ -375,26 +322,131 @@ void paintSegmentation(
     updateSegTexture( seg->header().memoryComponentType(), dataOffset, dataSize, voxelValues.data() );
 }
 
+} // anonymous
 
-void fillSegmentationWithPolygon(
-        Image* /*seg*/,
-        const glm::ivec3& /*segDims*/,
-        const glm::vec3& /*segSpacing*/,
 
-        int64_t /*labelToPaint*/,
-        int64_t /*labelToReplace*/,
+void paintSegmentation(
+        Image* seg,
 
-        const Annotation* annot,
+        int64_t labelToPaint,
+        int64_t labelToReplace,
+        bool brushReplacesBgWithFg,
+        bool brushIsRound,
+        bool brushIs3d,
+        bool brushIsIsotropic,
+        int brushSizeInVoxels,
+
+        const glm::ivec3& roundedPixelPos,
+        const glm::vec4& voxelViewPlane,
 
         const std::function< void (
             const ComponentType& memoryComponentType, const glm::uvec3& offset,
-            const glm::uvec3& size, const int64_t* data ) >& /*updateSegTexture*/ )
+            const glm::uvec3& size, const int64_t* data ) >& updateSegTexture )
 {
+    // Set the brush radius (not including the central voxel): Radius = (brush width - 1) / 2
+    // A single voxel brush has radius zero, a width 3 voxel brush has radius 1,
+    // a width 5 voxel brush has radius 2, etc.
+
+    // Coefficients that convert mm to voxel spacing:
+    std::array<float, 3> mmToVoxelSpacings{ 1.0f, 1.0f, 1.0f };
+
+    // Integer versions of the mm to voxel coefficients:
+    std::array<int, 3> mmToVoxelCoeffs{ 1, 1, 1 };
+
+    if ( brushIsIsotropic )
+    {
+        // Compute factors that account for anisotropic spacing:
+        static constexpr bool sk_isotropicAlongMaxSpacingAxis = false;
+
+        const float spacing = ( sk_isotropicAlongMaxSpacingAxis )
+                ? glm::compMax( seg->header().spacing() )
+                : glm::compMin( seg->header().spacing() );
+
+        for ( uint32_t i = 0; i < 3; ++i )
+        {
+            mmToVoxelSpacings[i] = spacing / seg->header().spacing()[static_cast<int>(i)];
+            mmToVoxelCoeffs[i] = std::max( static_cast<int>( std::ceil( mmToVoxelSpacings[i] ) ), 1 );
+        }
+    }
+
+    // Set of unique voxels to change:
+    std::unordered_set< glm::ivec3 > voxelsToChange;
+
+    // Min/max corners of the set of voxels to change
+    glm::ivec3 maxVoxel{ std::numeric_limits<int>::lowest() };
+    glm::ivec3 minVoxel{ std::numeric_limits<int>::max() };
+
+    if ( brushIs3d )
+    {
+        std::tie( voxelsToChange, minVoxel, maxVoxel ) = paintBrush3d(
+                    seg->header().pixelDimensions(),
+                    roundedPixelPos, mmToVoxelSpacings, mmToVoxelCoeffs,
+                    brushSizeInVoxels, brushIsRound );
+    }
+    else
+    {
+        std::tie( voxelsToChange, minVoxel, maxVoxel ) = paintBrush2d(
+                    voxelViewPlane, seg->header().pixelDimensions(),
+                    roundedPixelPos, mmToVoxelSpacings,
+                    brushSizeInVoxels, brushIsRound );
+    }
+
+    updateSeg( voxelsToChange, minVoxel, maxVoxel,
+               labelToPaint, labelToReplace, brushReplacesBgWithFg,
+               seg, updateSegTexture );
+}
+
+
+void fillSegmentationWithPolygon(
+        Image* seg,
+        const Annotation* annot,
+
+        int64_t labelToPaint,
+        int64_t labelToReplace,
+        bool brushReplacesBgWithFg,
+
+        const std::function< void (
+            const ComponentType& memoryComponentType, const glm::uvec3& offset,
+            const glm::uvec3& size, const int64_t* data ) >& updateSegTexture )
+{
+//    static constexpr size_t OUTER_BOUNDARY = 0;
+
     /// @todo Implement algorithm for filling smoothed polygons.
+
+//    const glm::vec3 segSpacing{ seg->header().spacing() };
+//    const glm::ivec3 segDims{ seg->header().pixelDimensions() };
 
     if ( ! annot->isClosed() || annot->isSmoothed() )
     {
         spdlog::warn( "Cannot fill annotation polygon that is not closed and not smoothed." );
         return;
     }
+
+
+    // Create a rectangular block of contiguous voxel value data that will be set in the texture:
+//    std::vector< glm::ivec3 > voxelPositions;
+//    std::vector< int64_t > voxelValues;
+
+    // Annotation plane equation in Subject space
+//    const glm::vec4 subjectPlane = annot->getSubjectPlaneEquation();
+
+    // Polygon vertices in the space of the annotation plane
+//    const std::vector<glm::vec2> annotPlaneVertices = annot->getBoundaryVertices( OUTER_BOUNDARY );
+
+
+//    glm::vec2 annotPlanePoint;
+//    glm::vec3 subjectPoint = annot->unprojectFromAnnotationPlaneToSubjectPoint( annotPlanePoint );
+
+    //    pnpoly
+
+    // Set of unique voxels to change:
+    std::unordered_set< glm::ivec3 > voxelsToChange;
+
+    // Min/max corners of the set of voxels to change
+    glm::ivec3 maxVoxel{ std::numeric_limits<int>::lowest() };
+    glm::ivec3 minVoxel{ std::numeric_limits<int>::max() };
+
+    updateSeg( voxelsToChange, minVoxel, maxVoxel,
+               labelToPaint, labelToReplace, brushReplacesBgWithFg,
+               seg, updateSegTexture );
 }
