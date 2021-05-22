@@ -411,6 +411,21 @@ void fillSegmentationWithPolygon(
 {
 //    static constexpr size_t OUTER_BOUNDARY = 0;
 
+    //   const glm::ivec3 dims{ seg->header().pixelDimensions() };
+    const glm::mat4& pixel_T_subject = seg->transformations().pixel_T_subject();
+
+    // Convert from space of the annotation plane to Subject space
+    auto convertPointFromAnnotPlaneToRoundedSegPixelCoords =
+            [&pixel_T_subject, &annot] ( const glm::vec2& annotPlanePos )
+    {
+        const glm::vec4 subjectPos{ annot->unprojectFromAnnotationPlaneToSubjectPoint( annotPlanePos ), 1.0f };
+        const glm::vec4 pixelPos = pixel_T_subject * subjectPos;
+        const glm::vec3 pixelPos3 = pixelPos / pixelPos.w;
+        const glm::ivec3 roundedPixelPos{ glm::round( pixelPos3 ) };
+        return roundedPixelPos;
+    };
+
+
     /// @todo Implement algorithm for filling smoothed polygons.
 
 //    const glm::vec3 segSpacing{ seg->header().spacing() };
@@ -423,19 +438,54 @@ void fillSegmentationWithPolygon(
     }
 
 
-    // Create a rectangular block of contiguous voxel value data that will be set in the texture:
-//    std::vector< glm::ivec3 > voxelPositions;
-//    std::vector< int64_t > voxelValues;
 
-    // Annotation plane equation in Subject space
-//    const glm::vec4 subjectPlane = annot->getSubjectPlaneEquation();
+   // Min and max corners of the polygon AABB in annotation plane space:
+   const auto aabb = annot->polygon().getAABBox();
+   if ( ! aabb ) return;
+
+   const glm::vec2 annotPlaneAabbMinCorner = aabb->first;
+   const glm::vec2 annotPlaneAabbMaxCorner = aabb->second;
+
+   // Four corners of the AABB in annotation plane space:
+   const glm::vec2 annotPlaneCorner1{ annotPlaneAabbMinCorner.x, annotPlaneAabbMinCorner.y };
+   const glm::vec2 annotPlaneCorner2{ annotPlaneAabbMaxCorner.x, annotPlaneAabbMinCorner.y };
+   const glm::vec2 annotPlaneCorner3{ annotPlaneAabbMaxCorner.x, annotPlaneAabbMaxCorner.y };
+   const glm::vec2 annotPlaneCorner4{ annotPlaneAabbMinCorner.x, annotPlaneAabbMaxCorner.y };
+
+   // Convert the four corners to segmentation Pixel space (rounded):
+//   const glm::ivec3 pixelAabbMinCorner1 = convertPointFromAnnotPlaneToRoundedSegPixelCoords( annotPlaneCorner1 );
+//   const glm::ivec3 pixelAabbMaxCorner2 = convertPointFromAnnotPlaneToRoundedSegPixelCoords( annotPlaneCorner2 );
+//   const glm::ivec3 pixelAabbMaxCorner3 = convertPointFromAnnotPlaneToRoundedSegPixelCoords( annotPlaneCorner3 );
+//   const glm::ivec3 pixelAabbMaxCorner4 = convertPointFromAnnotPlaneToRoundedSegPixelCoords( annotPlaneCorner4 );
+
+   // Directions:
+//   const glm::vec3 pixelDirX = glm::normalize( glm::vec3{ pixelAabbMaxCorner2 - pixelAabbMinCorner1 } );
+//   const glm::vec3 pixelDirY = glm::normalize( glm::vec3{ pixelAabbMaxCorner4 - pixelAabbMinCorner1 } );
+
+
+
+   std::vector< glm::ivec3 > voxelsToPaint;
+
+   for ( float y = annotPlaneAabbMinCorner.y; y <= annotPlaneAabbMaxCorner.y; y += 0.1f )
+   {
+       for ( float x = annotPlaneAabbMinCorner.x; x <= annotPlaneAabbMaxCorner.x; x += 0.1f )
+       {
+           const glm::ivec3 a = convertPointFromAnnotPlaneToRoundedSegPixelCoords( glm::vec2{ x, y } );
+
+           voxelsToPaint.push_back( a );
+       }
+   }
+
+//   if ( glm::any( glm::lessThan( roundedPixelPos, sk_voxelZero ) ) ||
+//        glm::any( glm::greaterThanEqual( roundedPixelPos, dims ) ) )
+//   {
+//       continue; // This pixel is outside the image
+//   }
+
 
     // Polygon vertices in the space of the annotation plane
-//    const std::vector<glm::vec2> annotPlaneVertices = annot->getBoundaryVertices( OUTER_BOUNDARY );
+//    const std::vector<glm::vec2>& annotPlaneVertices = annot->getBoundaryVertices( OUTER_BOUNDARY );
 
-
-//    glm::vec2 annotPlanePoint;
-//    glm::vec3 subjectPoint = annot->unprojectFromAnnotationPlaneToSubjectPoint( annotPlanePoint );
 
     //    pnpoly
 
@@ -445,6 +495,13 @@ void fillSegmentationWithPolygon(
     // Min/max corners of the set of voxels to change
     glm::ivec3 maxVoxel{ std::numeric_limits<int>::lowest() };
     glm::ivec3 minVoxel{ std::numeric_limits<int>::max() };
+
+    for ( const auto& p : voxelsToPaint )
+    {
+        voxelsToChange.insert( p );
+        minVoxel = glm::min( minVoxel, p );
+        maxVoxel = glm::max( maxVoxel, p );
+    }
 
     updateSeg( voxelsToChange, minVoxel, maxVoxel,
                labelToPaint, labelToReplace, brushReplacesBgWithFg,

@@ -1546,7 +1546,7 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_remove = std::string( ICON_FK_PAINT_BRUSH ) + " Paint segmentation";
+                static const std::string sk_remove = std::string( ICON_FK_PAINT_BRUSH ) + " Fill";
 
                 if ( ImGui::Button( sk_remove.c_str() ) )
                 {
@@ -1554,7 +1554,7 @@ void renderAnnotationToolbar(
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Paint the image segmentation using the selected polygon" );
+                    ImGui::SetTooltip( "%s", "Fill the image segmentation using the selected polygon" );
                 }
                 ++id;
             }
