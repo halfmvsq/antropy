@@ -69,6 +69,11 @@ public:
     void doSegment( const ViewHit& hit, bool swapFgAndBg );
 
     /**
+     * @brief paintActiveSegmentationWithAnnotation
+     */
+    void paintActiveSegmentationWithAnnotation();
+
+    /**
      * @brief Adjust image window/level
      * @param windowLastPos
      * @param windowCurrPos

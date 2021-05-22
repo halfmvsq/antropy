@@ -113,7 +113,7 @@ glm::vec3 roundPointToNearestImageVoxelCenter(
 
 std::string getAnnotationSubjectPlaneName( const Annotation& );
 
-bool isAnnotationSelected( const AppData& appData );
+std::optional<uuids::uuid> getSelectedAnnotation( const AppData& appData );
 
 } // namespace data
 

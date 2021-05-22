@@ -42,6 +42,7 @@ void renderSegToolbar(
 
 void renderAnnotationToolbar(
         AppData& appData,
-        const camera::FrameBounds& mindowFrameBounds );
+        const camera::FrameBounds& mindowFrameBounds,
+        const std::function< void () > paintActiveAnnotation );
 
 #endif // UI_TOOLBARS_H

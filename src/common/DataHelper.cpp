@@ -505,24 +505,12 @@ std::string getAnnotationSubjectPlaneName( const Annotation& annotation )
 }
 
 
-bool isAnnotationSelected( const AppData& appData )
+std::optional<uuids::uuid> getSelectedAnnotation( const AppData& appData )
 {
     const auto activeImageUid = appData.activeImageUid();
-    if ( ! activeImageUid ) return false;
+    if ( ! activeImageUid ) return std::nullopt;
 
-    const auto annotUid = appData.imageToActiveAnnotationUid( *activeImageUid );
-    if ( ! annotUid )
-    {
-        return false;
-    }
-
-    if ( ! appData.annotation( *annotUid ) )
-    {
-        spdlog::warn( "Annotation {} is not valid", *annotUid );
-        return false;
-    }
-
-    return true;
+    return appData.imageToActiveAnnotationUid( *activeImageUid );
 }
 
 } // namespace data

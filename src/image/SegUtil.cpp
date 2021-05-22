@@ -41,15 +41,17 @@ paintBrush2d(
         int brushSizeInVoxels,
         bool brushIsRound )
 {
-    // Set of unique voxels to change:
-    std::unordered_set< glm::ivec3 > voxelsToChange;
+    // Queue of voxels to test for intersection with the view plane
+    std::queue< glm::ivec3 > voxelsToTest;
 
-    // Min/max corners of the set of voxels to change:
-    glm::ivec3 minVoxel{ std::numeric_limits<int>::max() };
-    glm::ivec3 maxVoxel{ std::numeric_limits<int>::lowest() };
+    // Set of voxels that have been sent off for testing
+    std::unordered_set< glm::ivec3 > voxelsProcessed;
 
-    const int radius_int = brushSizeInVoxels - 1;
-    const float radius_f = static_cast<float>( radius_int );
+    // Set of voxels that intersect with the view plane and that should be painted
+    std::unordered_set< glm::ivec3 > voxelsToPaint;
+
+    // Set of voxels that do not intersect with view plane or that should not be painted
+    std::unordered_set< glm::ivec3 > voxelsToIgnore;
 
     // Check if the voxel is inside the segmentation
     auto isVoxelInSeg = [&segDims] ( const glm::ivec3& voxelPos )
@@ -58,18 +60,6 @@ paintBrush2d(
                  voxelPos.y >= 0 && voxelPos.y < segDims.y &&
                  voxelPos.z >= 0 && voxelPos.z < segDims.z );
     };
-
-    // Queue of voxels to test for intersection with view plane
-    std::queue< glm::ivec3 > voxelsToTest;
-
-    // Set of voxels that have been sent off for testing:
-    std::unordered_set< glm::ivec3 > voxelsProcessed;
-
-    // Set of voxels that intersect with view plane and that should be painted
-    std::unordered_set< glm::ivec3 > voxelsToPaint;
-
-    // Set of voxels that do not intersect with view plane or that should not be painted
-    std::unordered_set< glm::ivec3 > voxelsToIgnore;
 
     // Insert the first voxel as a voxel to test, if it's inside the segmentation.
     // This voxel should intersect the view plane, since it was clicked by the mouse,
@@ -83,6 +73,8 @@ paintBrush2d(
     }
 
     std::array< glm::ivec3, 6 > neighbors;
+
+    const float radius = static_cast<float>( brushSizeInVoxels - 1 );
 
     // Loop over all voxels in the test queue
     while ( ! voxelsToTest.empty() )
@@ -98,7 +90,7 @@ paintBrush2d(
             // Equation for a rectangle:
             if ( std::max( std::max( std::abs( d.x / mmToVoxelSpacings[0] ),
                                      std::abs( d.y / mmToVoxelSpacings[1] ) ),
-                           std::abs( d.z / mmToVoxelSpacings[2] ) ) > radius_f )
+                           std::abs( d.z / mmToVoxelSpacings[2] ) ) > radius )
             {
                 voxelsToIgnore.insert( q );
                 continue;
@@ -108,7 +100,7 @@ paintBrush2d(
         {
             if ( ( d.x * d.x / ( mmToVoxelSpacings[0] * mmToVoxelSpacings[0] ) +
                    d.y * d.y / ( mmToVoxelSpacings[1] * mmToVoxelSpacings[1] ) +
-                   d.z * d.z / ( mmToVoxelSpacings[2] * mmToVoxelSpacings[2] ) ) > radius_f * radius_f )
+                   d.z * d.z / ( mmToVoxelSpacings[2] * mmToVoxelSpacings[2] ) ) > radius * radius )
             {
                 voxelsToIgnore.insert( q );
                 continue;
@@ -147,10 +139,15 @@ paintBrush2d(
     }
 
     // Create a unique set of voxels to change:
+    std::unordered_set< glm::ivec3 > voxelsToChange;
+
+    // Min/max corners of the set of voxels to change:
+    glm::ivec3 minVoxel{ std::numeric_limits<int>::max() };
+    glm::ivec3 maxVoxel{ std::numeric_limits<int>::lowest() };
+
     for ( const auto& p : voxelsToPaint )
     {
         voxelsToChange.insert( p );
-
         minVoxel = glm::min( minVoxel, p );
         maxVoxel = glm::max( maxVoxel, p );
     }

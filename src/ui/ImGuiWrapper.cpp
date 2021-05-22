@@ -6,6 +6,8 @@
 #include "ui/Widgets.h"
 #include "ui/Windows.h"
 
+#include "common/DataHelper.h"
+
 #include "logic/app/CallbackHandler.h"
 #include "logic/app/Data.h"
 #include "logic/camera/CameraHelpers.h"
@@ -70,7 +72,8 @@ ImGuiWrapper::ImGuiWrapper(
       m_removeSeg( nullptr ),
 
       m_executeGridCutsSeg( nullptr ),
-      m_setLockManualImageTransformation( nullptr )
+      m_setLockManualImageTransformation( nullptr ),
+      m_paintActiveSegmentationWithActivePolygon( nullptr )
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -125,7 +128,8 @@ void ImGuiWrapper::setCallbacks(
         std::function< bool ( const uuids::uuid& segUid ) > clearSeg,
         std::function< bool ( const uuids::uuid& segUid ) > removeSeg,
         std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) > executeGridCutsSeg,
-        std::function< bool ( const uuids::uuid& imageUid, bool locked ) > setLockManualImageTransformation )
+        std::function< bool ( const uuids::uuid& imageUid, bool locked ) > setLockManualImageTransformation,
+        std::function< void () > paintActiveSegmentationWithActivePolygon )
 {
     m_recenterView = recenterView;
     m_recenterAllViews = recenterCurrentViews;
@@ -148,6 +152,7 @@ void ImGuiWrapper::setCallbacks(
     m_removeSeg = removeSeg;
     m_executeGridCutsSeg = executeGridCutsSeg;
     m_setLockManualImageTransformation = setLockManualImageTransformation;
+    m_paintActiveSegmentationWithActivePolygon = paintActiveSegmentationWithActivePolygon;
 }
 
 
@@ -477,6 +482,7 @@ void ImGuiWrapper::render()
     };
 
 
+
     ImGui::NewFrame();
 
     if ( m_appData.guiData().m_renderUiWindows )
@@ -590,7 +596,7 @@ void ImGuiWrapper::render()
                     m_createBlankSeg,
                     m_executeGridCutsSeg );
 
-        annotationToolbar();
+        annotationToolbar( m_paintActiveSegmentationWithActivePolygon );
     }
 
 
@@ -743,7 +749,8 @@ void ImGuiWrapper::render()
 }
 
 
-void ImGuiWrapper::annotationToolbar()
+void ImGuiWrapper::annotationToolbar(
+        const std::function< void () > paintActiveAnnotation )
 {
     if ( ! state::isInStateWhereToolbarVisible() )
     {
@@ -768,7 +775,8 @@ void ImGuiWrapper::annotationToolbar()
 
     renderAnnotationToolbar(
                 m_appData,
-                mindowAnnotViewFrameBounds );
+                mindowAnnotViewFrameBounds,
+                paintActiveAnnotation );
 }
 
 

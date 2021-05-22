@@ -1274,7 +1274,9 @@ void AntropyApp::setCallbacks()
             [this] ( const uuids::uuid& imageUid, bool locked ) -> bool
             {
                 return m_callbackHandler.setLockManualImageTransformation( imageUid, locked );
-            }
+            },
+
+            [this] () { return m_callbackHandler.paintActiveSegmentationWithAnnotation(); }
     );
 }
 

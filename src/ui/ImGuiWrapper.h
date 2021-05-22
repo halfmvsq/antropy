@@ -43,7 +43,8 @@ public:
             std::function< bool ( const uuids::uuid& segUid ) > clearSeg,
             std::function< bool ( const uuids::uuid& segUid ) > removeSeg,
             std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) > m_executeGridCutsSeg,
-            std::function< bool ( const uuids::uuid& imageUid, bool locked ) > setLockManualImageTransformation );
+            std::function< bool ( const uuids::uuid& imageUid, bool locked ) > setLockManualImageTransformation,
+            std::function< void () > paintActiveSegmentationWithActivePolygon );
 
     void render();
 
@@ -52,7 +53,7 @@ private:
 
     void initializeData();
 
-    void annotationToolbar();
+    void annotationToolbar( const std::function< void () > paintActiveAnnotation );
     void menuBar();
 
     AppData& m_appData;
@@ -80,6 +81,7 @@ private:
     std::function< bool ( const uuids::uuid& segUid ) > m_removeSeg = nullptr;
     std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) > m_executeGridCutsSeg = nullptr;
     std::function< bool ( const uuids::uuid& imageUid, bool locked ) > m_setLockManualImageTransformation = nullptr;
+    std::function< void () > m_paintActiveSegmentationWithActivePolygon = nullptr;
 };
 
 #endif // IMGUI_WRAPPER_H

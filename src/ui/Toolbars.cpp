@@ -1252,7 +1252,8 @@ void renderSegToolbar(
 
 void renderAnnotationToolbar(
         AppData& /*appData*/,
-        const camera::FrameBounds& mindowFrameBounds )
+        const camera::FrameBounds& mindowFrameBounds,
+        const std::function< void () > paintActiveAnnotation )
 {
     // Always keep the toolbar open by setting this to null
     static bool* toolbarWindowOpen = nullptr;
@@ -1366,6 +1367,34 @@ void renderAnnotationToolbar(
             needsSpace = true;
         }
 
+        if ( state::showToolbarUndoButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_cancel = std::string( ICON_FK_UNDO ) + " Undo vertex";
+
+                if ( ImGui::Button( sk_cancel.c_str() ) )
+                {
+                    send_event( state::UndoVertexEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Undo the last polygon vertex" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
         if ( state::showToolbarCreateButton() )
         {
             if ( needsSpace )
@@ -1393,34 +1422,6 @@ void renderAnnotationToolbar(
             needsSpace = true;
         }
 
-        if ( state::showToolbarCompleteButton() )
-        {
-            if ( needsSpace )
-            {
-                if ( isHoriz ) ImGui::SameLine();
-                ImGui::Dummy( buttonSpace );
-            }
-
-            if ( isHoriz ) ImGui::SameLine();
-            ImGui::PushID( id );
-            {
-                static const std::string sk_complete = std::string( ICON_FK_CHECK ) + " Done";
-
-                if ( ImGui::Button( sk_complete.c_str() ) )
-                {
-                    send_event( state::CompleteNewAnnotationEvent() );
-                }
-                if ( ImGui::IsItemHovered() )
-                {
-                    ImGui::SetTooltip( "%s", "Complete the polygon" );
-                }
-                ++id;
-            }
-            ImGui::PopID();
-
-            needsSpace = true;
-        }
-
         if ( state::showToolbarCloseButton() )
         {
             if ( needsSpace )
@@ -1432,7 +1433,7 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_close = std::string( ICON_FK_CIRCLE_O_NOTCH ) + " Close";
+                static const std::string sk_close = std::string( ICON_FK_CIRCLE_O_NOTCH ) + " Close polygon";
 
                 if ( ImGui::Button( sk_close.c_str() ) )
                 {
@@ -1449,7 +1450,7 @@ void renderAnnotationToolbar(
             needsSpace = true;
         }
 
-        if ( state::showToolbarUndoButton() )
+        if ( state::showToolbarCompleteButton() )
         {
             if ( needsSpace )
             {
@@ -1460,15 +1461,15 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_cancel = std::string( ICON_FK_UNDO ) + " Undo vertex";
+                static const std::string sk_complete = std::string( ICON_FK_CHECK ) + " Complete";
 
-                if ( ImGui::Button( sk_cancel.c_str() ) )
+                if ( ImGui::Button( sk_complete.c_str() ) )
                 {
-                    send_event( state::UndoVertexEvent() );
+                    send_event( state::CompleteNewAnnotationEvent() );
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Undo the last polygon vertex" );
+                    ImGui::SetTooltip( "%s", "Complete the polygon" );
                 }
                 ++id;
             }
@@ -1525,6 +1526,35 @@ void renderAnnotationToolbar(
                 if ( ImGui::IsItemHovered() )
                 {
                     ImGui::SetTooltip( "%s", "Remove the selected polygon" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
+
+        if ( state::showToolbarFillButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_remove = std::string( ICON_FK_PAINT_BRUSH ) + " Paint segmentation";
+
+                if ( ImGui::Button( sk_remove.c_str() ) )
+                {
+                    paintActiveAnnotation();
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Paint the image segmentation using the selected polygon" );
                 }
                 ++id;
             }

@@ -441,6 +441,24 @@ void CallbackHandler::doSegment( const ViewHit& hit, bool swapFgAndBg )
     }
 }
 
+void CallbackHandler::paintActiveSegmentationWithAnnotation()
+{
+//    auto paintActiveAnnotation = [this]()
+//    {
+//        const auto selectedAnnotUid = data::getSelectedAnnotation( m_appData );
+
+//        if ( const Annotation* annot = m_appData.annotation( *selectedAnnotUid ) )
+//        {
+//            // Only fill closed, non-smoothed annotation polygons
+//            /// @todo Implement algorithm for filling smoothed polygons.
+//            if ( annot->isClosed() && ! annot->isSmoothed() )
+//            {
+
+//            }
+//        }
+//    };
+}
+
 void CallbackHandler::doWindowLevel( const ViewHit& prevHit, const ViewHit& currHit )
 {
     if ( ! currHit.view ) return;

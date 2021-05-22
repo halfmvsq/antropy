@@ -144,6 +144,24 @@ bool showToolbarCloseButton()
     return false;
 }
 
+bool showToolbarFillButton()
+{
+    if ( ASM::is_in_state<StandbyState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
+    {
+        if ( ! ASM::appData() ) return false;
+        const auto selectedAnnotUid = data::getSelectedAnnotation( *ASM::appData() );
+
+        if ( const Annotation* annot = ASM::appData()->annotation( *selectedAnnotUid ) )
+        {
+            // Only show fill button for closed, non-smoothed annotation polygons.
+            /// @todo Implement algorithm for filling smoothed polygons.
+            return ( annot->isClosed() && ! annot->isSmoothed() );
+        }
+    }
+    return false;
+}
+
 bool showToolbarUndoButton()
 {
     return showToolbarCompleteButton();
@@ -182,7 +200,7 @@ bool showToolbarRemoveSelectedAnnotationButton()
     if ( ASM::is_in_state<StandbyState>() ||
          ASM::is_in_state<VertexSelectedState>() )
     {
-        return ( ASM::appData() && data::isAnnotationSelected( *ASM::appData() ) );
+        return ( ASM::appData() && data::getSelectedAnnotation( *ASM::appData() ) );
     }
     return false;
 }

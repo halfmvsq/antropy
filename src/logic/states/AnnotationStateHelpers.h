@@ -22,10 +22,13 @@ bool isInStateWhereToolbarVisible();
 /// Are view highlights and selections visible in the current state?
 bool isInStateWhereViewSelectionsVisible();
 
-/// Check whether Annotation toolbar buttons are visible in the current state
+// The following functions are used to check whether Annotation Toolbar buttons
+// are visible in the current state
+
 bool showToolbarCreateButton(); // Create new annotation
 bool showToolbarCompleteButton(); // Complete current annotation
 bool showToolbarCloseButton(); // Close current annotation
+bool showToolbarFillButton(); // Fill current annotation
 bool showToolbarCancelButton(); // Cancel current annotation
 bool showToolbarUndoButton(); // Undo last vertex
 bool showToolbarInsertVertexButton(); // Insert vertex

@@ -50,4 +50,17 @@ void paintSegmentation(
             const ComponentType& memoryComponentType, const glm::uvec3& offset,
             const glm::uvec3& size, const int64_t* data ) >& updateSegTexture );
 
+
+void fillSegmentationWithPolygon(
+        Image* seg,
+        const glm::ivec3& segDims,
+        const glm::vec3& segSpacing,
+
+        int64_t labelToPaint,
+        int64_t labelToReplace,
+
+        const std::function< void (
+            const ComponentType& memoryComponentType, const glm::uvec3& offset,
+            const glm::uvec3& size, const int64_t* data ) >& updateSegTexture );
+
 #endif // SEG_UTILITY_H
