@@ -150,11 +150,13 @@ bool showToolbarFillButton()
          ASM::is_in_state<VertexSelectedState>() )
     {
         if ( ! ASM::appData() ) return false;
+
+        // Show the Fill button when a closed, non-smoothed annotation is selected
         const auto selectedAnnotUid = data::getSelectedAnnotation( *ASM::appData() );
+        if ( ! selectedAnnotUid ) return false;
 
         if ( const Annotation* annot = ASM::appData()->annotation( *selectedAnnotUid ) )
         {
-            // Only show fill button for closed, non-smoothed annotation polygons.
             /// @todo Implement algorithm for filling smoothed polygons.
             return ( annot->isClosed() && ! annot->isSmoothed() );
         }

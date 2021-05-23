@@ -445,16 +445,32 @@ void CallbackHandler::paintActiveSegmentationWithAnnotation()
     if ( ! activeImageUid ) return;
 
     const auto activeSegUid = m_appData.imageToActiveSegUid( *activeImageUid );
-    if ( ! activeSegUid ) return;
+    if ( ! activeSegUid )
+    {
+        spdlog::debug( "There is no active segmentation to paint for image {}", *activeImageUid );
+        return;
+    }
 
     const auto activeAnnotUid = m_appData.imageToActiveAnnotationUid( *activeImageUid );
-    if ( ! activeAnnotUid ) return;
+    if ( ! activeAnnotUid )
+    {
+        spdlog::debug( "There is no active annotation to paint for image {}", *activeImageUid );
+        return;
+    }
 
     Image* seg = m_appData.seg( *activeSegUid );
-    if ( ! seg ) return;
+    if ( ! seg )
+    {
+        spdlog::error( "Segmentation {} is null", *activeSegUid );
+        return;
+    }
 
     const Annotation* annot = m_appData.annotation( *activeAnnotUid );
-    if ( ! annot ) return;
+    if ( ! annot )
+    {
+        spdlog::error( "Annotation {} is null", *activeAnnotUid );
+        return;
+    }
 
     /// @todo Implement algorithm for filling smoothed polygons.
 
