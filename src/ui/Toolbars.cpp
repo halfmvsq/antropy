@@ -558,7 +558,13 @@ void renderSegToolbar(
         const std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) >& createBlankSeg,
         const std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) >& executeGridCutsSeg )
 {
-    if ( MouseMode::Segment != appData.state().mouseMode() )
+    // Show the segmentation toolbar in either Segmentation mode or
+    // Annotation mode (when the Fill button is also visible)
+
+    const bool inSegmentationMode = ( MouseMode::Segment == appData.state().mouseMode() );
+    const bool inAnnotationMode = ( state::isInStateWhereToolbarVisible() && state::showToolbarFillButton() );
+
+    if ( ! inSegmentationMode && ! inAnnotationMode )
     {
         return;
     }
@@ -684,7 +690,6 @@ void renderSegToolbar(
             ImGui::SetTooltip( "%s", "Select foreground label (<,>)" );
         }
 
-
         if ( isHoriz ) ImGui::SameLine();
         ImGui::PushStyleColor( ImGuiCol_Button, bgImGuiColor );
         ImGui::PushStyleColor( ImGuiCol_Text, ( useDarkTextForBgColor ? sk_darkTextColor : sk_lightTextColor ) );
@@ -804,324 +809,327 @@ void renderSegToolbar(
         ImGui::PopID();
 
 
-        if ( isHoriz ) ImGui::SameLine();
-        ImGui::PushID( id );
+        // Only show these segmentation toolbar buttons when in Segmentation mode
+        if ( inSegmentationMode )
         {
-            bool use3d = appData.settings().use3dBrush();
-            ImGui::PushStyleColor( ImGuiCol_Button, ( use3d ? activeColor : inactiveColor ) );
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
             {
-                if ( ImGui::Button( ICON_FK_CUBE, sk_toolbarButtonSize) )
+                bool use3d = appData.settings().use3dBrush();
+                ImGui::PushStyleColor( ImGuiCol_Button, ( use3d ? activeColor : inactiveColor ) );
                 {
-                    use3d = ! use3d;
-                    appData.settings().setUse3dBrush( use3d );
+                    if ( ImGui::Button( ICON_FK_CUBE, sk_toolbarButtonSize) )
+                    {
+                        use3d = ! use3d;
+                        appData.settings().setUse3dBrush( use3d );
+                    }
+
+                    if ( ImGui::IsItemHovered() )
+                    {
+                        ImGui::SetTooltip( "%s", "Set 2D/3D brush" );
+                    }
+                }
+                ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+
+                ++id;
+            }
+            ImGui::PopID();
+
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                bool roundBrush = appData.settings().useRoundBrush();
+
+                if ( ImGui::Button( roundBrush ? ICON_FK_CIRCLE_THIN : ICON_FK_SQUARE_O, sk_toolbarButtonSize ) )
+                {
+                    roundBrush = ! roundBrush;
+                    appData.settings().setUseRoundBrush( roundBrush );
                 }
 
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Set 2D/3D brush" );
+                    ImGui::SetTooltip( "%s", "Set round/square brush shape" );
                 }
+
+                ++id;
             }
-            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
-
-            ++id;
-        }
-        ImGui::PopID();
+            ImGui::PopID();
 
 
-        if ( isHoriz ) ImGui::SameLine();
-        ImGui::PushID( id );
-        {
-            bool roundBrush = appData.settings().useRoundBrush();
-
-            if ( ImGui::Button( roundBrush ? ICON_FK_CIRCLE_THIN : ICON_FK_SQUARE_O, sk_toolbarButtonSize ) )
+            if ( isHoriz ) ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_BULLSEYE, sk_toolbarButtonSize) )
             {
-                roundBrush = ! roundBrush;
-                appData.settings().setUseRoundBrush( roundBrush );
+                ImGui::OpenPopup( "brushSizePopup" );
             }
 
             if ( ImGui::IsItemHovered() )
             {
-                ImGui::SetTooltip( "%s", "Set round/square brush shape" );
+                ImGui::SetTooltip( "%s", "Brush options" );
             }
 
-            ++id;
-        }
-        ImGui::PopID();
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::Dummy( buttonSpace );
 
 
-        if ( isHoriz ) ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_BULLSEYE, sk_toolbarButtonSize) )
-        {
-            ImGui::OpenPopup( "brushSizePopup" );
-        }
-
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "%s", "Brush options" );
-        }
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        ImGui::Dummy( buttonSpace );
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_PLUS_CIRCLE, sk_toolbarButtonSize) )
-        {
-            /// @todo replace with AntropyApp::cycleBrushSize
-            uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-            brushSizeVox = std::max( brushSizeVox + 1, 1u );
-            appData.settings().setBrushSizeInVoxels( brushSizeVox );
-        }
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "%s", "Increase brush size (+)" );
-        }
-
-
-
-        if ( isHoriz ) ImGui::SameLine();
-
-        ImGui::PushStyleColor( ImGuiCol_ButtonActive, colors[ImGuiCol_Button] );
-//        ImGui::PushItemWidth( sk_toolbarButtonSize.x );
-        {
-            const uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-            const std::string brushSizeString = std::to_string( brushSizeVox );
-            ImGui::Button( brushSizeString.c_str(), sk_toolbarButtonSize );
-
-//        static constexpr uint32_t sk_step = 1;
-//        static constexpr uint32_t sk_stepBig = 2;
-//        ImGui::Text( "%d", brushSizeVox );
-//        if ( ImGui::InputScalar( "##brushSizeInput", ImGuiDataType_U32,
-//                                 &brushSizeVox, nullptr, nullptr, "%d" ) )
-//        {
-//            brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
-//            appData.settings().setBrushSizeInVoxels( brushSizeVox );
-//        }
-
-//        ImGui::PopItemWidth();
-            ImGui::PopStyleColor( 1 ); // ImGuiCol_ButtonActive
-        }
-
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "%s", "Brush size (voxels)" );
-        }
-
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_MINUS_CIRCLE, sk_toolbarButtonSize) )
-        {
-            /// @todo replace with AntropyApp::cycleBrushSize
-            uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-            brushSizeVox = std::max( brushSizeVox - 1, 1u );
-            appData.settings().setBrushSizeInVoxels( brushSizeVox );
-        }
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "%s", "Decrease brush size (-)" );
-        }
-
-
-
-        /// @todo Should save off default values (prior to toolbar's change) and push them here:
-        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 8.0f, 4.0f ) );
-        ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4.0f, 3.0f ) );
-        ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 2.0f );
-        ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.0f );
-        ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
-        ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 4.0f );
-
-        if ( ImGui::BeginPopup( "brushSizePopup" ) )
-        {
-            bool useVoxels = appData.settings().useVoxelBrushSize();
-            bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
-            bool use3d = appData.settings().use3dBrush();
-            bool useIso = appData.settings().useIsotropicBrush();
-            bool useRound = appData.settings().useRoundBrush();
-            bool xhairsMove = appData.settings().crosshairsMoveWithBrush();
-
-            ImGui::Text( "Brush options:" );
-            ImGui::Separator();
-
-            ImGui::Spacing();
-
-            if ( useVoxels )
+            if ( isHoriz ) ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_PLUS_CIRCLE, sk_toolbarButtonSize) )
             {
+                /// @todo replace with AntropyApp::cycleBrushSize
                 uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
-                uint32_t stepSmall = 1;
-                uint32_t stepBig = 5;
+                brushSizeVox = std::max( brushSizeVox + 1, 1u );
+                appData.settings().setBrushSizeInVoxels( brushSizeVox );
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "%s", "Increase brush size (+)" );
+            }
 
-                ImGui::PushItemWidth( 120 );
-                if ( ImGui::InputScalar( " width (vox)##brushSizeVox", ImGuiDataType_U32, &brushSizeVox, &stepSmall, &stepBig ) )
+
+
+            if ( isHoriz ) ImGui::SameLine();
+
+            ImGui::PushStyleColor( ImGuiCol_ButtonActive, colors[ImGuiCol_Button] );
+            //        ImGui::PushItemWidth( sk_toolbarButtonSize.x );
+            {
+                const uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
+                const std::string brushSizeString = std::to_string( brushSizeVox );
+                ImGui::Button( brushSizeString.c_str(), sk_toolbarButtonSize );
+
+                //        static constexpr uint32_t sk_step = 1;
+                //        static constexpr uint32_t sk_stepBig = 2;
+                //        ImGui::Text( "%d", brushSizeVox );
+                //        if ( ImGui::InputScalar( "##brushSizeInput", ImGuiDataType_U32,
+                //                                 &brushSizeVox, nullptr, nullptr, "%d" ) )
+                //        {
+                //            brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
+                //            appData.settings().setBrushSizeInVoxels( brushSizeVox );
+                //        }
+
+                //        ImGui::PopItemWidth();
+                ImGui::PopStyleColor( 1 ); // ImGuiCol_ButtonActive
+            }
+
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "%s", "Brush size (voxels)" );
+            }
+
+
+
+            if ( isHoriz ) ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_MINUS_CIRCLE, sk_toolbarButtonSize) )
+            {
+                /// @todo replace with AntropyApp::cycleBrushSize
+                uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
+                brushSizeVox = std::max( brushSizeVox - 1, 1u );
+                appData.settings().setBrushSizeInVoxels( brushSizeVox );
+            }
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "%s", "Decrease brush size (-)" );
+            }
+
+
+
+            /// @todo Should save off default values (prior to toolbar's change) and push them here:
+            ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 8.0f, 4.0f ) );
+            ImGui::PushStyleVar( ImGuiStyleVar_FramePadding, ImVec2( 4.0f, 3.0f ) );
+            ImGui::PushStyleVar( ImGuiStyleVar_FrameRounding, 2.0f );
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowBorderSize, 1.0f );
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowPadding, ImVec2( 8.0f, 8.0f ) );
+            ImGui::PushStyleVar( ImGuiStyleVar_WindowRounding, 4.0f );
+
+            if ( ImGui::BeginPopup( "brushSizePopup" ) )
+            {
+                bool useVoxels = appData.settings().useVoxelBrushSize();
+                bool replaceBgWithFg = appData.settings().replaceBackgroundWithForeground();
+                bool use3d = appData.settings().use3dBrush();
+                bool useIso = appData.settings().useIsotropicBrush();
+                bool useRound = appData.settings().useRoundBrush();
+                bool xhairsMove = appData.settings().crosshairsMoveWithBrush();
+
+                ImGui::Text( "Brush options:" );
+                ImGui::Separator();
+
+                ImGui::Spacing();
+
+                if ( useVoxels )
                 {
-                    static constexpr uint32_t minBrushVox = 1;
-                    static constexpr uint32_t maxBrushVox = 511;
+                    uint32_t brushSizeVox = appData.settings().brushSizeInVoxels();
+                    uint32_t stepSmall = 1;
+                    uint32_t stepBig = 5;
 
-                    brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
-                    appData.settings().setBrushSizeInVoxels( brushSizeVox );
+                    ImGui::PushItemWidth( 120 );
+                    if ( ImGui::InputScalar( " width (vox)##brushSizeVox", ImGuiDataType_U32, &brushSizeVox, &stepSmall, &stepBig ) )
+                    {
+                        static constexpr uint32_t minBrushVox = 1;
+                        static constexpr uint32_t maxBrushVox = 511;
+
+                        brushSizeVox = glm::clamp( brushSizeVox, minBrushVox, maxBrushVox );
+                        appData.settings().setBrushSizeInVoxels( brushSizeVox );
+                    }
+                    ImGui::PopItemWidth();
                 }
-                ImGui::PopItemWidth();
-            }
-            //                else
-            //                {
-            //                    float brushSizeMm = appData.brushSizeInMm();
+                //                else
+                //                {
+                //                    float brushSizeMm = appData.brushSizeInMm();
 
-            //                    if ( ImGui::SliderFloat( "size (mm)##brushSizeMmSlider", &brushSizeMm, 0.001f, 100.000f, "%.3f" ) )
-            //                    {
-            //                        appData.setBrushSizeInMm( brushSizeMm );
-            //                    }
-            //                }
-            ImGui::SameLine(); helpMarker( "Brush width in voxels" );
+                //                    if ( ImGui::SliderFloat( "size (mm)##brushSizeMmSlider", &brushSizeMm, 0.001f, 100.000f, "%.3f" ) )
+                //                    {
+                //                        appData.setBrushSizeInMm( brushSizeMm );
+                //                    }
+                //                }
+                ImGui::SameLine(); helpMarker( "Brush width in voxels" );
 
 
-            //                if ( ImGui::RadioButton( "Voxels", useVoxels ) )
-            //                {
-            //                    useVoxels = true;
-            //                    appData.setUseVoxelBrushSize( useVoxels );
-            //                }
+                //                if ( ImGui::RadioButton( "Voxels", useVoxels ) )
+                //                {
+                //                    useVoxels = true;
+                //                    appData.setUseVoxelBrushSize( useVoxels );
+                //                }
 
-            //                ImGui::SameLine();
-            //                if ( ImGui::RadioButton( "Millimeters", ! useVoxels ) )
-            //                {
-            //                    useVoxels = false;
-            //                    appData.setUseVoxelBrushSize( useVoxels );
-            //                }
-            //                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
-            //                ImGui::SameLine(); HelpMarker( "Set brush size in units of either voxels or millimeters" );
-
-
-            if ( ImGui::RadioButton( "Round", useRound ) )
-            {
-                useRound = true;
-                appData.settings().setUseRoundBrush( useRound );
-            }
-
-            ImGui::SameLine();
-            if ( ImGui::RadioButton( "Square", ! useRound ) )
-            {
-                useRound = false;
-                appData.settings().setUseRoundBrush( useRound );
-            }
-            ImGui::SameLine(); helpMarker( "Set either round or square brush shape" );
+                //                ImGui::SameLine();
+                //                if ( ImGui::RadioButton( "Millimeters", ! useVoxels ) )
+                //                {
+                //                    useVoxels = false;
+                //                    appData.setUseVoxelBrushSize( useVoxels );
+                //                }
+                //                ImGui::SameLine(); ImGui::Dummy( ImVec2( 2.0f, 0.0f ) );
+                //                ImGui::SameLine(); HelpMarker( "Set brush size in units of either voxels or millimeters" );
 
 
-            if ( ImGui::RadioButton( "2D", ! use3d ) )
-            {
-                use3d = false;
-                appData.settings().setUse3dBrush( use3d );
-            }
-
-            ImGui::SameLine();
-            if ( ImGui::RadioButton( "3D", use3d ) )
-            {
-                use3d = true;
-                appData.settings().setUse3dBrush( use3d );
-            }
-            ImGui::SameLine(); helpMarker( "Set either 2D (planar) or 3D (volumetric) brush shape" );
-
-
-            if ( ImGui::Checkbox( "Isotropic brush", &useIso ) )
-            {
-                appData.settings().setUseIsotropicBrush( useIso );
-            }
-            ImGui::SameLine(); helpMarker( "Set either anisotropic or isotropic brush dimensions" );
-
-
-            if ( ImGui::Checkbox( "Replace background with foreground", &replaceBgWithFg ) )
-            {
-                appData.settings().setReplaceBackgroundWithForeground( replaceBgWithFg );
-            }
-            ImGui::SameLine(); helpMarker( "When enabled, the brush only draws the foreground label on top of the background label" );
-
-
-            if ( ImGui::Checkbox( "Crosshairs move with brush", &xhairsMove ) )
-            {
-                appData.settings().setCrosshairsMoveWithBrush( xhairsMove );
-            }
-            ImGui::SameLine(); helpMarker( "Crosshairs movement is linked with brush movement" );
-
-            ImGui::EndPopup();
-        }
-
-        // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
-        // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding,
-        // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
-        ImGui::PopStyleVar( 6 );
-
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        ImGui::Dummy( buttonSpace );
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        ImGui::PushID( id );
-        {
-            bool xhairsMove = appData.settings().crosshairsMoveWithBrush();
-
-            ImGui::PushStyleColor( ImGuiCol_Button, ( xhairsMove ? activeColor : inactiveColor ) );
-            {
-                if ( ImGui::Button( xhairsMove ? ICON_FK_LINK : ICON_FK_CHAIN_BROKEN, sk_toolbarButtonSize ) )
+                if ( ImGui::RadioButton( "Round", useRound ) )
                 {
-                    xhairsMove = ! xhairsMove;
+                    useRound = true;
+                    appData.settings().setUseRoundBrush( useRound );
+                }
+
+                ImGui::SameLine();
+                if ( ImGui::RadioButton( "Square", ! useRound ) )
+                {
+                    useRound = false;
+                    appData.settings().setUseRoundBrush( useRound );
+                }
+                ImGui::SameLine(); helpMarker( "Set either round or square brush shape" );
+
+
+                if ( ImGui::RadioButton( "2D", ! use3d ) )
+                {
+                    use3d = false;
+                    appData.settings().setUse3dBrush( use3d );
+                }
+
+                ImGui::SameLine();
+                if ( ImGui::RadioButton( "3D", use3d ) )
+                {
+                    use3d = true;
+                    appData.settings().setUse3dBrush( use3d );
+                }
+                ImGui::SameLine(); helpMarker( "Set either 2D (planar) or 3D (volumetric) brush shape" );
+
+
+                if ( ImGui::Checkbox( "Isotropic brush", &useIso ) )
+                {
+                    appData.settings().setUseIsotropicBrush( useIso );
+                }
+                ImGui::SameLine(); helpMarker( "Set either anisotropic or isotropic brush dimensions" );
+
+
+                if ( ImGui::Checkbox( "Replace background with foreground", &replaceBgWithFg ) )
+                {
+                    appData.settings().setReplaceBackgroundWithForeground( replaceBgWithFg );
+                }
+                ImGui::SameLine(); helpMarker( "When enabled, the brush only draws the foreground label on top of the background label" );
+
+
+                if ( ImGui::Checkbox( "Crosshairs move with brush", &xhairsMove ) )
+                {
                     appData.settings().setCrosshairsMoveWithBrush( xhairsMove );
                 }
+                ImGui::SameLine(); helpMarker( "Crosshairs movement is linked with brush movement" );
+
+                ImGui::EndPopup();
             }
-            ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+
+            // ImGuiStyleVar_FramePadding, ImGuiStyleVar_ItemSpacing,
+            // ImGuiStyleVar_WindowBorderSize, ImGuiStyleVar_WindowPadding,
+            // ImGuiStyleVar_FrameRounding, ImGuiStyleVar_WindowRounding
+            ImGui::PopStyleVar( 6 );
+
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::Dummy( buttonSpace );
+
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                bool xhairsMove = appData.settings().crosshairsMoveWithBrush();
+
+                ImGui::PushStyleColor( ImGuiCol_Button, ( xhairsMove ? activeColor : inactiveColor ) );
+                {
+                    if ( ImGui::Button( xhairsMove ? ICON_FK_LINK : ICON_FK_CHAIN_BROKEN, sk_toolbarButtonSize ) )
+                    {
+                        xhairsMove = ! xhairsMove;
+                        appData.settings().setCrosshairsMoveWithBrush( xhairsMove );
+                    }
+                }
+                ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
+
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Crosshairs linked to brush" );
+                }
+
+                ++id;
+            }
+            ImGui::PopID();
+
+            if ( isHoriz ) ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_RSS, sk_toolbarButtonSize ) )
+            {
+                ImGui::OpenPopup( "segSyncPopup" );
+            }
 
             if ( ImGui::IsItemHovered() )
             {
-                ImGui::SetTooltip( "%s", "Crosshairs linked to brush" );
+                ImGui::SetTooltip( "%s", "Synchronize drawing of segmentations on multiple images" );
             }
 
-            ++id;
-        }
-        ImGui::PopID();
 
-
-        if ( isHoriz ) ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_RSS, sk_toolbarButtonSize ) )
-        {
-            ImGui::OpenPopup( "segSyncPopup" );
-        }
-
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "%s", "Synchronize drawing of segmentations on multiple images" );
-        }
-
-
-        if ( isHoriz ) ImGui::SameLine();
-        if ( ImGui::Button( ICON_FK_CUBES, sk_toolbarButtonSize) )
-        {
-            const auto imageUid = appData.activeImageUid();
-            const Image* image = appData.activeImage();
-
-            if ( imageUid && image )
+            if ( isHoriz ) ImGui::SameLine();
+            if ( ImGui::Button( ICON_FK_CUBES, sk_toolbarButtonSize) )
             {
-                if ( const auto seedSegUid = appData.imageToActiveSegUid( *imageUid ) )
+                const auto imageUid = appData.activeImageUid();
+                const Image* image = appData.activeImage();
+
+                if ( imageUid && image )
                 {
-                    const size_t numSegsForImage = appData.imageToSegUids( *imageUid ).size();
-
-                    std::string segDisplayName =
-                            std::string( "Graph Cuts segmentation " ) +
-                            std::to_string( numSegsForImage + 1 ) +
-                            " for image '" +
-                            image->settings().displayName() + "'";
-
-                    if ( const auto blankSegUid = createBlankSeg( *imageUid, std::move( segDisplayName ) ) )
+                    if ( const auto seedSegUid = appData.imageToActiveSegUid( *imageUid ) )
                     {
-                        updateImageUniforms( *imageUid );
-                        executeGridCutsSeg( *imageUid, *seedSegUid, *blankSegUid );
+                        const size_t numSegsForImage = appData.imageToSegUids( *imageUid ).size();
+
+                        std::string segDisplayName =
+                                std::string( "Graph Cuts segmentation " ) +
+                                std::to_string( numSegsForImage + 1 ) +
+                                " for image '" +
+                                image->settings().displayName() + "'";
+
+                        if ( const auto blankSegUid = createBlankSeg( *imageUid, std::move( segDisplayName ) ) )
+                        {
+                            updateImageUniforms( *imageUid );
+                            executeGridCutsSeg( *imageUid, *seedSegUid, *blankSegUid );
+                        }
                     }
                 }
             }
-        }
-        if ( ImGui::IsItemHovered() )
-        {
-            ImGui::SetTooltip( "%s", "Execute Graph Cuts segmentation" );
+            if ( ImGui::IsItemHovered() )
+            {
+                ImGui::SetTooltip( "%s", "Execute Graph Cuts segmentation" );
+            }
+
         }
 
 
@@ -1228,7 +1236,6 @@ void renderSegToolbar(
         ImGui::PopStyleVar( 6 );
 
         ImGui::PopStyleColor( 1 ); // ImGuiCol_Button
-
 
         if ( ImGui::BeginPopupContextWindow() )
         {

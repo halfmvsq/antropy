@@ -412,12 +412,19 @@ void fillSegmentationWithPolygon(
             const ComponentType& memoryComponentType, const glm::uvec3& offset,
             const glm::uvec3& size, const int64_t* data ) >& updateSegTexture )
 {
+    static constexpr size_t OUTER_BOUNDARY = 0;
+
     // Fill based on corners of voxels?
     // If true, then the test for whether a voxel is in the polygon is based only the voxel center.
     // If false, then the test is based on all voxel corners.
+    /// @todo Make this a setting
+    static constexpr bool sk_fillBasedOnCorners = true;
 
-    static constexpr bool sk_useCorners = true;
-    static constexpr size_t OUTER_BOUNDARY = 0;
+    if ( ! annot->isClosed() || annot->isSmoothed() )
+    {
+        spdlog::warn( "Cannot fill annotation polygon that is not closed and not smoothed." );
+        return;
+    }
 
     const glm::mat4& pixel_T_subject = seg->transformations().pixel_T_subject();
     const glm::mat4& subject_T_pixel = seg->transformations().subject_T_pixel();
@@ -438,13 +445,6 @@ void fillSegmentationWithPolygon(
         const glm::vec4 subjectPos = subject_T_pixel * glm::vec4{ pixelPos, 1.0f };
         return annot->projectSubjectPointToAnnotationPlane( glm::vec3{ subjectPos / subjectPos.w } );
     };
-
-
-    if ( ! annot->isClosed() || annot->isSmoothed() )
-    {
-        spdlog::warn( "Cannot fill annotation polygon that is not closed and not smoothed." );
-        return;
-    }
 
 
    // Min and max corners of the polygon AABB in annotation plane space:
@@ -520,32 +520,27 @@ void fillSegmentationWithPolygon(
 
                const glm::vec2 annotPlanePos = convertPointFromSegPixelCoordsToAnnotPlane( pixelPos );
 
-               if ( math::pnpoly( annotPlaneVertices, annotPlanePos ) )
+               if ( math::pnpoly( annotPlaneVertices, annotPlanePos ) ||
+                    ( sk_fillBasedOnCorners &&
+                      ( math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
+                                          pixelPos + glm::vec3{ 0.5f, 0.5f, 0.5f } ) ) ||
+                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
+                                          pixelPos + glm::vec3{ 0.5f, 0.5f, -0.5f } ) ) ||
+                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
+                                          pixelPos + glm::vec3{ 0.5f, -0.5f, 0.5f } ) ) ||
+                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
+                                          pixelPos + glm::vec3{ 0.5f, -0.5f, -0.5f } ) ) ||
+                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
+                                          pixelPos + glm::vec3{ -0.5f, 0.5f, 0.5f } ) ) ||
+                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
+                                          pixelPos + glm::vec3{ -0.5f, 0.5f, -0.5f } ) ) ||
+                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
+                                          pixelPos + glm::vec3{ -0.5f, -0.5f, 0.5f } ) ) ||
+                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
+                                          pixelPos + glm::vec3{ -0.5f, -0.5f, -0.5f } ) ) ) ) )
                {
                    voxelsToChange.insert( roundedPixelPos );
                    continue;
-               }
-
-               if ( sk_useCorners )
-               {
-                   if ( math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
-                                          pixelPos + glm::vec3{ 0.5f, 0.0f, 0.0f } ) ) ||
-                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
-                                          pixelPos + glm::vec3{ 0.0f, 0.5f, 0.0f } ) ) ||
-                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
-                                          pixelPos + glm::vec3{ 0.0f, 0.0f, 0.5f } ) ) ||
-                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
-                                          pixelPos + glm::vec3{ 0.5f, 0.5f, 0.0f } ) ) ||
-                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
-                                          pixelPos + glm::vec3{ 0.5f, 0.0f, 0.5f } ) ) ||
-                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
-                                          pixelPos + glm::vec3{ 0.0f, 0.5f, 0.5f } ) ) ||
-                        math::pnpoly( annotPlaneVertices, convertPointFromSegPixelCoordsToAnnotPlane(
-                                          pixelPos + glm::vec3{ 0.5f, 0.5f, 0.5f } ) ) )
-                   {
-                       voxelsToChange.insert( roundedPixelPos );
-                       continue;
-                   }
                }
            }
        }
