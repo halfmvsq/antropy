@@ -558,13 +558,14 @@ void renderSegToolbar(
         const std::function< std::optional<uuids::uuid>( const uuids::uuid& matchingImageUid, const std::string& segDisplayName ) >& createBlankSeg,
         const std::function< bool ( const uuids::uuid& imageUid, const uuids::uuid& seedSegUid, const uuids::uuid& resultSegUid ) >& executeGridCutsSeg )
 {
-    // Show the segmentation toolbar in either Segmentation mode or
-    // Annotation mode (when the Fill button is also visible)
+    // Show the segmentation toolbar in either Segmentation mode,
+    // in Annotation mode (when the Fill button is also visible),
+    // or when the Annotations Window is visible
 
     const bool inSegmentationMode = ( MouseMode::Segment == appData.state().mouseMode() );
     const bool inAnnotationMode = ( state::isInStateWhereToolbarVisible() && state::showToolbarFillButton() );
 
-    if ( ! inSegmentationMode && ! inAnnotationMode )
+    if ( ! inSegmentationMode && ! inAnnotationMode && ! appData.guiData().m_showAnnotationsWindow )
     {
         return;
     }
@@ -1640,15 +1641,15 @@ void renderAnnotationToolbar(
             if ( isHoriz ) ImGui::SameLine();
             ImGui::PushID( id );
             {
-                static const std::string sk_remove = std::string( ICON_FK_PAINT_BRUSH ) + " Fill";
+                static const std::string sk_fill = std::string( ICON_FK_PAINT_BRUSH ) + " Fill";
 
-                if ( ImGui::Button( sk_remove.c_str() ) )
+                if ( ImGui::Button( sk_fill.c_str() ) )
                 {
                     paintActiveAnnotation();
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Fill the image segmentation using the selected polygon" );
+                    ImGui::SetTooltip( "%s", "Fill the active image segmentation with the selected annotation polygon" );
                 }
                 ++id;
             }

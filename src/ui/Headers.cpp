@@ -1830,6 +1830,7 @@ void renderAnnotationsHeader(
         size_t imageIndex,
         bool isActiveImage,
         const std::function< void ( const uuids::uuid& viewUid, const glm::vec3& worldFwdDirection ) >& setViewDirection,
+        const std::function< void () >& paintActiveSegmentationWithActivePolygon,
         const AllViewsRecenterType& recenterAllViews )
 {
     static constexpr bool sk_doNotRecenterCrosshairs = false;
@@ -1853,7 +1854,10 @@ void renderAnnotationsHeader(
             std::string( ICON_FK_FLOPPY_O ) + std::string( " Save all..." );
 
     static const std::string sk_removeAnnotButtonText =
-            std::string( ICON_FK_TRASH_O ) + std::string( " Remove" );;
+            std::string( ICON_FK_TRASH_O ) + std::string( " Remove" );
+
+    static const std::string sk_fillAnnotButtonText =
+            std::string( ICON_FK_PAINT_BRUSH ) + std::string( " Fill" );
 
     static const char* sk_saveAnnotDialogTitle( "Save Annotations to SVG" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
@@ -2109,8 +2113,8 @@ void renderAnnotationsHeader(
     bool removeAnnot = false;
     static bool doNotAskAagain = false;
 
+    ImGui::Spacing();
     const bool clickedRemoveButton = ImGui::Button( sk_removeAnnotButtonText.c_str() );
-
     if ( ImGui::IsItemHovered() )
     {
         ImGui::SetTooltip( "Remove the annotation. (The saved file on disk will not be deleted.)" );
@@ -2125,6 +2129,24 @@ void renderAnnotationsHeader(
         else if ( doNotAskAagain )
         {
             removeAnnot = true;
+        }
+    }
+
+
+    // Fill the active segmentation with the annotation:
+    if ( activeAnnot->isClosed() && ! activeAnnot->isSmoothed() )
+    {
+        ImGui::SameLine();
+        if ( ImGui::Button( sk_fillAnnotButtonText.c_str() ) )
+        {
+            if ( paintActiveSegmentationWithActivePolygon )
+            {
+                paintActiveSegmentationWithActivePolygon();
+            }
+        }
+        if ( ImGui::IsItemHovered() )
+        {
+            ImGui::SetTooltip( "Fill the active image segmentation with the selected annotation polygon" );
         }
     }
 

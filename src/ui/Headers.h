@@ -126,6 +126,7 @@ void renderAnnotationsHeader(
         size_t imageIndex,
         bool isActiveImage,
         const std::function< void ( const uuids::uuid& viewUid, const glm::vec3& worldFwdDirection ) >& setViewCameraDirection,
+        const std::function< void () >& paintActiveSegmentationWithActivePolygon,
         const AllViewsRecenterType& recenterAllViews );
 
 

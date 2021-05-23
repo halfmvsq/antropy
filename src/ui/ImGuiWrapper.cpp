@@ -560,6 +560,7 @@ void ImGuiWrapper::render()
             renderAnnotationWindow(
                         m_appData,
                         setViewCameraDirection,
+                        m_paintActiveSegmentationWithActivePolygon,
                         m_recenterAllViews );
         }
 
