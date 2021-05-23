@@ -1558,11 +1558,11 @@ void renderAnnotationToolbar(
 
                 if ( ImGui::Button( sk_cut.c_str() ) )
                 {
-//                    send_event( state::RemoveSelectedAnnotationEvent() );
+                    send_event( state::CutSelectedAnnotationEvent() );
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Cut the selected polygon" );
+                    ImGui::SetTooltip( "%s", "Cut the selected polygon to the clipboard" );
                 }
                 ++id;
             }
@@ -1587,11 +1587,11 @@ void renderAnnotationToolbar(
 
                 if ( ImGui::Button( sk_copy.c_str() ) )
                 {
-//                    send_event( state::RemoveSelectedAnnotationEvent() );
+                    send_event( state::CopySelectedAnnotationEvent() );
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Copy the selected polygon" );
+                    ImGui::SetTooltip( "%s", "Copy the selected polygon to the clipboard" );
                 }
                 ++id;
             }
@@ -1616,11 +1616,11 @@ void renderAnnotationToolbar(
 
                 if ( ImGui::Button( sk_paste.c_str() ) )
                 {
-//                    send_event( state::RemoveSelectedAnnotationEvent() );
+                    send_event( state::PasteAnnotationEvent() );
                 }
                 if ( ImGui::IsItemHovered() )
                 {
-                    ImGui::SetTooltip( "%s", "Paste the copied polygon" );
+                    ImGui::SetTooltip( "%s", "Paste the polygon from the clipboard" );
                 }
                 ++id;
             }

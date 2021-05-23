@@ -447,11 +447,11 @@ void CallbackHandler::paintActiveSegmentationWithAnnotation()
     const auto activeSegUid = m_appData.imageToActiveSegUid( *activeImageUid );
     if ( ! activeSegUid ) return;
 
-    Image* seg = m_appData.seg( *activeSegUid );
-    if ( ! seg ) return;
-
     const auto activeAnnotUid = m_appData.imageToActiveAnnotationUid( *activeImageUid );
     if ( ! activeAnnotUid ) return;
+
+    Image* seg = m_appData.seg( *activeSegUid );
+    if ( ! seg ) return;
 
     const Annotation* annot = m_appData.annotation( *activeAnnotUid );
     if ( ! annot ) return;
@@ -1581,7 +1581,6 @@ bool CallbackHandler::syncManualImageTransformationOnSegs( const uuids::uuid& im
 
     return true;
 }
-
 
 bool CallbackHandler::checkAndSetActiveView( const uuids::uuid& viewUid )
 {

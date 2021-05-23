@@ -161,6 +161,9 @@ public:
     const glm::vec4& getFillColor() const;
 
 
+    /// Set the axes of the plane in Subject space
+    bool setSubjectPlane( const glm::vec4& subjectPlaneEquation );
+
     /// @brief Get the annotation plane equation in Subject space
     const glm::vec4& getSubjectPlaneEquation() const;
 
@@ -183,9 +186,6 @@ public:
 
 
 private:
-
-    /// Set the axes of the plane in Subject space
-    bool setSubjectPlane( const glm::vec4& subjectPlaneEquation );
 
     std::string m_displayName; //!< Annotation display name
     std::string m_fileName; //!< Annotation file name

@@ -330,7 +330,7 @@ private:
     /// The order of the annotations matches the order in the list.
     std::unordered_map< uuids::uuid, std::list<uuids::uuid> > m_imageToAnnotations;
 
-    /// Map of image to its active annotation
+    /// Map of image to its active/selected annotation
     std::unordered_map< uuids::uuid, uuids::uuid > m_imageToActiveAnnotation;
 
     /// Is an image being segmented (in addition to the active image)?

@@ -11,7 +11,8 @@ AppState::AppState()
       m_recenteringMode( ImageSelection::AllLoadedImages ),
       m_animating( false ),
       m_worldCrosshairs(),
-      m_worldRotationCenter( std::nullopt )
+      m_worldRotationCenter( std::nullopt ),
+      m_copiedAnnotation( std::nullopt )
       //m_ipcHandler()
 {}
 
@@ -67,6 +68,10 @@ ImageSelection AppState::recenteringMode() const { return m_recenteringMode; }
 
 void AppState::setAnimating( bool set ) { m_animating = set; }
 bool AppState::animating() const { return m_animating; }
+
+void AppState::setCopiedAnnotation( const Annotation& annot ) { m_copiedAnnotation = annot; }
+void AppState::clearCopiedAnnotation() { m_copiedAnnotation = std::nullopt; }
+const std::optional<Annotation>& AppState::getCopiedAnnotation() const { return m_copiedAnnotation; }
 
 
 /*

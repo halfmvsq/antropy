@@ -780,6 +780,8 @@ void AnnotationStateMachine::moveSelectedVertex( const ViewHit& prevHit, const V
 
 void AnnotationStateMachine::removeSelectedPolygon()
 {
+    if ( ! checkAppData() ) return;
+
     const auto activeImageUid = ms_appData->activeImageUid();
     if ( ! activeImageUid ) return;
 
@@ -889,6 +891,128 @@ void AnnotationStateMachine::removeGrowingPolygon()
     ms_growingAnnotUid = std::nullopt;
     deselect( true, true );
     transit<StandbyState>();
+}
+
+void AnnotationStateMachine::cutSelectedAnnotation()
+{
+    // cut = copy + remove
+    copySelectedAnnotation();
+    removeSelectedPolygon();
+}
+
+void AnnotationStateMachine::copySelectedAnnotation()
+{
+    if ( ! checkAppData() ) return;
+
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid ) return;
+
+    const auto annotUid = ms_appData->imageToActiveAnnotationUid( *activeImageUid );
+    if ( ! annotUid )
+    {
+        return;
+    }
+
+    Annotation* annot = ms_appData->annotation( *annotUid );
+    if ( ! annot )
+    {
+        spdlog::warn( "Annotation {} is not valid", *annotUid );
+        transit<StandbyState>();
+        return;
+    }
+
+    ms_appData->state().setCopiedAnnotation( *annot );
+}
+
+void AnnotationStateMachine::pasteAnnotation() const
+{
+    // Angle threshold (in degrees) for checking whether two vectors are parallel
+    static constexpr float sk_parallelThreshold_degrees = 0.1f;
+
+    if ( ! checkAppData() ) return;
+
+    std::optional<Annotation> annot = ms_appData->state().getCopiedAnnotation();
+
+    if ( ! annot )
+    {
+        spdlog::debug( "There is no polygon in the clipboard to paste." );
+        return;
+    }
+
+    if ( ! ms_selectedViewUid )
+    {
+        spdlog::warn( "A view must be selected before pasting the polygon." );
+        return;
+    }
+
+    const auto activeImageUid = ms_appData->activeImageUid();
+    if ( ! activeImageUid )
+    {
+        spdlog::debug( "There is no active image on which to paste the polygon." );
+        return;
+    }
+
+    const Image* activeImage = ms_appData->image( *activeImageUid );
+    if ( ! activeImage )
+    {
+        spdlog::error( "The active image is null." );
+        return;
+    }
+
+    View* selectedView = ms_appData->windowData().getView( *ms_selectedViewUid );
+    if ( ! selectedView )
+    {
+        spdlog::error( "The selected view is null." );
+        return;
+    }
+
+    // The equation of the view plane (in image Subject space) is needed in order to
+    // paste the annotation on this view. Calculation of the plane equation requires
+    // the view normal vector and a point on the view plane (i.e. the offset crosshairs).
+
+    // World-space view normal direction
+    const glm::vec3 worldViewBackDir = camera::worldDirection(
+                selectedView->camera(), Directions::View::Back );
+
+    // World-space crosshairs position on this view slice (accounting for view offest)
+    const glm::vec3 worldXhairsPos = selectedView->updateImageSlice(
+                *ms_appData, ms_appData->state().worldCrosshairs().worldOrigin() );
+
+    const auto [subjectPlaneEquation, subjectPlanePoint] =
+            math::computeSubjectPlaneEquation(
+                activeImage->transformations().subject_T_worldDef(),
+                worldViewBackDir, worldXhairsPos );
+
+    if ( ! camera::areVectorsParallel(
+            glm::vec3{ subjectPlaneEquation },
+            glm::vec3{ annot->getSubjectPlaneEquation() },
+            sk_parallelThreshold_degrees ) )
+    {
+        spdlog::warn( "The normal vector of the view plane and the normal vector of the "
+                      "pasted annotation polygon do not match. The pasted polygon may be "
+                      "rotated with respect to its original orientation." );
+    }
+
+    // Set the new Subject plane in the for the annotation
+    annot->setSubjectPlane( subjectPlaneEquation );
+
+    // Append "(copy)" to the name of the pasted annotation
+    annot->setDisplayName( annot->getDisplayName() + " (copy)" );
+
+    // Add the annotation to the active image:
+    if ( const auto pastedAnnotUid = ms_appData->addAnnotation( *activeImageUid, *annot ) )
+    {
+        // Make this the active annotation
+        ms_appData->assignActiveAnnotationUidToImage( *activeImageUid, *pastedAnnotUid );
+        synchronizeAnnotationHighlights();
+
+        spdlog::info( "Pasted new annotation {} from clipboard to image {}",
+                      *pastedAnnotUid, *activeImageUid );
+    }
+    else
+    {
+        spdlog::error( "Unable to add pasted annotation to image {}", *activeImageUid );
+    }
 }
 
 std::vector< std::pair<uuids::uuid, size_t> >

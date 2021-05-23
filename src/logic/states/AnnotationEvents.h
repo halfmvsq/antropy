@@ -89,6 +89,15 @@ struct RemoveSelectedVertexEvent : public tinyfsm::Event {};
 /// User wants to remove the currently selected annotation
 struct RemoveSelectedAnnotationEvent : public tinyfsm::Event {};
 
+/// User wants to cut (copy + remove) the selected annotation
+struct CutSelectedAnnotationEvent : public tinyfsm::Event {};
+
+/// User wants to copy the selected annotation to the clipboard
+struct CopySelectedAnnotationEvent : public tinyfsm::Event {};
+
+/// User wants to paste the selected annotation from the clipboard
+struct PasteAnnotationEvent : public tinyfsm::Event {};
+
 } // namespace state
 
 #endif // ANNOTATION_EVENTS_H

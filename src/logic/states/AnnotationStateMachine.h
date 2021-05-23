@@ -85,14 +85,20 @@ protected:
 
     virtual void react( const TurnOnAnnotationModeEvent& ) {}
     virtual void react( const TurnOffAnnotationModeEvent& ) {}
+
     virtual void react( const CreateNewAnnotationEvent& ) {}
     virtual void react( const CompleteNewAnnotationEvent& ) {}
     virtual void react( const CloseNewAnnotationEvent& ) {}
-    virtual void react( const UndoVertexEvent& ) {}
     virtual void react( const CancelNewAnnotationEvent& ) {}
+
+    virtual void react( const UndoVertexEvent& ) {}   
     virtual void react( const InsertVertexEvent& ) {}
     virtual void react( const RemoveSelectedVertexEvent& ) {}
+
     virtual void react( const RemoveSelectedAnnotationEvent& ) {}
+    virtual void react( const CutSelectedAnnotationEvent& ) {}
+    virtual void react( const CopySelectedAnnotationEvent& ) {}
+    virtual void react( const PasteAnnotationEvent& ) {}
 
 
     /***** Start helper functions used in multiple states *****/
@@ -207,6 +213,24 @@ protected:
      * @brief Remove the currently growing annotation and deselect it.
      */
     void removeGrowingPolygon();
+
+    /**
+     * @brief Cut (copy + remove) the active annotation (if it exists) of the active image.
+     * If there is no active annotation, then nothing happens.
+     */
+    void cutSelectedAnnotation();
+
+    /**
+     * @brief Copy the active annotation (if it exists) of the active image to the clipboard.
+     * If there is no active annotation, then nothing happens.
+     */
+    void copySelectedAnnotation();
+
+    /**
+     * @brief Paste the active annotation (if it exists) to the active image from the clipboard.
+     * If there is no copied annotation, then nothing happens.
+     */
+    void pasteAnnotation() const;
 
     /**
      * @brief Find vertices in annotations of the active image near the mouse hit

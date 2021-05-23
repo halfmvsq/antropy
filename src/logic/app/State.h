@@ -4,11 +4,12 @@
 #include "common/CoordinateFrame.h"
 #include "common/Types.h"
 
+#include "logic/annotation/Annotation.h"
 #include "logic/interaction/events/ButtonState.h"
 //#include "logic/ipc/IPCHandler.h"
 
 #include <glm/vec3.hpp>
-
+#include <uuid.h>
 #include <optional>
 
 
@@ -46,6 +47,10 @@ public:
     void setAnimating( bool set );
     bool animating() const;
 
+    void setCopiedAnnotation( const Annotation& annot );
+    void clearCopiedAnnotation();
+    const std::optional<Annotation>& getCopiedAnnotation() const;
+
 
 private:
 
@@ -60,6 +65,8 @@ private:
 
     CoordinateFrame m_worldCrosshairs; //!< Crosshairs coordinate frame, defined in World space
     std::optional< glm::vec3 > m_worldRotationCenter; //!< Rotation center position, defined in World space
+
+    std::optional<Annotation> m_copiedAnnotation; //!< Annotation copied to the clipboard
 };
 
 #endif // APP_STATE_H

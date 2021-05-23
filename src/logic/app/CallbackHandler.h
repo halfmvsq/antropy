@@ -276,7 +276,7 @@ public:
     /// Set whether manual transformation are locked on an image and all of its segmentations
     bool setLockManualImageTransformation( const uuids::uuid& imageUid, bool locked );
 
-    /// Synchronize the lock on all segmentations of the image:
+    /// Synchronize the lock on all segmentations of the image
     bool syncManualImageTransformationOnSegs( const uuids::uuid& imageUid );
 
 

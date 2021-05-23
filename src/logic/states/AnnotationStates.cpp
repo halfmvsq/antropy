@@ -135,6 +135,21 @@ void StandbyState::react( const RemoveSelectedAnnotationEvent& )
     removeSelectedPolygon();
 }
 
+void StandbyState::react( const CutSelectedAnnotationEvent& )
+{
+    cutSelectedAnnotation();
+}
+
+void StandbyState::react( const CopySelectedAnnotationEvent& )
+{
+    copySelectedAnnotation();
+}
+
+void StandbyState::react( const PasteAnnotationEvent& )
+{
+    pasteAnnotation();
+}
+
 
 /**************** CreatingNewAnnotationState *******************/
 
@@ -336,6 +351,21 @@ void VertexSelectedState::react( const RemoveSelectedVertexEvent& )
 void VertexSelectedState::react( const RemoveSelectedAnnotationEvent& )
 {
     removeSelectedPolygon();
+}
+
+void VertexSelectedState::react( const CutSelectedAnnotationEvent& )
+{
+    cutSelectedAnnotation();
+}
+
+void VertexSelectedState::react( const CopySelectedAnnotationEvent& )
+{
+    copySelectedAnnotation();
+}
+
+void VertexSelectedState::react( const PasteAnnotationEvent& )
+{
+    pasteAnnotation();
 }
 
 } // namespace state

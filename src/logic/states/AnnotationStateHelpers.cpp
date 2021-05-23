@@ -230,7 +230,11 @@ bool showToolbarPasteSelectedAnnotationButton()
     if ( ASM::is_in_state<StandbyState>() ||
          ASM::is_in_state<VertexSelectedState>() )
     {
-        return true;
+        if ( ASM::appData() && ASM::appData()->state().getCopiedAnnotation() )
+        {
+            // Show the Paste button if there is a copied annotation
+            return true;
+        }
     }
     return false;
 }
