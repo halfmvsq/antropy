@@ -2047,6 +2047,15 @@ void renderAnnotationsHeader(
     }
 
 
+    // Annotation display name:
+    std::string displayName = activeAnnot->getDisplayName();
+    if ( ImGui::InputText( "Name", &displayName ) )
+    {
+        activeAnnot->setDisplayName( displayName );
+    }
+    ImGui::SameLine(); helpMarker( "Edit the name of the annotation" );
+
+
     ImGui::Text( "Layer order: " );
 
     ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 0.0f, 0.0f ) );
@@ -2094,36 +2103,6 @@ void renderAnnotationsHeader(
     /*** ImGuiStyleVar_ItemSpacing ***/
     ImGui::PopStyleVar( 1 );
 
-    ImGui::Spacing();
-
-
-
-    if ( ! annotUids.empty() )
-    {
-        // Save annotations to SVG and save settings to project file:
-        const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
-                    sk_saveAnnotButtonText.c_str(), sk_saveAnnotDialogTitle,
-                    sk_saveAnnotDialogFilters );
-
-        if ( ImGui::IsItemHovered() ) ImGui::SetTooltip( "Save annotations to an SVG file" );
-
-    //    if ( selectedFile )
-    //    {
-    //        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
-    //        {
-    //            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
-
-    //            /// @todo How to handle changing the file name?
-    //            activeAnnot->setFileName( *selectedFile );
-    //        }
-    //        else
-    //        {
-    //            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
-    //        }
-    //    }
-
-        ImGui::SameLine();
-    }
 
 
     // Remove the annotation:
@@ -2134,7 +2113,7 @@ void renderAnnotationsHeader(
 
     if ( ImGui::IsItemHovered() )
     {
-        ImGui::SetTooltip( "Remove the annotation. The file will not be deleted." );
+        ImGui::SetTooltip( "Remove the annotation. (The saved file on disk will not be deleted.)" );
     }
 
     if ( clickedRemoveButton )
@@ -2198,25 +2177,7 @@ void renderAnnotationsHeader(
     }
 
 
-    ImGui::Separator();
-
-
-    // Annotation display name:
-    std::string displayName = activeAnnot->getDisplayName();
-    if ( ImGui::InputText( "Name", &displayName ) )
-    {
-        activeAnnot->setDisplayName( displayName );
-    }
-    ImGui::SameLine(); helpMarker( "Edit the name of the annotation" );
-
-
-    // Annotation file name:
-    std::string fileName = activeAnnot->getFileName();
-    ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
-    ImGui::SameLine();
-    helpMarker( "File storing the annotation in Scalar Vector Graphics (SVG) format" );
-
-
+    ImGui::Spacing();
     ImGui::Separator();
     ImGui::Spacing();
 
@@ -2393,8 +2354,41 @@ void renderAnnotationsHeader(
     }
 
 
-    /// @todo Don ot draw the separator for the last header of a window
-//    ImGui::Separator();
+    ImGui::Spacing();
+    ImGui::Separator();
+    ImGui::Spacing();
+
+    // Annotation file name:
+    std::string fileName = activeAnnot->getFileName();
+    ImGui::InputText( "File", &fileName, ImGuiInputTextFlags_ReadOnly );
+    ImGui::SameLine();
+    helpMarker( "File storing the annotation" );
+
+
+    if ( ! annotUids.empty() )
+    {
+        // Save annotations to disk:
+        const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
+                    sk_saveAnnotButtonText.c_str(), sk_saveAnnotDialogTitle,
+                    sk_saveAnnotDialogFilters );
+
+        if ( ImGui::IsItemHovered() ) ImGui::SetTooltip( "Save annotations to disk" );
+
+    //    if ( selectedFile )
+    //    {
+    //        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
+    //        {
+    //            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
+
+    //            /// @todo How to handle changing the file name?
+    //            activeAnnot->setFileName( *selectedFile );
+    //        }
+    //        else
+    //        {
+    //            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
+    //        }
+    //    }
+    }
 
     ImGui::PopID(); /** PopID imageUid **/
 }

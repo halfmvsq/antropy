@@ -34,6 +34,9 @@ bool showToolbarUndoButton(); // Undo last vertex
 bool showToolbarInsertVertexButton(); // Insert vertex
 bool showToolbarRemoveSelectedVertexButton(); // Remove selected vertex
 bool showToolbarRemoveSelectedAnnotationButton(); // Remove selected annotation
+bool showToolbarCutSelectedAnnotationButton(); // Cut selected annotation
+bool showToolbarCopySelectedAnnotationButton(); // Copy selected annotation
+bool showToolbarPasteSelectedAnnotationButton(); // Paste selected annotation
 
 } // namespace state
 

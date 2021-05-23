@@ -205,4 +205,34 @@ bool showToolbarRemoveSelectedAnnotationButton()
     return false;
 }
 
+bool showToolbarCutSelectedAnnotationButton()
+{
+    if ( ASM::is_in_state<StandbyState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
+    {
+        return ( ASM::appData() && data::getSelectedAnnotation( *ASM::appData() ) );
+    }
+    return false;
+}
+
+bool showToolbarCopySelectedAnnotationButton()
+{
+    if ( ASM::is_in_state<StandbyState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
+    {
+        return ( ASM::appData() && data::getSelectedAnnotation( *ASM::appData() ) );
+    }
+    return false;
+}
+
+bool showToolbarPasteSelectedAnnotationButton()
+{
+    if ( ASM::is_in_state<StandbyState>() ||
+         ASM::is_in_state<VertexSelectedState>() )
+    {
+        return true;
+    }
+    return false;
+}
+
 } // namespace state

@@ -1542,6 +1542,93 @@ void renderAnnotationToolbar(
         }
 
 
+        if ( state::showToolbarCutSelectedAnnotationButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_cut = std::string( ICON_FK_SCISSORS ) + " Cut";
+
+                if ( ImGui::Button( sk_cut.c_str() ) )
+                {
+//                    send_event( state::RemoveSelectedAnnotationEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Cut the selected polygon" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
+
+        if ( state::showToolbarCopySelectedAnnotationButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_copy = std::string( ICON_FK_FILES_O ) + " Copy";
+
+                if ( ImGui::Button( sk_copy.c_str() ) )
+                {
+//                    send_event( state::RemoveSelectedAnnotationEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Copy the selected polygon" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
+
+        if ( state::showToolbarPasteSelectedAnnotationButton() )
+        {
+            if ( needsSpace )
+            {
+                if ( isHoriz ) ImGui::SameLine();
+                ImGui::Dummy( buttonSpace );
+            }
+
+            if ( isHoriz ) ImGui::SameLine();
+            ImGui::PushID( id );
+            {
+                static const std::string sk_paste = std::string( ICON_FK_CLIPBOARD ) + " Paste";
+
+                if ( ImGui::Button( sk_paste.c_str() ) )
+                {
+//                    send_event( state::RemoveSelectedAnnotationEvent() );
+                }
+                if ( ImGui::IsItemHovered() )
+                {
+                    ImGui::SetTooltip( "%s", "Paste the copied polygon" );
+                }
+                ++id;
+            }
+            ImGui::PopID();
+
+            needsSpace = true;
+        }
+
+
         if ( state::showToolbarFillButton() )
         {
             if ( needsSpace )
