@@ -598,7 +598,7 @@ bool openLandmarkGroupCsvFile(
         {
             spdlog::error( "Error opening landmarks CSV file {}", csvFileName );
             throw std::system_error( errno, std::system_category(),
-                                     "Failed to open file " + csvFileName );
+                                     "Failed to open CSV file " + csvFileName );
         }
 
         int lineNum = 1;
@@ -729,16 +729,16 @@ bool openLandmarkGroupCsvFile(
 #if HAS_IOS_BASE_FAILURE_DERIVED_FROM_SYSTEM_ERROR
         // e.code() is only available if the lib actually follows ISO §27.5.3.1.1
         // and derives ios_base::failure from system_error
-        spdlog::error( "Error #{} on opening file {}: {}",
-                       e.code().value(), fileName, e.code().message() );
+        spdlog::error( "Error #{} on opening CSV file {}: {}",
+                       e.code().value(), csvFileName, e.code().message() );
 
         if ( std::make_error_condition( std::io_errc::stream ) == e.code() )
         {
-            spdlog::error( "Stream error opening file {}", fileName );
+            spdlog::error( "Stream error opening CSV file {}", csvFileName );
         }
         else
         {
-            spdlog::error( "Unknown failure opening file {}", fileName );
+            spdlog::error( "Unknown failure opening CSV file {}", csvFileName );
         }
 #else
         spdlog::error( "Error #{}: {}", errno, ::strerror(errno) );
@@ -757,19 +757,19 @@ bool openLandmarkGroupCsvFile(
 
 bool saveLandmarkGroupCsvFile(
         const std::map< size_t, PointRecord<glm::vec3> >& landmarks,
-        const std::string& fileName )
+        const std::string& csvFileName )
 {
     std::ofstream outFile;
     outFile.exceptions( outFile.exceptions() | std::ofstream::badbit | std::ofstream::failbit );
 
     try
     {
-        outFile.open( fileName, std::ofstream::out );
+        outFile.open( csvFileName, std::ofstream::out );
 
         if ( ! outFile )
         {
             throw std::system_error( errno, std::system_category(),
-                                     "Failed to open output file " + fileName );
+                                     "Failed to open output CSV file " + csvFileName );
         }
 
         static const std::string sk_header( "ID,X,Y,Z,Name" );
@@ -792,27 +792,27 @@ bool saveLandmarkGroupCsvFile(
 #if HAS_IOS_BASE_FAILURE_DERIVED_FROM_SYSTEM_ERROR
         // e.code() is only available if the lib actually follows ISO §27.5.3.1.1
         // and derives ios_base::failure from system_error
-        spdlog::error( "Error #{} on opening file {}: {}",
-                       e.code().value(), fileName, e.code().message() );
+        spdlog::error( "Error #{} on opening CSV file {}: {}",
+                       e.code().value(), csvFileName, e.code().message() );
 
         if ( std::make_error_condition( std::io_errc::stream ) == e.code() )
         {
-            spdlog::error( "Stream error opening file {}", fileName );
+            spdlog::error( "Stream error opening CSV file {}", csvFileName );
         }
         else
         {
-            spdlog::error( "Unknown failure opening file {}", fileName );
+            spdlog::error( "Unknown failure opening CSV file {}", csvFileName );
         }
 #else
         spdlog::error( "Error #{}: {}", errno, ::strerror(errno) );
 #endif
 
-        spdlog::error( "Failure while writing landmarks to file {}: {}", fileName, e.what() );
+        spdlog::error( "Failure while writing landmarks to CSV file {}: {}", csvFileName, e.what() );
         return false;
     }
     catch ( const std::exception& e )
     {
-        spdlog::error( "Could not write landmarks to file {}: {}", fileName, e.what() );
+        spdlog::error( "Could not write landmarks to CSV file {}: {}", csvFileName, e.what() );
         return false;
     }
 }
