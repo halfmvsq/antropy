@@ -802,11 +802,11 @@ bool AntropyApp::loadSerializedImage( const serialize::Image& serializedImage )
 
 
     // Set landmarks from file:
-    for ( const auto& lm : serializedImage.m_landmarks )
+    for ( const auto& lm : serializedImage.m_landmarkGroups )
     {
         std::map< size_t, PointRecord<glm::vec3> > landmarks;
 
-        if ( serialize::openLandmarksFile( landmarks, lm.m_csvFileName ) )
+        if ( serialize::openLandmarkGroupCsvFile( landmarks, lm.m_csvFileName ) )
         {
             spdlog::info( "Loaded landmarks from CSV file {} for image {}", lm.m_csvFileName, *imageUid );
 

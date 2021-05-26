@@ -328,7 +328,7 @@ void renderLandmarkChildWindow(
     std::map< size_t, PointRecord<glm::vec3> >& points = activeLmGroup->getPoints();
 
     const bool childVisible = ImGui::BeginChild(
-                "", ImVec2( 355, 300 ), true,
+                "", ImVec2( 375, 300 ), true,
                 ImGuiWindowFlags_MenuBar |
                 ImGuiWindowFlags_HorizontalScrollbar );
 
@@ -425,7 +425,7 @@ void renderLandmarkChildWindow(
 
         ImGui::SameLine();
 
-        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 1.0f, 4.0f ) );
+        ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 2.0f, 4.0f ) );
 
         if ( ImGui::Button( ICON_FK_HAND_O_UP ) )
         {
@@ -506,6 +506,20 @@ void renderLandmarkChildWindow(
         {
             point.setPosition( pointPos );
         }
+
+        if ( ImGui::IsItemHovered() )
+        {
+            if ( activeLmGroup->getInVoxelSpace() )
+            {
+                ImGui::SetTooltip( "(x, y, z) voxel position" );
+            }
+            else
+            {
+                ImGui::SetTooltip( "(x, y, z) mm/physical position" );
+            }
+
+        }
+
         ImGui::PopItemWidth();
         ImGui::PopStyleVar(); // ImGuiStyleVar_ItemInnerSpacing
 

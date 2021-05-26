@@ -1805,7 +1805,7 @@ void renderLandmarkGroupHeader(
 
     if ( selectedFile )
     {
-        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
+        if ( serialize::saveLandmarkGroupCsvFile( activeLmGroup->getPoints(), *selectedFile ) )
         {
             spdlog::info( "Saved landmarks to CSV file {}", *selectedFile );
 

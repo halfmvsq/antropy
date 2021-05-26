@@ -298,6 +298,10 @@ bool AnnotationStateMachine::addVertexToGrowingPolygon( const ViewHit& hit )
                 // has more than two vertices, so close the polygon and do not add a new vertex.
                 growingAnnot->setClosed( true );
                 growingAnnot->setFilled( true );
+
+                // Highlight the first vertex
+                setSelectedAnnotationAndVertex( *ms_growingAnnotUid, FIRST_VERTEX_INDEX );
+
                 transit<StandbyState>();
                 return true;
             }
@@ -322,17 +326,30 @@ bool AnnotationStateMachine::addVertexToGrowingPolygon( const ViewHit& hit )
         {
             // Add the existing point
             growingAnnot->addPlanePointToBoundary( OUTER_BOUNDARY, *planePoint2d );
+
+            // Highlight the added vertex:
+            const size_t addedVertexIndex = growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size() - 1;
+            setSelectedAnnotationAndVertex( *ms_growingAnnotUid, addedVertexIndex );
+
             return true;
         }
     }
 
     // The prior checks fell through, so add the new point to the polygon:
-    if ( ! growingAnnot->addSubjectPointToBoundary( OUTER_BOUNDARY, subjectPlanePoint ) )
+    const auto projectedPoint = growingAnnot->addSubjectPointToBoundary(
+                OUTER_BOUNDARY, subjectPlanePoint );
+
+    if ( ! projectedPoint )
     {
         spdlog::error( "Unable to add point {} to annotation {}",
                        glm::to_string( hit.worldPos_offsetApplied ),
                        *ms_growingAnnotUid );
+        return false;
     }
+
+    // Highlight the added vertex:
+    const size_t addedVertexIndex = growingAnnot->getBoundaryVertices( OUTER_BOUNDARY ).size() - 1;
+    setSelectedAnnotationAndVertex( *ms_growingAnnotUid, addedVertexIndex );
 
     return true;
 }
@@ -401,6 +418,10 @@ void AnnotationStateMachine::undoLastVertexOfGrowingPolygon()
         {
             // There are at least two vertices, so remove the last one
             growingAnnot->polygon().removeVertexFromBoundary( OUTER_BOUNDARY, numVertices - 1 );
+
+            // Highlight the last vertex
+            const size_t newSelectedVertex = numVertices - 2;
+            setSelectedAnnotationAndVertex( *ms_growingAnnotUid, newSelectedVertex );
         }
         else
         {

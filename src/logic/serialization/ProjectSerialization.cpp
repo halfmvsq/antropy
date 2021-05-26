@@ -151,7 +151,7 @@ void from_json( const json& j, Segmentation& seg )
 }
 
 
-void to_json( json& j, const LandmarksGroup& landmarks )
+void to_json( json& j, const LandmarkGroup& landmarks )
 {
     j = json
     {
@@ -160,7 +160,7 @@ void to_json( json& j, const LandmarksGroup& landmarks )
     };
 }
 
-void from_json( const json& j, LandmarksGroup& landmarks )
+void from_json( const json& j, LandmarkGroup& landmarks )
 {
     j.at( "path" ).get_to( landmarks.m_csvFileName );
 
@@ -192,14 +192,19 @@ void to_json( json& j, const Image& image )
         j[ "deformation" ] = *image.m_deformationFileName;
     }
 
+    if ( image.m_annotationsFileName )
+    {
+        j[ "annotations" ] = *image.m_annotationsFileName;
+    }
+
     if ( ! image.m_segmentations.empty() )
     {
         j[ "segmentations" ] = image.m_segmentations;
     }
 
-    if ( ! image.m_landmarks.empty() )
+    if ( ! image.m_landmarkGroups.empty() )
     {
-        j[ "landmarks" ] = image.m_landmarks;
+        j[ "landmarks" ] = image.m_landmarkGroups;
     }
 }
 
@@ -217,6 +222,11 @@ void from_json( const json& j, Image& image )
         image.m_deformationFileName = j.at( "deformation" ).get<std::string>();
     }
 
+    if ( j.count( "annotations" ) )
+    {
+        image.m_annotationsFileName = j.at( "annotations" ).get<std::string>();
+    }
+
     if ( j.count( "segmentations" ) )
     {
         j.at( "segmentations" ).get_to( image.m_segmentations );
@@ -224,7 +234,7 @@ void from_json( const json& j, Image& image )
 
     if ( j.count( "landmarks" ) )
     {
-        j.at( "landmarks" ).get_to( image.m_landmarks );
+        j.at( "landmarks" ).get_to( image.m_landmarkGroups );
     }
 }
 
@@ -273,12 +283,17 @@ bool open( AntropyProject& project, const std::string& fileName )
             image.m_deformationFileName = fs::canonical( *image.m_deformationFileName ).string();
         }
 
+        if ( image.m_annotationsFileName )
+        {
+            image.m_annotationsFileName = fs::canonical( *image.m_annotationsFileName ).string();
+        }
+
         for ( Segmentation& seg : image.m_segmentations )
         {
             seg.m_segFileName = fs::canonical( seg.m_segFileName ).string();
         }
 
-        for ( LandmarksGroup& lm : image.m_landmarks )
+        for ( LandmarkGroup& lm : image.m_landmarkGroups )
         {
             lm.m_csvFileName = fs::canonical( lm.m_csvFileName ).string();
         }
@@ -372,12 +387,17 @@ bool save( const AntropyProject& project, const std::string& fileName )
             image.m_deformationFileName = fs::relative( *image.m_deformationFileName, projectBasePath ).string();
         }
 
+        if ( image.m_annotationsFileName )
+        {
+            image.m_annotationsFileName = fs::relative( *image.m_annotationsFileName, projectBasePath ).string();
+        }
+
         for ( Segmentation& seg : image.m_segmentations )
         {
             seg.m_segFileName = fs::relative( seg.m_segFileName, projectBasePath ).string();
         }
 
-        for ( LandmarksGroup& lm : image.m_landmarks )
+        for ( LandmarkGroup& lm : image.m_landmarkGroups )
         {
             lm.m_csvFileName = fs::relative( lm.m_csvFileName, projectBasePath ).string();
         }
@@ -562,22 +582,23 @@ bool saveAffineTxFile( const glm::dmat4& matrix, const std::string& fileName )
 }
 
 
-bool openLandmarksFile(
+bool openLandmarkGroupCsvFile(
         std::map< size_t, PointRecord<glm::vec3> >& landmarks,
-        const std::string& fileName )
+        const std::string& csvFileName )
 {
     std::ifstream inFile;
     inFile.exceptions( inFile.exceptions() | std::ifstream::badbit );
 
     try
     {
-        spdlog::debug( "Opening landmarks CSV file {}", fileName );
-        inFile.open( fileName, std::ios_base::in );
+        spdlog::debug( "Opening landmarks CSV file {}", csvFileName );
+        inFile.open( csvFileName, std::ios_base::in );
 
         if ( ! inFile || ! inFile.good() )
         {
-            spdlog::error( "Error opening landmarks CSV file {}", fileName );
-            throw std::system_error( errno, std::system_category(), "Failed to open file " + fileName );
+            spdlog::error( "Error opening landmarks CSV file {}", csvFileName );
+            throw std::system_error( errno, std::system_category(),
+                                     "Failed to open file " + csvFileName );
         }
 
         int lineNum = 1;
@@ -605,8 +626,9 @@ bool openLandmarksFile(
         // index ,X ,Y ,Z [,name]
         if ( numCols < 4 )
         {
-            spdlog::error( "Expected at least four columns (id, x, y, z) when reading landmarks CSV file {},"
-                           "but only read {} columns", fileName, numCols );
+            spdlog::error( "Expected at least four columns (id, x, y, z) "
+                           "when reading landmarks CSV file {}, "
+                           "but only read {} columns", csvFileName, numCols );
             return false;
         }
 
@@ -660,14 +682,16 @@ bool openLandmarksFile(
             if ( nameProvided && ( col < numCols - 1 ) )
             {
                 // The name is optional, so only check col against numCols - 1
-                spdlog::error( "Line {} of landmarks CSV file {} has {} entries, which is less than the expected {} entries",
-                               lineNum, fileName, col, numCols - 1 );
+                spdlog::error( "Line {} of landmarks CSV file {} has {} entries, "
+                               "which is less than the expected {} entries",
+                               lineNum, csvFileName, col, numCols - 1 );
                 return false;
             }
             else if ( ! nameProvided && ( col < numCols ) )
             {
-                spdlog::error( "Line {} of landmarks CSV file {} has {} entries, which is less than the expected {} entries",
-                               lineNum, fileName, col, numCols );
+                spdlog::error( "Line {} of landmarks CSV file {} has {} entries, "
+                               "which is less than the expected {} entries",
+                               lineNum, csvFileName, col, numCols );
                 return false;
             }
 
@@ -682,7 +706,7 @@ bool openLandmarksFile(
             if ( landmarkIndex < 0 )
             {
                 spdlog::error( "Invalid negative landmark index ({}) on line {} of landmarks CSV file {}",
-                               landmarkIndex, lineNum, fileName );
+                               landmarkIndex, lineNum, csvFileName );
                 return false;
             }
 
@@ -720,18 +744,18 @@ bool openLandmarksFile(
         spdlog::error( "Error #{}: {}", errno, ::strerror(errno) );
 #endif
 
-        spdlog::error( "Failure while reading landmark CSV file {}: {}", fileName, e.what() );
+        spdlog::error( "Failure while reading landmark CSV file {}: {}", csvFileName, e.what() );
         return false;
     }
     catch ( const std::exception& e )
     {
-        spdlog::error( "Invalid landmark CSV file {}: {}", fileName, e.what() );
+        spdlog::error( "Invalid landmark CSV file {}: {}", csvFileName, e.what() );
         return false;
     }
 }
 
 
-bool saveLandmarksFile(
+bool saveLandmarkGroupCsvFile(
         const std::map< size_t, PointRecord<glm::vec3> >& landmarks,
         const std::string& fileName )
 {

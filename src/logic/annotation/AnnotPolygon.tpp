@@ -123,7 +123,7 @@ public:
     {
         if ( boundary >= m_vertices.size() )
         {
-            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            spdlog::warn( "Invalid polygon boundary index {}", boundary );
             return false;
         }
 
@@ -147,7 +147,7 @@ public:
     {
         if ( boundary >= m_vertices.size() )
         {
-            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            spdlog::warn( "Invalid polygon boundary index {}", boundary );
             return false;
         }
 
@@ -155,8 +155,8 @@ public:
 
         if ( vertexIndex >= boundaryVertices.size() )
         {
-            spdlog::error( "Invalid vertex index {} to set for boundary",
-                           vertexIndex, boundary );
+            spdlog::warn( "Invalid vertex index {} to set for polygon boundary",
+                          vertexIndex, boundary );
             return false;
         }
 
@@ -189,8 +189,8 @@ public:
             }
             else
             {
-                spdlog::error( "Unable to add vertex {} to invalid boundary {}",
-                               glm::to_string( vertex ), boundary );
+                spdlog::warn( "Unable to add vertex {} to invalid boundary {}",
+                              glm::to_string( vertex ), boundary );
                 return false;
             }
         }
@@ -285,7 +285,7 @@ public:
     {
         if ( boundary >= m_vertices.size() )
         {
-            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            spdlog::warn( "Invalid polygon boundary index {}", boundary );
             return false;
         }
 
@@ -293,13 +293,13 @@ public:
 
         if ( 1 == numVertices )
         {
-            spdlog::error( "Cannot remove the last vertex of a boundary" );
+            spdlog::warn( "Cannot remove the last vertex of a boundary" );
             return false;
         }
 
         if ( vertexIndex >= numVertices )
         {
-            spdlog::error( "Invalid polygon vertex {}", vertexIndex );
+            spdlog::warn( "Invalid polygon vertex {}", vertexIndex );
             return false;
         }
 
@@ -346,7 +346,7 @@ public:
 
         if ( boundary >= m_vertices.size() )
         {
-            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            spdlog::warn( "Invalid polygon boundary index {}", boundary );
             return sk_emptyBoundary;
         }
 
@@ -382,7 +382,7 @@ public:
     {
         if ( boundary >= m_vertices.size() )
         {
-            spdlog::error( "Invalid polygon boundary index {}", boundary );
+            spdlog::warn( "Invalid polygon boundary index {}", boundary );
             return std::nullopt;
         }
 
@@ -390,7 +390,7 @@ public:
 
         if ( i >= vertices.size() )
         {
-            spdlog::error( "Invalid vertex index {} for polygon boundary {}", i, boundary );
+            spdlog::warn( "Invalid vertex index {} for polygon boundary {}", i, boundary );
             return std::nullopt;
         }
 
@@ -417,7 +417,7 @@ public:
             }
         }
 
-        spdlog::error( "Invalid polygon vertex {}", i );
+        spdlog::warn( "Invalid polygon vertex {}", i );
         return std::nullopt;
     }
 
@@ -466,7 +466,7 @@ public:
     {
         if ( 3*i + 2 >= m_triangulation.size() )
         {
-            spdlog::error( "Invalid triangle index {}", i );
+            spdlog::warn( "Invalid triangle index {}", i );
             return std::nullopt;
         }
 
