@@ -19,36 +19,4 @@ class Polygon;
 void triangulatePolygon( Polygon& polygon );
 
 
-
-/**
- * @brief Annotation layers for a given image may not be unique. This function sets each annotation
- * to a unique layer.
- *
- * @todo Finish this function. Current implementation is from HistoloZee.
- */
-//void setUniqueAnnotationLayers( AppData& );
-
-
-/// Types of changes to layering
-enum class LayerChangeType
-{
-    Backwards,
-    Forwards,
-    ToBack,
-    ToFront
-};
-
-
-/**
- * @brief Apply a change to an annotation's layering
- * @param appData
- * @param annotUid UID of the annotation
- * @param layerChange Change to apply to the layer
- *
- * @todo Finish this function. Current implementation is from HistoloZee.
- */
-//void changeAnnotationLayering(
-//        AppData& appData, const uuids::uuid& annotUid, const LayerChangeType& layerChange );
-
-
 #endif // ANNOTATION_HELPER_H

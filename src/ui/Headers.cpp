@@ -274,6 +274,8 @@ void renderImageHeaderInformation(
 //        ImGui::PlotHistogram("Histogram", func, NULL, display_count, 0, NULL, -1.0f, 1.0f, ImVec2(0, 80));
 
 //        ImGui::PlotLines("Lines", values, IM_ARRAYSIZE(values), values_offset, overlay, -1.0f, 1.0f, ImVec2(0, 80.0f));
+
+        ImGui::TreePop();
     }
 }
 
@@ -1859,7 +1861,7 @@ void renderAnnotationsHeader(
     static const std::string sk_fillAnnotButtonText =
             std::string( ICON_FK_PAINT_BRUSH ) + std::string( " Fill" );
 
-    static const char* sk_saveAnnotDialogTitle( "Save Annotations to SVG" );
+    static const char* sk_saveAnnotDialogTitle( "Save Annotations to JSON" );
     static const std::vector< const char* > sk_saveAnnotDialogFilters{};
 
     Image* image = appData.image( imageUid );
@@ -2396,20 +2398,32 @@ void renderAnnotationsHeader(
 
         if ( ImGui::IsItemHovered() ) ImGui::SetTooltip( "Save annotations to disk" );
 
-    //    if ( selectedFile )
-    //    {
-    //        if ( serialize::saveLandmarksFile( activeLmGroup->getPoints(), *selectedFile ) )
-    //        {
-    //            spdlog::info( "Saved annotation to SVG file {}", *selectedFile );
+        if ( selectedFile )
+        {
+            // Add all annotations belonging to this image to a json structure,
+            // then save the json to disk.
+            nlohmann::json j;
 
-    //            /// @todo How to handle changing the file name?
-    //            activeAnnot->setFileName( *selectedFile );
-    //        }
-    //        else
-    //        {
-    //            spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
-    //        }
-    //    }
+            for ( const auto& annotUid : appData.annotationsForImage( imageUid ) )
+            {
+                if ( const Annotation* annot = appData.annotation( annotUid ) )
+                {
+                    serialize::appendAnnotationToJson( *annot, j );
+                }
+            }
+
+            if ( serialize::saveToJsonFile( j, *selectedFile ) )
+            {
+                spdlog::info( "Saved annotations for image {} to JSON file {}",
+                              imageUid, *selectedFile );
+
+                activeAnnot->setFileName( *selectedFile );
+            }
+            else
+            {
+                spdlog::error( "Error saving annotation to SVG file {}", *selectedFile );
+            }
+        }
     }
 
     ImGui::PopID(); /** PopID imageUid **/

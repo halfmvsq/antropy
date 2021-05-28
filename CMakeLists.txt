@@ -344,6 +344,7 @@ set( ATROPY_SOURCES
     ${SRC_DIR}/logic/annotation/Annotation.cpp
     ${SRC_DIR}/logic/annotation/BezierHelper.cpp
     ${SRC_DIR}/logic/annotation/LandmarkGroup.cpp
+    ${SRC_DIR}/logic/annotation/SerializeAnnot.cpp
 
     ${SRC_DIR}/logic/camera/Camera.cpp
     ${SRC_DIR}/logic/camera/CameraHelpers.cpp

@@ -58,6 +58,7 @@ void renderViewSettingsComboWindow(
 
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< bool( size_t imageIndex ) >& getImageVisibilitySetting,
+        const std::function< bool( size_t imageIndex ) >& getImageIsActive,
 
         const camera::CameraType& cameraType,
         const camera::ViewRenderMode& renderMode,

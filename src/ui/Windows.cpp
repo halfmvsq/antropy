@@ -62,6 +62,7 @@ void renderViewSettingsComboWindow(
 
         const std::function< std::pair<const char*, const char* >( size_t index ) >& getImageDisplayAndFileName,
         const std::function< bool( size_t imageIndex ) >& getImageVisibilitySetting,
+        const std::function< bool( size_t imageIndex ) >& getImageIsActive,
 
         const camera::CameraType& cameraType,
         const camera::ViewRenderMode& renderMode,
@@ -178,9 +179,15 @@ void renderViewSettingsComboWindow(
                             auto displayAndFileName = getImageDisplayAndFileName(i);
 
                             std::string displayName = displayAndFileName.first;
+
                             if ( false == getImageVisibilitySetting( i ) )
                             {
                                 displayName += " (hidden)";
+                            }
+
+                            if ( getImageIsActive( i ) )
+                            {
+                                displayName += " (active)";
                             }
 
                             bool rendered = isImageRendered( i );
@@ -234,9 +241,15 @@ void renderViewSettingsComboWindow(
                             const auto displayAndFileName = getImageDisplayAndFileName(i);
 
                             std::string displayName = displayAndFileName.first;
+
                             if ( false == getImageVisibilitySetting( i ) )
                             {
                                 displayName += " (hidden)";
+                            }
+
+                            if ( getImageIsActive( i ) )
+                            {
+                                displayName += " (active)";
                             }
 
                             bool rendered = isImageUsedForMetric( i );
@@ -455,7 +468,11 @@ void renderViewSettingsComboWindow(
                         if ( isImageRendered( i ) && getImageVisibilitySetting( i ) )
                         {
                             const std::string comma = ( first ? "" : ", " );
-                            imageNamesText += comma + std::string( getImageDisplayAndFileName(i).first );
+
+                            imageNamesText += comma +
+                                    std::string( getImageDisplayAndFileName(i).first ) +
+                                    ( getImageIsActive(i) ? " (active)" : "" );
+
                             first = false;
                         }
                     }

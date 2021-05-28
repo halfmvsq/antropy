@@ -372,6 +372,17 @@ void ImGuiWrapper::render()
         return false;
     };
 
+    auto getImageIsActive = [this] ( size_t imageIndex ) -> bool
+    {
+        if ( const auto imageUid = m_appData.imageUid( imageIndex ) )
+        {
+            const auto activeImageUid = m_appData.activeImageUid();
+
+            return ( *imageUid == *activeImageUid );
+        }
+        return false;
+    };
+
     auto moveImageBackward = [this] ( const uuids::uuid& imageUid ) -> bool
     {
         if ( m_appData.moveImageBackwards( imageUid ) )
@@ -633,6 +644,7 @@ void ImGuiWrapper::render()
                     getImageDisplayAndFileNames,
 
                     getImageIsVisibleSetting,
+                    getImageIsActive,
 
                     currentLayout.cameraType(),
                     currentLayout.renderMode(),
@@ -712,6 +724,7 @@ void ImGuiWrapper::render()
 
                         getImageDisplayAndFileNames,
                         getImageIsVisibleSetting,
+                        getImageIsActive,
 
                         view->cameraType(),
                         view->renderMode(),

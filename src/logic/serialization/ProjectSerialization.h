@@ -1,6 +1,7 @@
 #ifndef PARSE_ARGUMENTS_H
 #define PARSE_ARGUMENTS_H
 
+#include "logic/annotation/Annotation.h"
 #include "logic/annotation/PointRecord.h"
 
 #include <nlohmann/json.hpp>
@@ -125,7 +126,9 @@ bool saveAffineTxFile( const glm::dmat4& matrix, const std::string& fileName );
  * @param csvFileName
  * @return
  */
-bool openLandmarkGroupCsvFile( std::map< size_t, PointRecord<glm::vec3> >& landmarks, const std::string& csvFileName );
+bool openLandmarkGroupCsvFile(
+        std::map< size_t, PointRecord<glm::vec3> >& landmarks,
+        const std::string& csvFileName );
 
 /**
  * @brief saveLandmarkGroupCsvFile
@@ -133,7 +136,17 @@ bool openLandmarkGroupCsvFile( std::map< size_t, PointRecord<glm::vec3> >& landm
  * @param csvFileName
  * @return
  */
-bool saveLandmarkGroupCsvFile( const std::map< size_t, PointRecord<glm::vec3> >& landmarks, const std::string& csvFileName );
+bool saveLandmarkGroupCsvFile(
+        const std::map< size_t, PointRecord<glm::vec3> >& landmarks,
+        const std::string& csvFileName );
+
+bool openAnnotationsFromJsonFile(
+        std::vector<Annotation>& annots,
+        const std::string& jsonFileName );
+
+void appendAnnotationToJson( const Annotation&, nlohmann::json& );
+
+bool saveToJsonFile( const nlohmann::json&, const std::string& jsonFileName );
 
 } // namespace serialize
 
