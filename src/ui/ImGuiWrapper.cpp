@@ -683,7 +683,7 @@ void ImGuiWrapper::render()
             View* view = m_appData.windowData().getCurrentView( viewUid );
             if ( ! view ) return;
 
-            auto setCameraType = [view, &viewUid] ( const camera::CameraType& cameraType )
+            auto setCameraType = [view] ( const camera::CameraType& cameraType )
             {
                 if ( view ) view->setCameraType( cameraType );
             };
