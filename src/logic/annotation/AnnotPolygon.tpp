@@ -463,7 +463,7 @@ public:
     /// Get indices of the i'th triangle. The triangle is oriented clockwise.
     std::optional< std::tuple<size_t, size_t, size_t> > getTriangle( size_t i ) const
     {
-        if ( 3*i + 2 >= m_triangulation.size() )
+        if ( 3 * i + 2 >= m_triangulation.size() )
         {
             spdlog::warn( "Invalid triangle index {}", i );
             return std::nullopt;
@@ -511,7 +511,7 @@ private:
     /// Call this function AFTER adding the new point to the boundary.
     void updateCentroid()
     {
-        if ( m_vertices.size() < 0 )
+        if ( m_vertices.empty() )
         {
             // No outer boundary
             m_centroid = PointType{ 0 };
@@ -521,7 +521,7 @@ private:
         const auto& outerBoundary = m_vertices[0];
         const size_t N = outerBoundary.size();
 
-        if ( N < 0 )
+        if ( 0 == N )
         {
             m_centroid = PointType{ 0 };
             return;
@@ -541,7 +541,7 @@ private:
     {
         m_centroid = PointType{ 0 };
 
-        if ( m_vertices.size() < 0 )
+        if ( m_vertices.empty() )
         {
             // No outer boundary    
             return;
@@ -550,7 +550,7 @@ private:
         const auto& outerBoundary = m_vertices[0];
         const size_t N = outerBoundary.size();
 
-        if ( N < 1 )
+        if ( 0 == N )
         {
             return;
         }
@@ -560,7 +560,7 @@ private:
             m_centroid += p;
         }
 
-        m_centroid /= N;
+        m_centroid /= static_cast<TComp>( N );;
     }
 
 
