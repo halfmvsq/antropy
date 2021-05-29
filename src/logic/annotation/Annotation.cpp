@@ -14,8 +14,11 @@
 namespace
 {
 
+static const glm::vec4 sk_defaultColor{ 1.0f, 0.0f, 0.0f, 1.0f };
 static constexpr float sk_defaultOpacity = 1.0f;
 static constexpr float sk_defaultThickness = 2.0f;
+
+static const glm::vec4 sk_defaultSubjectPlaneEquation{ 1.0f, 0.0f, 0.0f, 0.0f };
 
 } // anonymous
 
@@ -52,6 +55,11 @@ Annotation::Annotation(
     }
 }
 
+Annotation::Annotation()
+    :
+      Annotation( "", sk_defaultColor, sk_defaultSubjectPlaneEquation )
+{
+}
 
 void Annotation::setDisplayName( std::string displayName )
 {

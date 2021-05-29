@@ -171,7 +171,8 @@ void from_json( const json& j, serialize::LandmarkGroup& landmarks )
     }
     else
     {
-        landmarks.m_inVoxelSpace = false; // If not defined, then assume false
+        // If not defined, then assume false
+        landmarks.m_inVoxelSpace = false;
     }
 }
 
@@ -329,7 +330,8 @@ bool open( AntropyProject& project, const std::string& fileName )
         if ( projectBasePath.empty() )
         {
             projectBasePath = fs::current_path();
-            spdlog::warn( "Project base path is empty; using current path ({})", projectBasePath );
+            spdlog::warn( "Project base path is empty; using current path ({})",
+                          projectBasePath );
         }
 
         projectBasePath = fs::canonical( projectBasePath );
@@ -350,22 +352,26 @@ bool open( AntropyProject& project, const std::string& fileName )
         // and derives ios_base::failure from system_error
         spdlog::error( "Error #{}: {}", e.code().value(), e.code().message() );
 
-        if ( std::make_error_condition( std::io_errc::stream ) == e.code() ) {
+        if ( std::make_error_condition( std::io_errc::stream ) == e.code() )
+        {
             spdlog::error( "Stream error opening file" );
         }
-        else {
+        else
+        {
             spdlog::error( "Unknown failure opening file" );
         }
 #else
         spdlog::error( "Error #{}: {}", errno, ::strerror(errno) );
 #endif
 
-        spdlog::error( "Failure while project from JSON file {}: {}", fileName, e.what() );
+        spdlog::error( "Failure while project from JSON file {}: {}",
+                       fileName, e.what() );
         return false;
     }
     catch ( const std::exception& e )
     {
-        spdlog::error( "Error opening project from JSON file {}: {}", fileName, e.what() );
+        spdlog::error( "Error opening project from JSON file {}: {}",
+                       fileName, e.what() );
         return false;
     }
 }
@@ -716,7 +722,8 @@ bool openLandmarkGroupCsvFile(
 
             if ( landmarkIndex < 0 )
             {
-                spdlog::error( "Invalid negative landmark index ({}) on line {} of landmarks CSV file {}",
+                spdlog::error( "Invalid negative landmark index ({}) on line {} "
+                               "of landmarks CSV file {}",
                                landmarkIndex, lineNum, csvFileName );
                 return false;
             }
@@ -834,15 +841,63 @@ bool saveLandmarkGroupCsvFile(
 }
 
 bool openAnnotationsFromJsonFile(
-        std::vector<Annotation>& /*annots*/,
+        std::vector<Annotation>& annots,
         const std::string& jsonFileName )
 {
-    std::ifstream i( jsonFileName );
+    std::ifstream inFile;
+    inFile.exceptions( inFile.exceptions() | std::ifstream::badbit );
 
-    json j;
-    i >> j;
+    try
+    {
+        spdlog::debug( "Opening annotations JSON file {}", jsonFileName );
+        inFile.open( jsonFileName, std::ios_base::in );
 
-    return true;
+        if ( ! inFile || ! inFile.good() )
+        {
+            spdlog::error( "Error opening annotations JSON file {}", jsonFileName );
+            throw std::system_error(
+                        errno, std::system_category(),
+                        "Failed to open JSON file " + jsonFileName );
+        }
+
+        json j;
+        inFile >> j;
+
+        annots = j.get< std::vector<Annotation> >();
+
+        spdlog::debug( "Parsed {} annotation(s) from JSON:\n{}", annots.size(), j.dump( 2 ) );
+
+        return true;
+    }
+    catch ( const std::ios_base::failure& e )
+    {
+#if HAS_IOS_BASE_FAILURE_DERIVED_FROM_SYSTEM_ERROR
+        // e.code() is only available if the lib actually follows ISO §27.5.3.1.1
+        // and derives ios_base::failure from system_error
+        spdlog::error( "Error #{} on opening annotations JSON file {}: {}",
+                       e.code().value(), jsonFileName, e.code().message() );
+
+        if ( std::make_error_condition( std::io_errc::stream ) == e.code() )
+        {
+            spdlog::error( "Stream error opening annotations JSON file {}", jsonFileName );
+        }
+        else
+        {
+            spdlog::error( "Unknown failure opening annotations JSON file {}", jsonFileName );
+        }
+#else
+        spdlog::error( "Error #{}: {}", errno, ::strerror(errno) );
+#endif
+
+        spdlog::error( "Failure while reading annotations JSON file {}: {}",
+                       jsonFileName, e.what() );
+        return false;
+    }
+    catch ( const std::exception& e )
+    {
+        spdlog::error( "Invalid annotations JSON file {}: {}", jsonFileName, e.what() );
+        return false;
+    }
 }
 
 void appendAnnotationToJson( const Annotation& annot, json& j )

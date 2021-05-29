@@ -58,6 +58,20 @@ bool isInStateWhereCrosshairsCanMove()
     return false;
 }
 
+bool isInStateWhereViewTypeCanChange( const uuids::uuid& viewUid )
+{
+    const bool isSelectedView =
+            ( ASM::selectedViewUid() && ( *ASM::selectedViewUid() == viewUid ) );
+
+    if ( ! isSelectedView )
+    {
+        // Views not selected for annotating can change view type
+        return true;
+    }
+
+    return isInStateWhereViewsCanScroll();
+}
+
 bool isInStateWhereToolbarVisible()
 {
     if ( ASM::is_in_state<AnnotationOffState>() ||

@@ -95,7 +95,7 @@ RenderData::RenderData()
       m_doMaxExtentIntensityProjection( false ),
 
       m_backgroundColor( 0.1f, 0.1f, 0.1f ),
-      m_crosshairsColor( 0.0f, 0.5f, 1.0f, 1.0f ),
+      m_crosshairsColor( 0.05f, 0.6f, 1.0f, 1.0f ),
       m_anatomicalLabelColor( 0.695f, 0.870f, 0.090f, 1.0f ),
 
       m_squaredDifferenceParams(),

@@ -1,6 +1,8 @@
 #ifndef ANNOTATION_STATE_HELPERS_H
 #define ANNOTATION_STATE_HELPERS_H
 
+#include <uuid.h>
+
 namespace state
 {
 
@@ -15,6 +17,9 @@ bool isInStateWhereViewsCanScroll();
 
 /// Can crosshairs move with the mouse in the current state?
 bool isInStateWhereCrosshairsCanMove();
+
+/// Can the type of the view in the current state?
+bool isInStateWhereViewTypeCanChange( const uuids::uuid& viewUid );
 
 /// Is the toolbar visible in the current state?
 bool isInStateWhereToolbarVisible();

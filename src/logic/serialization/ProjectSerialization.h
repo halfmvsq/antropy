@@ -140,13 +140,30 @@ bool saveLandmarkGroupCsvFile(
         const std::map< size_t, PointRecord<glm::vec3> >& landmarks,
         const std::string& csvFileName );
 
+/**
+ * @brief Open annotations from a JSON file
+ * @param[out] annots Vector of annotations in JSON file
+ * @param jsonFileName Name of JSON file containing annotations
+ * @return True iff annotations were loaded from JSON file
+ */
 bool openAnnotationsFromJsonFile(
         std::vector<Annotation>& annots,
         const std::string& jsonFileName );
 
-void appendAnnotationToJson( const Annotation&, nlohmann::json& );
+/**
+ * @brief Append an annotation to a JSON structure
+ * @param[in] annot Annotation to append
+ * @param[out] j JSON structure holding annotation(s)
+ */
+void appendAnnotationToJson( const Annotation& annot, nlohmann::json& j );
 
-bool saveToJsonFile( const nlohmann::json&, const std::string& jsonFileName );
+/**
+ * @brief Save a JSON structure to disk
+ * @param[in] j JSON structure
+ * @param[in] jsonFileName File name
+ * @return True iff the JSON structure was saved to the file on disk
+ */
+bool saveToJsonFile( const nlohmann::json& j, const std::string& jsonFileName );
 
 } // namespace serialize
 

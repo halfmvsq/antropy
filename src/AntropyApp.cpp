@@ -7,6 +7,7 @@
 
 #include "image/ImageUtility.h"
 
+#include "logic/annotation/Annotation.h"
 #include "logic/annotation/LandmarkGroup.h"
 #include "logic/camera/MathUtility.h"
 #include "logic/interaction/events/MouseEvent.h"
@@ -84,8 +85,7 @@ serialize::AntropyProject createProjectFromInputParams( const InputParams& param
         const bool valid = serialize::open( project, *params.projectFile );
         if ( ! valid )
         {
-            spdlog::critical( "No images were provided in the project {}",
-                              *params.projectFile );
+            spdlog::critical( "Invalid input in project file {}", *params.projectFile );
             exit( EXIT_FAILURE );
         }
     }
@@ -795,11 +795,44 @@ bool AntropyApp::loadSerializedImage( const serialize::Image& serializedImage )
     }
 
 
+    // Set annotations from file:
+    if ( serializedImage.m_annotationsFileName )
+    {
+        std::vector<Annotation> annots;
+
+        if ( serialize::openAnnotationsFromJsonFile(
+                 annots, *serializedImage.m_annotationsFileName ) )
+        {
+            spdlog::info( "Loaded annotations from JSON file {} for image {}",
+                          *serializedImage.m_annotationsFileName, *imageUid );
+
+            for ( auto& annot : annots )
+            {
+                // Assign the annotation the file name from which it was read:
+                annot.setFileName( *serializedImage.m_annotationsFileName );
+
+                if ( const auto annotUid = m_data.addAnnotation( *imageUid, annot ) )
+                {
+                    m_data.assignActiveAnnotationUidToImage( *imageUid, *annotUid );
+                    spdlog::debug( "Added annotation {} for image {}", *annotUid, *imageUid );
+                }
+                else
+                {
+                    spdlog::error( "Unable to add annotation to image {}", *imageUid );
+                }
+            }
+        }
+        else
+        {
+            spdlog::error( "Unable to open annotations from JSON file {} for image {}",
+                           *serializedImage.m_annotationsFileName, *imageUid );
+        }
+    }
+
 
     static const auto sk_hueMinMax = std::make_pair( 0.0f, 360.0f );
     static const auto sk_satMinMax = std::make_pair( 0.6f, 1.0f );
     static const auto sk_valMinMax = std::make_pair( 0.6f, 1.0f );
-
 
     // Set landmarks from file:
     for ( const auto& lm : serializedImage.m_landmarkGroups )

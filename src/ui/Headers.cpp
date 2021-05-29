@@ -1139,12 +1139,13 @@ void renderImageHeader(
 
 
             ImGui::Spacing();
-            if ( ImGui::Button( "Reset to identity" ) )
+            if ( ImGui::Button( "Reset manual transformation to identity" ) )
             {
                 imgTx.reset_worldDef_T_affine();
                 updateImageUniforms();
             }
-            ImGui::SameLine(); helpMarker( "Reset the manual component of the affine transformation from Subject to World space" );
+            ImGui::SameLine();
+            helpMarker( "Reset the manual component of the affine transformation matrix from Subject to World space" );
 
 
             // Save manual tx to file:
@@ -1152,22 +1153,58 @@ void renderImageHeader(
             static const char* sk_dialogTitle( "Select Manual Transformation" );
             static const std::vector< const char* > sk_dialogFilters{};
 
-            const auto selectedFile = ImGui::renderFileButtonDialogAndWindow(
+            const auto selectedManualTxFile = ImGui::renderFileButtonDialogAndWindow(
                         sk_buttonText, sk_dialogTitle, sk_dialogFilters );
 
-            ImGui::SameLine(); helpMarker( "Save the manual component of the affine transformation matrix from Subject to World space" );
+            ImGui::SameLine();
+            helpMarker( "Save the manual component of the affine transformation matrix from Subject to World space" );
 
-            if ( selectedFile )
+            if ( selectedManualTxFile )
             {
                 const glm::dmat4 worldDef_T_affine{ imgTx.get_worldDef_T_affine() };
 
-                if ( serialize::saveAffineTxFile( worldDef_T_affine, *selectedFile ) )
+                if ( serialize::saveAffineTxFile( worldDef_T_affine, *selectedManualTxFile ) )
                 {
-                    spdlog::info( "Saved manual transformation matrix to file {}", *selectedFile );
+                    spdlog::info( "Saved manual transformation matrix to file {}", *selectedManualTxFile );
                 }
                 else
                 {
-                    spdlog::error( "Error saving manual transformation matrix to file {}", *selectedFile );
+                    spdlog::error( "Error saving manual transformation matrix to file {}", *selectedManualTxFile );
+                }
+            }
+
+
+            if ( imgTx.get_enable_affine_T_subject() )
+            {
+                // Save concatenated initial + manual tx to file:
+                static const char* sk_saveInitAndManualTxButtonText(
+                            "Save initial + manual transformation..." );
+
+                static const char* sk_saveInitAndManualTxDialogTitle(
+                            "Select Concatenated Initial and Manual Transformation" );
+
+                const auto selectedInitAndManualConcatTxFile = ImGui::renderFileButtonDialogAndWindow(
+                            sk_saveInitAndManualTxButtonText, sk_saveInitAndManualTxDialogTitle,
+                            sk_dialogFilters );
+
+                ImGui::SameLine();
+                helpMarker( "Save the concatenated initial and manual affine transformation matrix from Subject to World space" );
+
+                if ( selectedInitAndManualConcatTxFile )
+                {
+                    const glm::dmat4 affine_T_subject{ imgTx.get_affine_T_subject() };
+                    const glm::dmat4 worldDef_T_affine{ imgTx.get_worldDef_T_affine() };
+
+                    if ( serialize::saveAffineTxFile( worldDef_T_affine * affine_T_subject, *selectedInitAndManualConcatTxFile ) )
+                    {
+                        spdlog::info( "Saved concatenated initial and manual affine transformation matrix to file {}",
+                                      *selectedInitAndManualConcatTxFile );
+                    }
+                    else
+                    {
+                        spdlog::error( "Error saving concatenated initial and manual affine transformation matrix to file {}",
+                                       *selectedInitAndManualConcatTxFile );
+                    }
                 }
             }
         }
@@ -2414,9 +2451,7 @@ void renderAnnotationsHeader(
 
             if ( serialize::saveToJsonFile( j, *selectedFile ) )
             {
-                spdlog::info( "Saved annotations for image {} to JSON file {}",
-                              imageUid, *selectedFile );
-
+                spdlog::info( "Saved annotations for image {} to JSON file {}", imageUid, *selectedFile );
                 activeAnnot->setFileName( *selectedFile );
             }
             else

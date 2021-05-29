@@ -66,14 +66,14 @@ public:
     View* getCurrentView( const uuids::uuid& );
 
     /// Get const/non-const pointer to a view
-    const View* getView( const uuids::uuid& ) const;
-    View* getView( const uuids::uuid& );
+    const View* getView( const uuids::uuid& viewUid ) const;
+    View* getView( const uuids::uuid& viewUid );
 
     /// Get UID of active view
     std::optional<uuids::uuid> activeViewUid() const;
 
     /// Set UID of the active view
-    void setActiveViewUid( const std::optional<uuids::uuid>& );
+    void setActiveViewUid( const std::optional<uuids::uuid>& viewUid );
 
     /// Number of layouts
     size_t numLayouts() const; 

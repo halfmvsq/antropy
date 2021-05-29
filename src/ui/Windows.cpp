@@ -11,6 +11,7 @@
 
 #include "logic/app/Data.h"
 #include "logic/camera/MathUtility.h"
+#include "logic/states/AnnotationStateHelpers.h"
 
 #include <IconFontCppHeaders/IconsForkAwesome.h>
 
@@ -85,6 +86,8 @@ void renderViewSettingsComboWindow(
     static const ImVec2 sk_windowPadding( 0.0f, 0.0f );
     static const float sk_windowRounding( 0.0f );
     static const ImVec2 sk_itemSpacing( 4.0f, 4.0f );
+
+    const ImVec4 activeColor( 0.05f, 0.6f, 1.0f, 1.0f );
 
     const std::string uidString = std::string( "##" ) + uuids::to_string( viewOrLayoutUid );
 
@@ -431,25 +434,50 @@ void renderViewSettingsComboWindow(
             {
                 ImGui::SameLine();
                 ImGui::PushItemWidth( 100.0f + 2.0f * ImGui::GetStyle().FramePadding.x );
-                if ( ImGui::BeginCombo( "##cameraTypeCombo", camera::typeString( cameraType ).c_str() ) )
+
+                const bool isOblique = ( camera::CameraType::Oblique == cameraType );
+
+                if ( isOblique )
                 {
-                    for ( const auto& ct : camera::AllCameraTypes )
+                    // Set text marking oblique camera type with different color
+                    ImGui::PushStyleColor( ImGuiCol_Text, activeColor );
+                }
+
+                // Disable opening the camera type combo box if the ASM is in a state where
+                // it should not change.
+
+                const bool clickedCameraTypeCombo =
+                        ImGui::BeginCombo( "##cameraTypeCombo", camera::typeString( cameraType ).c_str() );
+
+                if ( isOblique )
+                {
+                    ImGui::PopStyleColor( 1 ); // ImGuiCol_Text
+                }
+
+                if ( clickedCameraTypeCombo )
+                {
+                    if ( state::isInStateWhereViewTypeCanChange( viewOrLayoutUid ) )
                     {
-                        const bool isSelected = ( ct == cameraType );
-
-                        if ( ImGui::Selectable( camera::typeString( ct ).c_str(), isSelected ) )
+                        for ( const auto& ct : camera::AllCameraTypes )
                         {
-                            setCameraType( ct );
-                            recenter();
-                        }
+                            const bool isSelected = ( ct == cameraType );
 
-                        if ( isSelected )
-                        {
-                            ImGui::SetItemDefaultFocus();
+                            if ( ImGui::Selectable( camera::typeString( ct ).c_str(), isSelected ) )
+                            {
+                                setCameraType( ct );
+                                recenter();
+                            }
+
+                            if ( isSelected )
+                            {
+                                ImGui::SetItemDefaultFocus();
+                            }
                         }
                     }
+
                     ImGui::EndCombo();
                 }
+
                 ImGui::PopItemWidth();
             }
 
