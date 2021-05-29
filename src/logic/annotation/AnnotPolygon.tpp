@@ -232,7 +232,7 @@ public:
         if ( 0 == boundary )
         {
             computeAABBox();
-            updateCentroid();
+            computeCentroid();
             computeBezier();
         }
 
@@ -461,8 +461,7 @@ public:
 
 
     /// Get indices of the i'th triangle. The triangle is oriented clockwise.
-    std::optional< std::tuple<size_t, size_t, size_t> >
-    getTriangle( size_t i ) const
+    std::optional< std::tuple<size_t, size_t, size_t> > getTriangle( size_t i ) const
     {
         if ( 3*i + 2 >= m_triangulation.size() )
         {
@@ -540,10 +539,11 @@ private:
     /// Compute the centroid of the outer boundary from scratch
     void computeCentroid()
     {
+        m_centroid = PointType{ 0 };
+
         if ( m_vertices.size() < 0 )
         {
-            // No outer boundary
-            m_centroid = PointType{ 0 };
+            // No outer boundary    
             return;
         }
 
@@ -552,7 +552,6 @@ private:
 
         if ( N < 1 )
         {
-            m_centroid = PointType{ 0 };
             return;
         }
 
@@ -561,7 +560,7 @@ private:
             m_centroid += p;
         }
 
-        m_centroid /= outerBoundary.size();
+        m_centroid /= N;
     }
 
 
@@ -569,12 +568,9 @@ private:
     /// Only applies to 2D polygons.
     void computeBezier()
     {
-        if ( m_vertices.empty() ) return;
-
-        if ( 2 == Dim && m_smoothed )
+        if ( 2 == Dim && ! m_vertices.empty() && m_smoothed )
         {
-            m_bezierCommands = computeBezierCommands(
-                        m_vertices[0], m_smoothingFactor, m_closed );
+            m_bezierCommands = computeBezierCommands( m_vertices[0], m_smoothingFactor, m_closed );
         }
     }
 
