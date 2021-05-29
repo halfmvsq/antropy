@@ -9,7 +9,7 @@ set( ORGNAME_LINE_2 "Department of Radiology" )
 set( ORGNAME_LINE_3 "University of Pennsylvania" )
 
 set( VERSION_MAJOR 0 )
-set( VERSION_MINOR 3 )
+set( VERSION_MINOR 4 )
 set( VERSION_FEATURE 0 )
 set( VERSION_PATCH 0 )
 set( VERSION_FULL "${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_FEATURE}.${VERSION_PATCH}" )
