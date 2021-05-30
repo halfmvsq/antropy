@@ -21,20 +21,20 @@ More recent versions of ITK and Boost should also work with potentially minor mo
 
 The following libraries and depdencies are brought in as Git submodules to the Antropy repository:
 
-* argparse (https://github.com/p-ranav/argparse.git)
+* argparse (https://github.com/p-ranav/argparse)
 * CMake Modules Collection (https://github.com/rpavlik/cmake-modules)
-* CMakeRC (https://github.com/vector-of-bool/cmrc.git)
-* Dear ImGui (https://github.com/ocornut/imgui.git)
-* ghc::filesystem (https://github.com/gulrak/filesystem.git)
-* GLFW (https://github.com/glfw/glfw.git)
-* GLM (https://github.com/g-truc/glm.git)
-* imgui-filebrowser (https://github.com/AirGuanZ/imgui-filebrowser.git)
-* imGuIZMO.quat (https://github.com/BrutPitt/imGuIZMO.quat.git)
-* JSON for Modern C++ (https://github.com/nlohmann/json.git)
-* NanoVG (https://github.com/memononen/nanovg.git)
-* spdlog (https://github.com/gabime/spdlog.git)
-* stduuid (https://github.com/mariusbancila/stduuid.git)
-* TinyFSM (https://github.com/digint/tinyfsm.git)
+* CMakeRC (https://github.com/vector-of-bool/cmrc)
+* Dear ImGui (https://github.com/ocornut/imgui)
+* ghc::filesystem (https://github.com/gulrak/filesystem)
+* GLFW (https://github.com/glfw/glfw)
+* GLM (https://github.com/g-truc/glm)
+* imgui-filebrowser (https://github.com/AirGuanZ/imgui-filebrowser)
+* imGuIZMO.quat (https://github.com/BrutPitt/imGuIZMO.quat)
+* JSON for Modern C++ (https://github.com/nlohmann/json)
+* NanoVG (https://github.com/memononen/nanovg)
+* spdlog (https://github.com/gabime/spdlog)
+* stduuid (https://github.com/mariusbancila/stduuid)
+* TinyFSM (https://github.com/digint/tinyfsm)
 
 Please run `git submodule update --init --recursive` after cloning to get these submodules.
 
@@ -124,8 +124,7 @@ Logs are output to the console and to files saved in the `logs` folder. Log leve
 
 
 ## To be done
-
-- [x] Vector annotations (in progress)
-- [ ] Saving modifications to project files
-- [ ] 3D rendering of landmark points
+- [X] Docking toolbars
+- [ ] Opening/saving project files
+- [ ] 3D rendering of images, meshes, and landmarks
 - [ ] A list of deformation field images can also be provided ("deformation" field in JSON project) for each image. The deformation fields are loaded, but code has not been implemented to apply them to warp the image.
