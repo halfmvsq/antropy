@@ -82,7 +82,8 @@ With this input format, each image may have only one segmentation.
         "path": "reference_landmarks.csv",
         "inVoxelSpace": false
       }
-    ]
+    ],
+    "annotations": "reference_annotations.json"
   },
   "additional":
   [
@@ -106,7 +107,8 @@ With this input format, each image may have only one segmentation.
           "path": "additional_image1_landmarks2.csv",
           "inVoxelSpace": false
         }
-      ]
+      ],
+      "annotations": "additional_image1_annotations.json"
     },
     {
       "image": "additional_image2.nii.gz",
