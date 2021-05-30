@@ -92,20 +92,20 @@ void renderImageHeaderInformation(
 
 
     // File name:
+    ImGui::Spacing();
     std::string fileName = imgHeader.fileName();
     ImGui::InputText( "File name", &fileName, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Image file name" );
+
     ImGui::Spacing();
-
     ImGui::Separator();
-
+    ImGui::Spacing();
 
     // Dimensions:
     glm::uvec3 dimensions = imgHeader.pixelDimensions();
     ImGui::InputScalarN( "Dimensions (vox)", ImGuiDataType_U32, glm::value_ptr( dimensions ), 3,
                          nullptr, nullptr, nullptr, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Matrix dimensions in voxels" );
-    ImGui::Spacing();
 
 
     // Spacing:
@@ -113,7 +113,6 @@ void renderImageHeaderInformation(
     ImGui::InputScalarN( "Spacing (mm)", ImGuiDataType_Float, glm::value_ptr( spacing ), 3,
                          nullptr, nullptr, "%0.6f", ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Voxel spacing (mm)" );
-    ImGui::Spacing();
 
 
     // Origin:
@@ -144,6 +143,7 @@ void renderImageHeaderInformation(
 
     ImGui::Spacing();
     ImGui::Separator();
+    ImGui::Spacing();
 
 #if 0
     // Ignore spacing checkbox:
@@ -195,7 +195,7 @@ void renderImageHeaderInformation(
 
     ImGui::Spacing();
     ImGui::Separator();
-
+    ImGui::Spacing();
 
 
     // Bounding box:
@@ -208,7 +208,6 @@ void renderImageHeaderInformation(
     ImGui::InputScalarN( "Center (mm)", ImGuiDataType_Float, glm::value_ptr( boxCenter ), 3,
                          nullptr, nullptr, coordFormat, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Bounding box center in Subject space (mm)" );
-    ImGui::Spacing();
 
 
     glm::vec3 boxSize = imgHeader.subjectBBoxSize();
@@ -218,13 +217,13 @@ void renderImageHeaderInformation(
 
     ImGui::Spacing();
     ImGui::Separator();
+    ImGui::Spacing();
 
 
     // Pixel type:
     std::string pixelType = imgHeader.pixelTypeAsString();
     ImGui::InputText( "Pixel type", &pixelType, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Image pixel type" );
-    ImGui::Spacing();
 
 
     // Number of components:
@@ -232,14 +231,12 @@ void renderImageHeaderInformation(
     ImGui::InputScalar( "Num. components", ImGuiDataType_U32, &numComponentsPerPixel,
                         nullptr, nullptr, nullptr, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Number of components per pixel" );
-    ImGui::Spacing();
 
 
     // Component type:
     std::string componentType = imgHeader.fileComponentTypeAsString();
     ImGui::InputText( "Component type", &componentType, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Image component type" );
-    ImGui::Spacing();
 
 
     // Image size (bytes):
@@ -247,7 +244,6 @@ void renderImageHeaderInformation(
     ImGui::InputScalar( "Size (bytes)", ImGuiDataType_U64, &fileSizeBytes,
                         nullptr, nullptr, nullptr, ImGuiInputTextFlags_ReadOnly );
     ImGui::SameLine(); helpMarker( "Image size in bytes" );
-    ImGui::Spacing();
 
 
     // Image size (MiB):
@@ -572,6 +568,7 @@ void renderImageHeader(
 
     ImGui::Spacing();
     ImGui::Separator();
+    ImGui::Spacing();
 
 
     // Open View Properties on first appearance
@@ -862,7 +859,9 @@ void renderImageHeader(
 
 
         // Edge settings
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
 
         // Show edges:
         bool showEdges = imgSettings.showEdges();
@@ -1003,12 +1002,16 @@ void renderImageHeader(
             }
         }
 
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
+
         ImGui::TreePop();
     }
 
     if ( ImGui::TreeNode( "Transformations" ) )
     {
+        ImGui::Spacing();
         ImGui::Text( "Initial affine transformation:" );
         ImGui::SameLine();
         helpMarker( "Initial affine transformation matrix (read from file)" );
@@ -1039,10 +1042,11 @@ void renderImageHeader(
             ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[2] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::InputFloat4( "", glm::value_ptr( aff_T_sub[3] ), txFormat, ImGuiInputTextFlags_ReadOnly );
             ImGui::PopItemWidth();
-
-            ImGui::Spacing();
         }
+
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
 
 
         ImGui::Text( "Manual affine transformation:" );
@@ -1209,7 +1213,9 @@ void renderImageHeader(
             }
         }
 
+        ImGui::Spacing();
         ImGui::Separator();
+
         ImGui::TreePop();
     }
 
@@ -1354,7 +1360,10 @@ void renderSegmentationHeader(
         return;
     }
 
+    ImGui::Spacing();
     ImGui::Separator();
+    ImGui::Spacing();
+
     ImGui::Text( "Active segmentation:" );
 
 //    ImGui::PushItemWidth( -1 );
@@ -1467,7 +1476,9 @@ void renderSegmentationHeader(
         }
     }
 
+    ImGui::Spacing();
     ImGui::Separator();
+    ImGui::Spacing();
 
     // Double check that we still have the active segmentation:
     if ( ! activeSeg )
@@ -1488,8 +1499,6 @@ void renderSegmentationHeader(
             "###seg_" + std::to_string( imageIndex );
 
     /// @todo add "*" to end of name and change color of seg header if seg has been modified
-
-    ImGui::Spacing();
 
 
     // Open segmentation View Properties on first appearance
@@ -1518,7 +1527,10 @@ void renderSegmentationHeader(
             ImGui::SameLine(); helpMarker( "Segmentation layer opacity" );
         }
 
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
+
         ImGui::TreePop();
     }
 
@@ -1530,7 +1542,10 @@ void renderSegmentationHeader(
                     updateLabelColorTableTexture,
                     moveCrosshairsToSegLabelCentroid );
 
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
+
         ImGui::TreePop();
     }
 
@@ -1538,7 +1553,10 @@ void renderSegmentationHeader(
     {
         renderImageHeaderInformation( appData, segHeader, segSettings, segTx );
 
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
+
         ImGui::TreePop();
     }
 
@@ -1686,7 +1704,9 @@ void renderLandmarkGroupHeader(
         ImGui::SameLine();
         helpMarker( "Select the group of landmarks to view" );
 
+        ImGui::Spacing();
         ImGui::Separator();
+        ImGui::Spacing();
     }
 
     if ( ! activeLmGroup )
@@ -1830,8 +1850,9 @@ void renderLandmarkGroupHeader(
                 recenterAllViews );
 
 
-
+    ImGui::Spacing();
     ImGui::Separator();
+    ImGui::Spacing();
 
     addNewLmGroupButton();
 

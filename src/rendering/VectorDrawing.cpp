@@ -814,7 +814,11 @@ void drawAnnotations(
         }
 
         // Don't render annotations for invisible image:
+
         /// @todo Need to properly manage global visibility vs. visibility for just one component
+        /// @todo Need to account for global visibility when editing annotations! Should not be able
+        /// to modify annotations of invisible image!
+
         if ( ! img->settings().globalVisibility() ||
              ( 1 == img->header().numComponentsPerPixel() && ! img->settings().visibility() ) )
         {

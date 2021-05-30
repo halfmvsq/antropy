@@ -699,10 +699,17 @@ void AnnotationStateMachine::moveSelectedVertex( const ViewHit& prevHit, const V
     }
 
     Annotation* annot = ms_appData->annotation( *annotUid );
+
     if ( ! annot )
     {
         spdlog::warn( "Annotation {} is not valid", *annotUid );
         transit<StandbyState>();
+        return;
+    }
+
+    if ( ! annot->isVisible() )
+    {
+        // Don't edit invisible annotation
         return;
     }
 
@@ -851,10 +858,17 @@ void AnnotationStateMachine::moveSelectedPolygon(
     }
 
     Annotation* annot = ms_appData->annotation( *annotUid );
+
     if ( ! annot )
     {
         spdlog::warn( "Annotation {} is not valid", *annotUid );
         transit<StandbyState>();
+        return;
+    }
+
+    if ( ! annot->isVisible() )
+    {
+        // Don't move invisible annotation
         return;
     }
 

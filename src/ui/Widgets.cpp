@@ -115,6 +115,15 @@ void renderSegLabelsChildWindow(
 
     if ( ImGui::BeginMenuBar() )
     {
+        if ( ImGui::MenuItem( sk_addNew.c_str() ) )
+        {
+            labelTable->addLabels( 1 );
+            updateLabelColorTableTexture( tableIndex );
+
+            // Scroll child window to the end of the list of landmarks
+            scrollToBottomOfLmList = true;
+        }
+
         if ( ImGui::MenuItem( sk_showAll.c_str() ) )
         {
             for ( size_t i = 0; i < labelTable->numLabels(); ++i )
@@ -131,15 +140,6 @@ void renderSegLabelsChildWindow(
                 labelTable->setVisible( i, false );
             }
             updateLabelColorTableTexture( tableIndex );
-        }
-
-        if ( ImGui::MenuItem( sk_addNew.c_str() ) )
-        {
-            labelTable->addLabels( 1 );
-            updateLabelColorTableTexture( tableIndex );
-
-            // Scroll child window to the end of the list of landmarks
-            scrollToBottomOfLmList = true;
         }
 
         ImGui::EndMenuBar();
