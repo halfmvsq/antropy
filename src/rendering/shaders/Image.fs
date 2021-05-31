@@ -80,36 +80,45 @@ bool isInsideTexture( vec3 a )
 
 void main()
 {
+    // Indicator of the quadrant of the crosshairs that the fragment is in:
     bvec2 Q = bvec2( fs_in.ClipPos.x <= clipCrosshairs.x,
                      fs_in.ClipPos.y > clipCrosshairs.y );
 
+    // Distance of the fragment from the crosshairs, accounting for aspect ratio:
     float flashlightDist = sqrt(
         pow( aspectRatio * ( fs_in.ClipPos.x - clipCrosshairs.x ), 2.0 ) +
         pow( fs_in.ClipPos.y - clipCrosshairs.y, 2.0 ) );
 
+    // Flag indicating whether the fragment will be rendered:
     bool doRender = ( 0 == renderMode );
 
+    // If in Checkerboard mode, then render the fragment?
     doRender = doRender || ( ( 1 == renderMode ) &&
         ( showFix == bool( mod( floor( fs_in.CheckerCoord.x ) +
                                 floor( fs_in.CheckerCoord.y ), 2.0 ) > 0.5 ) ) );
 
+    // If in Quadrants mode, then render the fragment?
     doRender = doRender || ( ( 2 == renderMode ) &&
         ( showFix == ( ( ! quadrants.x || Q.x ) == ( ! quadrants.y || Q.y ) ) ) );
 
+    // If in Flashlight mode, then render the fragment?
     doRender = doRender || ( ( 3 == renderMode ) &&
         ( ( showFix == ( flashlightDist > flashlightRadius ) ) ||
                        ( flashlightOverlays && showFix ) ) );
 
     if ( ! doRender ) discard;
 
+    // Image and segmentation masks based on texture coordinates:
     bool imgMask = isInsideTexture( fs_in.ImgTexCoords );
     bool segMask = isInsideTexture( fs_in.SegTexCoords );
 
-    // Look up the image value (after mapping to GL texture units) and label value:
+    // Look up the image value (after mapping to GL texture units):
     float img = texture( imgTex, fs_in.ImgTexCoords ).r;
+
+    // Number of samples used for computing the final image value:
     int numSamples = 1;
 
-    // Intensity projection in forwards (+Z) direction:
+    // Accumulate intensity projection in forwards (+Z) direction:
     for ( int i = 1; i <= halfNumMipSamples; ++i )
     {
         vec3 tc = fs_in.ImgTexCoords + i * texSamplingDirZ;
@@ -124,7 +133,7 @@ void main()
         ++numSamples;
     }
 
-    // Intensity projection in backwards (-Z) direction:
+    // Accumulate intensity projection in backwards (-Z) direction:
     for ( int i = 1; i <= halfNumMipSamples; ++i )
     {
         vec3 tc = fs_in.ImgTexCoords - i * texSamplingDirZ;
@@ -139,24 +148,29 @@ void main()
         ++numSamples;
     }
 
-    // If using Mean Intensity Projection mode, then normalize by number of samples:
+    // If using Mean Intensity Projection mode, then normalize by the number of samples:
     img /= mix( 1.0, float( numSamples ), float( 2 == mipMode ) );
 
-
+    // Look up segmentation texture label value:
     uint seg = texture( segTex, fs_in.SegTexCoords ).r;
 
-    // Apply window/level and normalize value in [0.0, 1.0]:
+    // Apply window/level to normalize image values in [0.0, 1.0] range:
     float imgNorm = clamp( imgSlopeIntercept[0] * img + imgSlopeIntercept[1], 0.0, 1.0 );
 
-    // Mask image:
+    // Compute the image mask:
     float mask = float( imgMask && ( masking && ( seg > 0u ) || ! masking ) );
 
-    // Apply opacity, mask, and thresholds for images:
-    float alpha = imgOpacity * mask * hardThreshold( img, imgThresholds );
+    // Compute image alpha based on opacity, mask, and thresholds:
+    float imgAlpha = imgOpacity * mask * hardThreshold( img, imgThresholds );
 
-    // Apply colors to the image and segmentation values. Multiply by alpha for images:
-    vec4 imgColor = texture( imgCmapTex, imgCmapSlopeIntercept[0] * imgNorm + imgCmapSlopeIntercept[1] ) * alpha;
-    vec4 segColor = texelFetch( segLabelCmapTex, int(seg), 0 ) * segOpacity * float(segMask);
+    // Compute segmentation alpha based on opacity and mask:
+    float segAlpha = segOpacity * float(segMask);
+
+    // Look up image color and apply alpha:
+    vec4 imgColor = texture( imgCmapTex, imgCmapSlopeIntercept[0] * imgNorm + imgCmapSlopeIntercept[1] ) * imgAlpha;
+
+    // Look up segmentation color and apply :
+    vec4 segColor = texelFetch( segLabelCmapTex, int(seg), 0 ) * segAlpha;
 
     // Blend colors:
     OutColor = vec4( 0.0, 0.0, 0.0, 0.0 );
